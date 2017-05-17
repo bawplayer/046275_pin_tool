@@ -58,9 +58,11 @@ class EDGE
     ADDRINT _dst;
     ADDRINT _next_ins;
     ETYPE   _type; // must be integer to make stl happy
-
-    EDGE(ADDRINT s, ADDRINT d, ADDRINT n, ETYPE t) :
-        _src(s),_dst(d), _next_ins(n),_type(t)  {}
+    RTN     _rtn;
+    string  _rtn_name;
+        
+    EDGE(ADDRINT s, ADDRINT d, ADDRINT n, ETYPE t, RTN rtn, string rtn_name) :
+        _src(s),_dst(d), _next_ins(n),_type(t),_rtn(rtn),_rtn_name(rtn_name)  {}
 
     bool operator <(const EDGE& edge) const
     {
@@ -110,6 +112,8 @@ typedef struct BblStruct
 {
     ADDRINT _start_address;
     ADDRINT _end_address;
+    RTN     _rtn;
+    string  _rtn_name;
     struct BblStruct* _next;
 } BBL_OBJECT;
 BBL_OBJECT* BblList = 0; // Linked list of bbl objects
@@ -123,7 +127,9 @@ typedef struct RtnStruct
     UINT64 _icount;
 //    EDGE_OBJECT* _edge_list_ptr;
 //    EDG_HASH_SET EdgeSet;
-    BBL_OBJECT* _bbl_list_ptr;
+    BBL_OBJECT _bbl_array[10];
+    int _bbl_array_size;
+    
     struct RtnStruct* _next;
 } RTN_OBJECT;
 // Linked list of rtn objects
@@ -157,6 +163,8 @@ VOID Trace(TRACE trace, VOID *v)
         BBL_OBJECT* bbl_obj = new BBL_OBJECT;
         bbl_obj->_start_address = BBL_Address(bbl);
         bbl_obj->_end_address = bbl_obj->_start_address + BBL_Size(bbl);
+        bbl_obj->_rtn = RTN_FindByAddress(bbl_obj->_start_address);
+        bbl_obj->_rtn_name =RTN_FindNameByAddress(bbl_obj->_start_address);
         
         // Add bbl_obj to list of bbl's
         bbl_obj->_next = BblList;
@@ -180,7 +188,7 @@ VOID Routine(RTN rtn, VOID *v)
     rtn_obj->_rtnCount = 0;
     rtn_obj->_icount = 0;
 //    rtn_obj->_edge_list_ptr = NULL;
-    rtn_obj->_bbl_list_ptr = NULL;
+//    rtn_obj->_bbl_list_ptr = NULL;
 
     // Add rtn_obj to list of routines
     rtn_obj->_next = RtnList;
@@ -203,7 +211,7 @@ VOID Routine(RTN rtn, VOID *v)
             ETYPE type = INS_IsCall(ins) ? ETYPE_CALL : ETYPE_BRANCH;
     
             // static targets can map here once
-            COUNTER *pedg = Lookup( EDGE(INS_Address(ins),  INS_DirectBranchOrCallTargetAddress(ins), INS_NextAddress(ins), type) );
+            COUNTER *pedg = Lookup( EDGE(INS_Address(ins),  INS_DirectBranchOrCallTargetAddress(ins), INS_NextAddress(ins), type, rtn, RTN_Name(rtn)) );
             INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, (AFUNPTR) edgecount, IARG_ADDRINT, pedg, IARG_END);
         }
     }
@@ -259,14 +267,42 @@ VOID Fini(INT32 code, VOID *v)
            }
      }
 
+
+/*
     // ***bbl code***
     BBL_OBJECT bbl_array[10000];
     int bbl_index_top = 0;
     for (BBL_OBJECT* bbl_obj = BblList; bbl_obj; bbl_obj = bbl_obj->_next)
     {
-        bbl_array[bbl_index_top++] = *bbl_obj;
         if (bbl_index_top==10000) break; //never happens, just a fail-safe mechanisem.
+        bbl_array[bbl_index_top++] = *bbl_obj;
     }    
+*/
+
+    //init _bbl_array_size=0
+    for (int i=0; i<index_top;i++)
+    {
+        rtn_array[i]._bbl_array_size=0;
+    }
+
+    
+    for (BBL_OBJECT* bbl_obj = BblList; bbl_obj; bbl_obj = bbl_obj->_next)
+    {
+        for (int i=0; i<index_top; i++)
+        {
+            if (rtn_array[i]._name == bbl_obj->_rtn_name)
+            {
+                if (rtn_array[i]._bbl_array_size == 10) break;
+                rtn_array[i]._bbl_array[rtn_array[i]._bbl_array_size++] = *bbl_obj;
+                break; 
+            }
+        }
+    }    
+
+
+
+
+
 
 
 
@@ -274,32 +310,49 @@ VOID Fini(INT32 code, VOID *v)
     for (int i=0; i<index_top; i++)
     {
         outFile << rtn_array[i]._name << " at: 0x" << hex << rtn_array[i]._address << dec << " icount: " <<rtn_array[i]._icount << endl;
+
+        for (int j=0; j<rtn_array[i]._bbl_array_size; j++)
+        {
+            outFile << "BB" << j <<": 0x" << hex << rtn_array[i]._bbl_array[j]._start_address << " - 0x" << rtn_array[i]._bbl_array[j]._end_address << dec << endl;
+        }
     }
+
+/*
     for (int j=0; j<bbl_index_top; j++)
     {
         outFile << "BB" << j <<": 0x" << hex << bbl_array[j]._start_address << " - 0x" << bbl_array[j]._end_address << dec << endl;
     }
+*/
+
 
     int i=0;
     for( EDG_HASH_SET::const_iterator it = EdgeSet.begin(); it !=  EdgeSet.end(); it++, i++ )
     {
         const pair<EDGE, COUNTER*> tuple = *it;
-
-
         if( tuple.second->_count == 0 ) continue;
 
-        string rtn_name = RTN_FindNameByAddress(tuple.first._src+10); 	
-
-        outFile << "source rtn name is " << rtn_name <<  endl;
+        outFile << "source rtn name is " << tuple.first._rtn_name <<  endl;
         outFile << "Edge" << i << ": " << StringFromAddrint( tuple.first._src)  << " -> " << StringFromAddrint(tuple.first._dst) << " " << decstr(tuple.second->_count,12) << " " << endl;
 
     }
 
-    ADDRINT x = 0x409c33;
-    string rtn_name = RTN_Name(RTN_FindByAddress(x));
-    outFile << "x=  " << x << "rtn name = " << rtn_name <<  endl;
+
 
 }
+
+/*
+string find_bbl_name(RTN rtn, ADDRINT address)
+{
+    for (all BBL in rtn)
+    {
+        if address is in BBL
+        {
+            return BBL.name
+        }
+    }
+}
+*/
+
 
 /* ===================================================================== */
 /* Print Help Message                                                    */
