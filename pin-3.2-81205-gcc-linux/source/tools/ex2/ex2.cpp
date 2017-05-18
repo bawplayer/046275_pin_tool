@@ -31,7 +31,6 @@ EDGE_OBJECT* EdgeList = 0; // Linked list of edge objects
 */
 
 
-
 class COUNTER
 {
   public:
@@ -134,6 +133,23 @@ typedef struct RtnStruct
 } RTN_OBJECT;
 // Linked list of rtn objects
 RTN_OBJECT* RtnList = 0;
+
+
+int find_bbl_num(RTN_OBJECT rtn_obj, ADDRINT address)
+{
+    for (unsigned int i=0; i<rtn_obj._bbl_vector.size(); i++)
+    {
+        
+        BBL_OBJECT bbl_obj = rtn_obj._bbl_vector[i];
+        if ((address >= bbl_obj._start_address) && (address <= bbl_obj._end_address))
+        {
+            return i; 
+        }
+    }
+    
+    return -1;
+}
+
 
 // This function is called before every instruction is executed
 VOID docount(UINT64 * counter)
@@ -311,50 +327,33 @@ VOID Fini(INT32 code, VOID *v)
 
         for (unsigned int j=0; j<rtn_array[i]._bbl_vector.size(); j++)
         {
-            outFile << "BB" << j <<": 0x" << hex << rtn_array[i]._bbl_vector[j]._start_address << " - 0x" << rtn_array[i]._bbl_vector[j]._end_address << dec << endl;
+            outFile << "\tBB" << j+1 <<": 0x" << hex << rtn_array[i]._bbl_vector[j]._start_address << " - 0x" << rtn_array[i]._bbl_vector[j]._end_address << dec << endl;
         }
   
-/*        
-        int i=0;
-        for( EDG_HASH_SET::const_iterator it = rtn_array[i]._edgeset.begin(); it !=  rtn_array[i]._edgeset.end(); it++, i++ )
+        int edge_index = 1;
+        for( EDG_HASH_SET::const_iterator it = rtn_array[i]._edgeset.begin(); it !=  rtn_array[i]._edgeset.end(); it++, edge_index++)
         {
             const pair<EDGE, COUNTER*> tuple = *it;
     
-            outFile << "source rtn name is " << tuple.first._rtn_name <<  endl;
-            outFile << "Edge" << i << ": " << StringFromAddrint( tuple.first._src)  << " -> " << StringFromAddrint(tuple.first._dst) << " " << decstr(tuple.second->_count,12) << " " << endl;
+//            outFile << "source rtn name is " << tuple.first._rtn_name <<  endl;
+
+
+                outFile << "\t\tEdge" << edge_index << ": BB" << find_bbl_num(rtn_array[i], tuple.first._src)  << " -> BB" << find_bbl_num(rtn_array[i], tuple.first._dst) << " " << decstr(tuple.second->_count) << " " << endl;
+
+            if ((find_bbl_num(rtn_array[i], tuple.first._src) == -1) || (find_bbl_num(rtn_array[i], tuple.first._dst) == -1))
+            {
+                outFile << "\t\t*******Edge" << edge_index << ": " << StringFromAddrint( tuple.first._src)  << " -> " << StringFromAddrint(tuple.first._dst) << " " << decstr(tuple.second->_count,12) << " " << endl;
+
+                outFile << "\t\t*******Edge" << edge_index << ": BB" << find_bbl_num(rtn_array[i], tuple.first._src)+1  << " -> BB" << find_bbl_num(rtn_array[i], tuple.first._dst)+1 << " " << decstr(tuple.second->_count,12) << " " << endl;
+            }
+
+ 
         }
-*/
 
-    }
-
-
-
-    int i=0;
-    for( EDG_HASH_SET::const_iterator it = EdgeSet.begin(); it !=  EdgeSet.end(); it++, i++ )
-    {
-        const pair<EDGE, COUNTER*> tuple = *it;
-        if( tuple.second->_count == 0 ) continue;
-
-        outFile << "source rtn name is " << tuple.first._rtn_name <<  endl;
-        outFile << "Edge" << i << ": " << StringFromAddrint( tuple.first._src)  << " -> " << StringFromAddrint(tuple.first._dst) << " " << decstr(tuple.second->_count,12) << " " << endl;
 
     }
 }
 
-string find_bbl_name(RTN_OBJECT rtn_obj, ADDRINT address)
-{
-    for (unsigned int i=0; i<rtn_obj._bbl_vector.size(); i++)
-    {
-        
-        BBL_OBJECT bbl_obj = rtn_obj._bbl_vector[i];
-        if ((address > bbl_obj._start_address) && (address < bbl_obj._end_address))
-        {
-            return bbl_obj._rtn_name; 
-        }
-    }
-    
-    return "";
-}
 
 
 
