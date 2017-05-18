@@ -7,13 +7,14 @@ since there are rtns with the same name but with diffrent image, they are counte
 the desired output doesn't distinguish between images, so I aggragated all the instruction count of all the rtns with the same name (even though they have a diffrent image.) 
 also removed redundent code.
 */
-
+#include <vector>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string.h>
 #include "pin.H"
 
+using namespace std;
 ofstream outFile;
 
 /*
@@ -126,9 +127,8 @@ typedef struct RtnStruct
     UINT64 _rtnCount;
     UINT64 _icount;
 //    EDGE_OBJECT* _edge_list_ptr;
-//    EDG_HASH_SET EdgeSet;
-    BBL_OBJECT _bbl_array[10];
-    int _bbl_array_size;
+    EDG_HASH_SET _edgeset;
+    vector<BBL_OBJECT> _bbl_vector;
     
     struct RtnStruct* _next;
 } RTN_OBJECT;
@@ -267,62 +267,66 @@ VOID Fini(INT32 code, VOID *v)
            }
      }
 
-
-/*
-    // ***bbl code***
-    BBL_OBJECT bbl_array[10000];
-    int bbl_index_top = 0;
-    for (BBL_OBJECT* bbl_obj = BblList; bbl_obj; bbl_obj = bbl_obj->_next)
-    {
-        if (bbl_index_top==10000) break; //never happens, just a fail-safe mechanisem.
-        bbl_array[bbl_index_top++] = *bbl_obj;
-    }    
-*/
-
-    //init _bbl_array_size=0
-    for (int i=0; i<index_top;i++)
-    {
-        rtn_array[i]._bbl_array_size=0;
-    }
-
-    
+    // move BBL from global linked list to the vector in the relevant rtn
     for (BBL_OBJECT* bbl_obj = BblList; bbl_obj; bbl_obj = bbl_obj->_next)
     {
         for (int i=0; i<index_top; i++)
         {
             if (rtn_array[i]._name == bbl_obj->_rtn_name)
             {
-                if (rtn_array[i]._bbl_array_size == 10) break;
-                rtn_array[i]._bbl_array[rtn_array[i]._bbl_array_size++] = *bbl_obj;
+                rtn_array[i]._bbl_vector.push_back(*bbl_obj);
                 break; 
             }
         }
     }    
 
 
+    // move the edges from global EDG_HASH_SET to rtn _edgeset 
+    for( EDG_HASH_SET::const_iterator it = EdgeSet.begin(); it !=  EdgeSet.end(); it++)
+    {
+        const pair<EDGE, COUNTER*> tuple = *it;
+        if( tuple.second->_count == 0 ) continue;
+
+        for (int i=0; i<index_top; i++)
+        {
+            if (rtn_array[i]._name == tuple.first._rtn_name)
+            {
+                rtn_array[i]._edgeset[tuple.first] = tuple.second;
+            }        
+        }
+    }
 
 
 
 
 
+/********************
+*****print to file***
+********************/
 
     // print the sorted output
     for (int i=0; i<index_top; i++)
     {
         outFile << rtn_array[i]._name << " at: 0x" << hex << rtn_array[i]._address << dec << " icount: " <<rtn_array[i]._icount << endl;
 
-        for (int j=0; j<rtn_array[i]._bbl_array_size; j++)
+        for (unsigned int j=0; j<rtn_array[i]._bbl_vector.size(); j++)
         {
-            outFile << "BB" << j <<": 0x" << hex << rtn_array[i]._bbl_array[j]._start_address << " - 0x" << rtn_array[i]._bbl_array[j]._end_address << dec << endl;
+            outFile << "BB" << j <<": 0x" << hex << rtn_array[i]._bbl_vector[j]._start_address << " - 0x" << rtn_array[i]._bbl_vector[j]._end_address << dec << endl;
         }
+  
+/*        
+        int i=0;
+        for( EDG_HASH_SET::const_iterator it = rtn_array[i]._edgeset.begin(); it !=  rtn_array[i]._edgeset.end(); it++, i++ )
+        {
+            const pair<EDGE, COUNTER*> tuple = *it;
+    
+            outFile << "source rtn name is " << tuple.first._rtn_name <<  endl;
+            outFile << "Edge" << i << ": " << StringFromAddrint( tuple.first._src)  << " -> " << StringFromAddrint(tuple.first._dst) << " " << decstr(tuple.second->_count,12) << " " << endl;
+        }
+*/
+
     }
 
-/*
-    for (int j=0; j<bbl_index_top; j++)
-    {
-        outFile << "BB" << j <<": 0x" << hex << bbl_array[j]._start_address << " - 0x" << bbl_array[j]._end_address << dec << endl;
-    }
-*/
 
 
     int i=0;
