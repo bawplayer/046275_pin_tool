@@ -339,23 +339,24 @@ VOID Fini(INT32 code, VOID *v)
         outFile << "Edge" << i << ": " << StringFromAddrint( tuple.first._src)  << " -> " << StringFromAddrint(tuple.first._dst) << " " << decstr(tuple.second->_count,12) << " " << endl;
 
     }
-
-
-
 }
 
-/*
-string find_bbl_name(RTN rtn, ADDRINT address)
+string find_bbl_name(RTN_OBJECT rtn_obj, ADDRINT address)
 {
-    for (all BBL in rtn)
+    for (unsigned int i=0; i<rtn_obj._bbl_vector.size(); i++)
     {
-        if address is in BBL
+        
+        BBL_OBJECT bbl_obj = rtn_obj._bbl_vector[i];
+        if ((address > bbl_obj._start_address) && (address < bbl_obj._end_address))
         {
-            return BBL.name
+            return bbl_obj._rtn_name; 
         }
     }
+    
+    return "";
 }
-*/
+
+
 
 
 /* ===================================================================== */
