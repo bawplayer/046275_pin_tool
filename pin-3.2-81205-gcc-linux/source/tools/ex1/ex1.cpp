@@ -16,18 +16,20 @@ Written by: B
 
 class RoutineClass {
 private:
-	RTN _rtn;
+	//RTN _rtn;
 	unsigned _icount = 0;
+	int _id;
+	string _name;
 public:
-	RoutineClass(){}
-	RoutineClass(const RTN& rtn): _rtn(rtn){}
+	RoutineClass(int id = 0, const string& name = ""): _id(id), _name(name) {}
+	RoutineClass(const RTN& rtn): _id(RTN_Id(rtn)), _name(RTN_Name(rtn)) {}
 	
 	explicit operator int() const {
-		return RTN_Id(_rtn);
+		return this->_id;
 	}
 
 	string getName() const {
-		return RTN_Name(_rtn);
+		return this->_name;
 	}
 
 	unsigned getInstructionCount() const {
@@ -48,7 +50,9 @@ std::ostream& operator<<(std::ostream& out, const RoutineClass& self) {
 }
 
 bool operator<(const RoutineClass& a, const RoutineClass& b) {
-	return a.getInstructionCount() < b.getInstructionCount();
+	return (a.getInstructionCount() < b.getInstructionCount()) \
+		|| ((a.getInstructionCount() == b.getInstructionCount()) \
+		&& (a.getName() < b.getName()));
 }
 
 bool operator==(const RoutineClass& a, const RoutineClass& b) {
@@ -83,6 +87,7 @@ VOID Fini(int, VOID * v) {
 
 std::ostream& printRoutineInstructionCount(std::ostream& os)  {
 	// Insert routines into a vector, do clean-up, sort, and finally, print
+	
 	std::vector<RoutineClass> routinesVec;
 	for (auto&& r : routinesDict) {
 		auto& rot = r.second;
@@ -109,28 +114,11 @@ std::ostream& printRoutineInstructionCount(std::ostream& os)  {
 	std::sort(routinesVec.begin(), routinesVec.end(), compareIsGreaterThan);
 	//print routines
 	for (auto&& r : routinesVec) {
-		os << r;
+		os << r << std::endl;
 	}
 
 	return os;
 }
-
-/*
-VOID Trace(TRACE trace, VOID *v) {
-	for (RTN rtn = TRACE_Rtn(trace); RTN_Valid(rtn); rtn = RTN_Next(rtn)) {
-		RTN_Open(rtn);
-		RoutineClass routine(rtn);
-		routinesDict[int(routine)] = routine;
-
-		for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins)) {
-		    // Increment routine's counter on every executed instruction
-		    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)incrementICounter, IARG_PTR, &routine, IARG_END);
-		}
-
-		RTN_Close(rtn);
-	}
-}
-*/
 
 VOID Routine(RTN rtn, VOID *v) {
 	RTN_Open(rtn);
@@ -141,7 +129,6 @@ VOID Routine(RTN rtn, VOID *v) {
 	    // Increment routine's counter on every executed instruction
 	    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)incrementICounter, IARG_UINT32, int(routine), IARG_END);
 	}
-
 	RTN_Close(rtn);
 }
 
