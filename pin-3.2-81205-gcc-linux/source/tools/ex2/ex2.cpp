@@ -125,7 +125,6 @@ typedef struct RtnStruct
     RTN _rtn;
     UINT64 _rtnCount;
     UINT64 _icount;
-//    EDGE_OBJECT* _edge_list_ptr;
     EDG_HASH_SET _edgeset;
     vector<BBL_OBJECT> _bbl_vector;
     
@@ -330,32 +329,31 @@ VOID Fini(INT32 code, VOID *v)
             outFile << "\tBB" << j+1 <<": 0x" << hex << rtn_array[i]._bbl_vector[j]._start_address << " - 0x" << rtn_array[i]._bbl_vector[j]._end_address << dec << endl;
         }
   
-        int edge_index = 1;
-        for( EDG_HASH_SET::const_iterator it = rtn_array[i]._edgeset.begin(); it !=  rtn_array[i]._edgeset.end(); it++, edge_index++)
+        int edge_index = 0;
+        for( EDG_HASH_SET::const_iterator it = rtn_array[i]._edgeset.begin(); it !=  rtn_array[i]._edgeset.end(); it++)
         {
             const pair<EDGE, COUNTER*> tuple = *it;
     
 //            outFile << "source rtn name is " << tuple.first._rtn_name <<  endl;
 
-
-                outFile << "\t\tEdge" << edge_index << ": BB" << find_bbl_num(rtn_array[i], tuple.first._src)  << " -> BB" << find_bbl_num(rtn_array[i], tuple.first._dst) << " " << decstr(tuple.second->_count) << " " << endl;
-
             if ((find_bbl_num(rtn_array[i], tuple.first._src) == -1) || (find_bbl_num(rtn_array[i], tuple.first._dst) == -1))
             {
+                continue;
                 outFile << "\t\t*******Edge" << edge_index << ": " << StringFromAddrint( tuple.first._src)  << " -> " << StringFromAddrint(tuple.first._dst) << " " << decstr(tuple.second->_count,12) << " " << endl;
-
-                outFile << "\t\t*******Edge" << edge_index << ": BB" << find_bbl_num(rtn_array[i], tuple.first._src)+1  << " -> BB" << find_bbl_num(rtn_array[i], tuple.first._dst)+1 << " " << decstr(tuple.second->_count,12) << " " << endl;
+                outFile << "\t\t*******Edge" << edge_index << ": BB" << find_bbl_num(rtn_array[i], tuple.first._src)  << " -> BB" << find_bbl_num(rtn_array[i], tuple.first._dst) << " " << decstr(tuple.second->_count) << " " << endl;
             }
 
+
+            outFile << "\t\tEdge" << edge_index << ": BB" << find_bbl_num(rtn_array[i], tuple.first._src)  << " -> BB" << find_bbl_num(rtn_array[i], tuple.first._dst) << " " << decstr(tuple.second->_count) << " " << endl;
+
+
+            edge_index++;
  
         }
 
 
     }
 }
-
-
-
 
 
 /* ===================================================================== */
