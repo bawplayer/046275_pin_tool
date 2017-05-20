@@ -6,7 +6,6 @@ Written by: B
 
 
 #include <fstream>
-//#include <iomanip>
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -40,27 +39,24 @@ public:
 		return this->getInstructionCount();
 	}
 
-	friend std::ostream& operator<<(std::ostream&, const RoutineClass&);
-	friend bool operator<(const RoutineClass&, const RoutineClass&);
-	friend bool operator==(const RoutineClass&, const RoutineClass&);
-};
+	friend std::ostream& operator<<(std::ostream& out, const RoutineClass& self) {
+		return out << self.getName() << " icount: " << self.getInstructionCount();
+	}
 
-std::ostream& operator<<(std::ostream& out, const RoutineClass& self) {
-	return out << self.getName() << " icount: " << self.getInstructionCount();
-}
+	friend bool operator==(const RoutineClass& a, const RoutineClass& b) {
+		return a._id == b._id;
+	}
+}; // END of ROUTINECLASS
+
 
 bool operator<(const RoutineClass& a, const RoutineClass& b) {
 	return (a.getInstructionCount() < b.getInstructionCount()) \
 		|| ((a.getInstructionCount() == b.getInstructionCount()) \
-		&& (a.getName() < b.getName()));
-}
-
-bool operator==(const RoutineClass& a, const RoutineClass& b) {
-	return a.getInstructionCount() == b.getInstructionCount();
+		&& (0 < a.getName().compare(b.getName())));
 }
 
 bool compareIsGreaterThan(const RoutineClass& a, const RoutineClass& b) {
-	return !((a<b) || (a==b));
+	return !((a<b) || (return a.getInstructionCount() == b.getInstructionCount()));
 }
 
 

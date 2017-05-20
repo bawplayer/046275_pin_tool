@@ -11,6 +11,7 @@ also removed redundent code.
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <algorithm>
 #include <string.h>
 #include "pin.H"
 
@@ -18,29 +19,7 @@ using namespace std;
 ofstream outFile;
 
 /*
-typedef struct EdgeStruct
-{
-    ADDRINT _source_address;
-    ADDRINT _dest_address;
-    BBL_OBJECT _source_bbl;
-    BBL_OBJECT _dest_bbl;
-    UINT64 _count;
-    struct EdgeStruct* _next;
-} EDGE_OBJECT;
-EDGE_OBJECT* EdgeList = 0; // Linked list of edge objects
-*/
-
-
-class COUNTER
-{
-  public:
-    UINT64 _count;       // number of times the edge was traversed
-
-    COUNTER() : _count(0)   {}
-};
-
-typedef enum
-{
+typedef enum {
     ETYPE_INVALID,
     ETYPE_CALL,
     ETYPE_ICALL,
@@ -51,24 +30,6 @@ typedef enum
     ETYPE_LAST
 }ETYPE;
 
-class EDGE
-{
-  public:
-    ADDRINT _src;
-    ADDRINT _dst;
-    ADDRINT _next_ins;
-    ETYPE   _type; // must be integer to make stl happy
-    RTN     _rtn;
-    string  _rtn_name;
-        
-    EDGE(ADDRINT s, ADDRINT d, ADDRINT n, ETYPE t, RTN rtn, string rtn_name) :
-        _src(s),_dst(d), _next_ins(n),_type(t),_rtn(rtn),_rtn_name(rtn_name)  {}
-
-    bool operator <(const EDGE& edge) const
-    {
-        return _src < edge._src || (_src == edge._src && _dst < edge._dst);
-    }
-};
 string StringFromEtype( ETYPE etype)
 {
     switch(etype)
@@ -90,23 +51,169 @@ string StringFromEtype( ETYPE etype)
         return "INVALID";
     }
 }
-typedef map< EDGE, COUNTER*> EDG_HASH_SET;
-static EDG_HASH_SET EdgeSet;
-static COUNTER * Lookup( EDGE edge)
-{
-    COUNTER *& ref =   EdgeSet[ edge ];
+*/
+class EDGEClass {
+private:
+    string _rtn_name = "";
+    int _rtn_id = 0;
+    unsigned _icount = 0;
+public:
+    ADDRINT _src, _dst;
+    ADDRINT _next_ins;
+    //ETYPE   _type; // must be integer to make stl happy
+        
+    EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n, const RTN& rtn) :
+        _src(s),_dst(d), _next_ins(n) {
+            RoutineClass rot(rtn);
+            _rtn_name = rot.getName();
+            _rtn_id = rot.getId();
+        }
 
-    if( ref == 0 )
-    {
-        ref = new COUNTER();
+    unsigned getInstructionCount() const {
+        return this->_icount;
     }
 
-    return ref;
+    unsigned incInstructionCount(int inc=1) {
+        this->_icount += inc;
+        return this->getInstructionCount();
+    }
+
+    string getRoutineName() const {
+        return this->_rtn_name;
+    }
+
+    int getRoutineId() const {
+        return this->_rtn_id;
+    }
+
+    bool operator<(const EDGEClass& edge) const {
+        return (this->_src < edge._src) || \
+            ((this->_src == edge._src) && (this->_dst < edge._dst));
+    }
+}; // END of EDGEClass
+
+
+class RoutineClass {
+private:
+    unsigned _icount = 0, _rcount = 0;
+    int _id;
+    string _name;
+    ADDRINT _address;
+
+public:
+    std::vector<EDGEClass> edges;
+    std::vector<BBLClass> bbls;
+
+    RoutineClass(int id = 0, const string& name = "", ADDRINT addr = 0): 
+        _id(id), _name(name), _address(addr) {}
+    RoutineClass(const RTN& rtn):
+        _id(RTN_Id(rtn)), _name(RTN_Name(rtn)), _address(RTN_Address(rtn)) {}
+    
+    string getName() const {
+        return this->_name;
+    }
+
+    ADDRINT getAddress() const {
+        return this->_address;
+    }
+
+    int getId() const {
+        return this->_id;
+    }
+
+    explicit operator int() const {
+        this->getId();
+    }
+
+    unsigned getInstructionCount() const {
+        return this->_icount;
+    }
+    unsigned incInstructionCount(int inc=1) {
+        _icount += inc;
+        return this->getInstructionCount();
+    }
+
+    unsigned getRoutineCount() const {
+        return this->_rcount;
+    }
+
+    unsigned incRoutineCount(int inc=1) {
+        _rcount += inc;
+        return this->getRoutineCount();
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const RoutineClass& self) {
+        return out << self.getName() << " icount: " << self.getInstructionCount();
+    }
+
+    friend bool operator==(const RoutineClass& a, const RoutineClass& b) {
+        return a._id == b._id;
+    }
+}; // END of RoutineClass
+
+
+bool operator<(const RoutineClass& a, const RoutineClass& b) {
+    return (a.getInstructionCount() < b.getInstructionCount()) \
+        || ((a.getInstructionCount() == b.getInstructionCount()) \
+        && (0 < a.getName().compare(b.getName())));
 }
 
+bool compareIsGreaterThan(const RoutineClass& a, const RoutineClass& b) {
+    return !((a<b) || (return a.getInstructionCount() == b.getInstructionCount()));
+}
+
+class BBLClass {
+private:
+    string _rtn_name = "";
+    int _rtn_id = 0;
+
+    bool _validateSourceAndDestination() {
+        if (_src > dst) {
+            std::swap(_src, _dst);
+        }
+        return true;
+    }
+public:
+    ADDRINT _src = 0, _dst = 0;
+
+    BBLClass(ADDRINT src, ADDRINT dst, const RoutineClass& rc): _src(src), _dst(dst) {
+        _rtn_name = rc.getName();
+        _rtn_id = rc.getId();
+        _validateSourceAndDestination();
+    }
+
+    BBLClass(ADDRINT src, ADDRINT dst, const RoutineClass& rtn): _src(src), _dst(dst) {
+        _rtn_name = string(RTN_Name(rtn));
+        _rtn_id = RTN_Address(rtn);
+        _validateSourceAndDestination();
+    }
+
+    string getRoutineName() const {
+        return this->_rtn_name;
+    }
+
+    int getRoutineId() const {
+        return this->_rtn_id;
+    }
+
+    bool isInstructionIn(ADDRINT addr) {
+        return (addr >= this->_src) && (addr <= this->_dst);
+    }
+}; // end of BBLClass
+
+std::map<int, RoutineClass> routinesDict;
 
 
+void incrementRoutineICounter(int i) {
+    routinesDict[i].incInstructionCount();
+}
+void incrementRoutineRCounter(int i) {
+    routinesDict[i].incRoutineCount();
+}
 
+void incrementRoutineEdgeCounter(int i, int j) {
+    routinesDict[i].edges[j].incInstructionCount();
+}
 
 typedef struct BblStruct
 {
@@ -118,6 +225,7 @@ typedef struct BblStruct
 } BBL_OBJECT;
 BBL_OBJECT* BblList = 0; // Linked list of bbl objects
 
+/*
 typedef struct RtnStruct
 {
     string _name;
@@ -132,7 +240,7 @@ typedef struct RtnStruct
 } RTN_OBJECT;
 // Linked list of rtn objects
 RTN_OBJECT* RtnList = 0;
-
+*/
 
 int find_bbl_num(RTN_OBJECT rtn_obj, ADDRINT address)
 {
@@ -151,7 +259,7 @@ int find_bbl_num(RTN_OBJECT rtn_obj, ADDRINT address)
 
 
 // This function is called before every instruction is executed
-VOID docount(UINT64 * counter)
+/*VOID docount(UINT64 * counter)
 {
     (*counter)++;
 }
@@ -170,11 +278,12 @@ const char * StripPath(const char * path)
         return path;
 }
 
-
+*/
 VOID Trace(TRACE trace, VOID *v)
 {
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
     {
+
         BBL_OBJECT* bbl_obj = new BBL_OBJECT;
         bbl_obj->_start_address = BBL_Address(bbl);
         bbl_obj->_end_address = bbl_obj->_start_address + BBL_Size(bbl);
@@ -192,42 +301,32 @@ VOID Trace(TRACE trace, VOID *v)
 // Pin calls this function every time a new rtn is executed
 VOID Routine(RTN rtn, VOID *v)
 {
-    
-    // Allocate a routine object
-    RTN_OBJECT* rtn_obj = new RTN_OBJECT;
+    RoutineClass rc(rtn);
+    int routine_id = int(rc);
+    if (routinesDict.count(routine_id) < 1) { // check if key (routine id) already exist
+        routinesDict[routine_id] = routine;
+    }
 
-    // The RTN goes away when the image is unloaded, so save it now because we need it in the fini
-    rtn_obj->_name = RTN_Name(rtn);
-    rtn_obj->_address = RTN_Address(rtn);
-    rtn_obj->_rtn = rtn;
-    rtn_obj->_rtnCount = 0;
-    rtn_obj->_icount = 0;
-//    rtn_obj->_edge_list_ptr = NULL;
-//    rtn_obj->_bbl_list_ptr = NULL;
-
-    // Add rtn_obj to list of routines
-    rtn_obj->_next = RtnList;
-    RtnList = rtn_obj;
-            
     RTN_Open(rtn);
             
     // Insert a call at the entry point of a routine to increment the call count
-    RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)docount, IARG_PTR, &(rtn_obj->_rtnCount), IARG_END);
+    INS_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)incrementRoutineRCounter, IARG_UINT32, routine_id, IARG_END);
     
     // For each instruction of the routine
     for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))
     {
         // Insert a call to docount to increment the instruction counter for this rtn
-        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)docount, IARG_PTR, &(rtn_obj->_icount), IARG_END);
+        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)incrementRoutineICounter, IARG_UINT32, routine_id, IARG_END);
 
         // count the edges ((indirect)
-        if (INS_IsDirectBranchOrCall(ins))
-        {
-            ETYPE type = INS_IsCall(ins) ? ETYPE_CALL : ETYPE_BRANCH;
+        if (INS_IsDirectBranchOrCall(ins)) {
+            //ETYPE type = INS_IsCall(ins) ? ETYPE_CALL : ETYPE_BRANCH;
     
-            // static targets can map here once
-            COUNTER *pedg = Lookup( EDGE(INS_Address(ins),  INS_DirectBranchOrCallTargetAddress(ins), INS_NextAddress(ins), type, rtn, RTN_Name(rtn)) );
-            INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, (AFUNPTR) edgecount, IARG_ADDRINT, pedg, IARG_END);
+            int edge_index = routinesDict[routine_id].edges.size();
+            routinesDict[routine_id].edges.push_back(EDGE(INS_Address(ins), INS_DirectBranchOrCallTargetAddress(ins), INS_NextAddress(ins), rtn));
+
+            // insert a call to increment edge's counter, called iff the branch was taken
+            INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, (AFUNPTR)incrementRoutineEdgeCounter, IARG_UINT32, routine_id, IARG_UINT32, edge_index, IARG_END);
         }
     }
 
@@ -236,51 +335,17 @@ VOID Routine(RTN rtn, VOID *v)
 
 // This function is called when the application exits
 // It prints the name and count for each procedure
-VOID Fini(INT32 code, VOID *v)
-{
-    // ***rtn code***
-    RTN_OBJECT rtn_array[1000];
-    int index_top = 0;
-    bool break_flag;  
-    
-    // we convert the linked list to an array
-    for (RTN_OBJECT* rtn_obj = RtnList; rtn_obj; rtn_obj = rtn_obj->_next)
-    {
-        break_flag = false;
-        if (rtn_obj->_icount > 0)
-        {
+VOID Fini(INT32 code, VOID *v) {
+    std::vector<RoutineClass> routinesVector;
 
-            // if we have the more then one rtn with the same name we do not create a new item, but add the icount to the original.
-            for(int i=0; i<index_top; i++)
-            {
-                if (rtn_obj->_name == rtn_array[i]._name)
-                {
-                    rtn_array[i]._icount += rtn_obj->_icount;
-                    break_flag = true;
-                    break;
-                }
-            }
-
-            if(break_flag == true) continue;
-            rtn_array[index_top++] = *rtn_obj;
-            if (index_top==1000) break; //never happens, just a fail-safe mechanisem.
+    // copy from dictionary to routines vector all routines that have been called
+    for (auto&& di: routinesDict) {
+        if (di.getRoutineCount() > 0) {
+            routinesVector.push_back(di);
         }
     }
 
-    // sort the array (bubble sort)
-    RTN_OBJECT tmp;
-    for(int i=0;i<index_top;i++)
-     {
-           for(int j=0;j<index_top-i;j++)
-           {
-                 if(rtn_array[j]._icount<rtn_array[j+1]._icount)
-                 {
-                       tmp=rtn_array[j+1];
-                       rtn_array[j+1]=rtn_array[j];
-                       rtn_array[j]=tmp;
-                 }
-           }
-     }
+    std::sort(routinesVecroutinesVector.begin(), routinesVector.end(), compareIsGreaterThan);
 
     // move BBL from global linked list to the vector in the relevant rtn
     for (BBL_OBJECT* bbl_obj = BblList; bbl_obj; bbl_obj = bbl_obj->_next)
@@ -333,8 +398,9 @@ VOID Fini(INT32 code, VOID *v)
         for( EDG_HASH_SET::const_iterator it = rtn_array[i]._edgeset.begin(); it !=  rtn_array[i]._edgeset.end(); it++)
         {
             const pair<EDGE, COUNTER*> tuple = *it;
-    
-//            outFile << "source rtn name is " << tuple.first._rtn_name <<  endl;
+
+#ifndef NDEBUG    
+            outFile << "source rtn name is " << tuple.first._rtn_name <<  endl;
 
             if ((find_bbl_num(rtn_array[i], tuple.first._src) == -1) || (find_bbl_num(rtn_array[i], tuple.first._dst) == -1))
             {
@@ -342,7 +408,7 @@ VOID Fini(INT32 code, VOID *v)
                 outFile << "\t\t*******Edge" << edge_index << ": " << StringFromAddrint( tuple.first._src)  << " -> " << StringFromAddrint(tuple.first._dst) << " " << decstr(tuple.second->_count,12) << " " << endl;
                 outFile << "\t\t*******Edge" << edge_index << ": BB" << find_bbl_num(rtn_array[i], tuple.first._src)  << " -> BB" << find_bbl_num(rtn_array[i], tuple.first._dst) << " " << decstr(tuple.second->_count) << " " << endl;
             }
-
+#endif
 
             outFile << "\t\tEdge" << edge_index << ": BB" << find_bbl_num(rtn_array[i], tuple.first._src)  << " -> BB" << find_bbl_num(rtn_array[i], tuple.first._dst) << " " << decstr(tuple.second->_count) << " " << endl;
 
