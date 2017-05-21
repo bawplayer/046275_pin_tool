@@ -87,6 +87,10 @@ public:
     }
 }; // END of EDGEClass
 
+bool compareEdgeCounterIsGreaterThan(const EDGEClass& a, const EDGEClass& b) {
+    return (a.getInstructionCount() > b.getInstructionCount());
+}
+
 class BBLClass {
 private:
     int _rtn_id = 0;
@@ -100,13 +104,7 @@ private:
 public:
     ADDRINT _src = 0, _dst = 0;
     int _index = 0;
-/*
-    BBLClass(ADDRINT src, ADDRINT dst, const RoutineClass& rc): _src(src), _dst(dst) {
-        _rtn_name = rc.getName();
-        _rtn_id = rc.getId();
-        _validateSourceAndDestination();
-    }
-*/
+
     BBLClass(ADDRINT src, ADDRINT dst, const RTN& rtn): _src(src), _dst(dst) {
         //_rtn_name = string(RTN_Name(rtn));
         _rtn_id = RTN_Id(rtn);
@@ -121,23 +119,25 @@ public:
         return (addr >= this->_src) && (addr <= this->_dst);
     }
 
+    ADDRINT extendStartAddress(ADDRINT addr) {
+        if (addr < this->_src) {
+            this->_src = addr;
+        }
+        return this->_src;
+    }
+
     friend std::ostream& operator<<(std::ostream& out, const BBLClass& self) {
         out << "\tBB" << self._index << ": 0x" << hex << self._src << " - 0x" << self._dst;
         return out << dec << std::endl;
     }
 
-    friend bool operator==(const BBLClass& a, const BBLClass& b) {
-        return (a._src == b._src) && (a._dst == b._dst);
-    }
-
+    /**
+        Essantially, BBLs are differentiated by their start address.
+    */
     friend bool operator<(const BBLClass& a, const BBLClass& b) {
-        return (a._src < b._src);
+        return (a._dst < b._dst);
     }
 }; // end of BBLClass
-
-bool operator!=(const BBLClass& a, const BBLClass& b) {
-    return !(a == b);
-}
 
 class RoutineClass {
 private:
@@ -170,7 +170,7 @@ public:
     string getName() const {
         return this->_name;
     }
-
+;
     ADDRINT getAddress() const {
         return this->_address;
     }
@@ -199,46 +199,19 @@ public:
         _rcount += inc;
         return this->getRoutineCount();
     }
-/*
-    void printToProfileFile(const std::string& fname = "_profile.map") const {
-        out << this->getName() << " at: 0x" << hex << this->_address;
-        out << dec << " icount: " << this->getInstructionCount() << std::endl;
 
-        int i = 1;
-        const size_t array_len = 100;
-        char char_array[array_len];
-        for (auto&& bbl : this->bbls) {
-            snprintf(char_array, array_len, "\tBB%d: 0x%llx - 0x%llx\n", i,
-                static_cast<unsigned long long>(bbl._src), static_cast<unsigned long long>(bbl._dst));
-            out << std::string(char_array);
-            ++i;
-        }
-
-        i = 1;
-        for (auto&& edge : this->edges) {
-            int bbl1 = this->findBBLIndex(edge._src), bbl2 = this->findBBLIndex(edge._dst);
-#ifdef NDEBUG
-            if ((bbl1 == (-1)) || (bbl2 == (-1))) {
-                // ignore edges that were not in the trace, or leaving the routine
-                continue;
-            }
-#endif
-            //std::cout << bbl1 << " " << bbl2 << endl;
-            out << "\t\tEdge" << i << ": BB" << bbl1;
-            out << " -> BB";
-            out << bbl2 << " ";
-            out << decstr(edge.getInstructionCount()) << std::endl;
-            ++i;
-        }
-    }
-*/
     friend std::ostream& operator<<(std::ostream& out, const RoutineClass& self) {
-        out << self.getName() << " at: 0x" << hex << self._address;
-        out << dec << " icount: " << self.getInstructionCount() << std::endl;
+        const size_t array_len = 100;
+        char char_array[array_len+1];
+        char_array[array_len] = '\0';
+
+        snprintf(char_array, array_len, "%s at: 0x%llx icount: %u\n",
+            self.getName().c_str(), static_cast<unsigned long long>(self._address),
+            self.getInstructionCount());
+        out << std::string(char_array);
+
 
         int i = 1;
-        const size_t array_len = 100;
-        char char_array[array_len];
         for (auto&& bbl : self.bbls) {
             snprintf(char_array, array_len, "\tBB%d: 0x%llx - 0x%llx\n", i,
                 static_cast<unsigned long long>(bbl._src), static_cast<unsigned long long>(bbl._dst));
@@ -251,16 +224,13 @@ public:
             int bbl1 = self.findBBLIndex(edge._src), bbl2 = self.findBBLIndex(edge._dst);
 #ifdef NDEBUG
             if ((bbl1 == (-1)) || (bbl2 == (-1))) {
-                // ignore edges that were not in the trace, or leaving the routine
+                // ignore edges that were not in the trace, or exiting the routine
                 continue;
             }
 #endif
-            //std::cout << bbl1 << " " << bbl2 << endl;
-            out << "\t\tEdge" << i << ": BB" << bbl1;
-            out << " -> BB";
-            out << bbl2 << " ";
-            out << decstr(edge.getInstructionCount()) << std::endl;
-            ++i;
+            snprintf(char_array, array_len, "\t\tEdge %d: BB%d -> BB%d %u\n",
+                i++, bbl1, bbl2, edge.getInstructionCount());
+            out << std::string(char_array);
         }
 
         return out;
@@ -277,7 +247,7 @@ bool operator<(const RoutineClass& a, const RoutineClass& b) {
         && (0 < a.getName().compare(b.getName())));
 }
 
-bool compareIsGreaterThan(const RoutineClass& a, const RoutineClass& b) {
+bool compareRoutineIsGreaterThan(const RoutineClass& a, const RoutineClass& b) {
     return !((a<b) || (a.getInstructionCount() == b.getInstructionCount()));
 }
 
@@ -295,13 +265,7 @@ void incrementRoutineEdgeCounter(int i, int j) {
     routinesDict[i].edges[j].incInstructionCount();
 }
 
-
-// This function is called before every instruction is executed
-/*VOID docount(UINT64 * counter)
-{
-    (*counter)++;
-}
-
+/*
 const char * StripPath(const char * path)
 {
     const char * file = strrchr(path,'/');
@@ -310,13 +274,29 @@ const char * StripPath(const char * path)
     else
         return path;
 }
+*/
 
+/**
+    Note: PIN_DEPRECATED_API BBL LEVEL_PINCLIENT::RTN_BblHead (   RTN     x    )
+    Here we will register each BBL sequence only once.
 */
 VOID Trace(TRACE trace, VOID *v) {
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
         ADDRINT addr = BBL_Address(bbl);
-        // Since bblsSet is a set, the item is inserted iff bbl start address differs
-        bblsSet.insert(BBLClass(addr, addr + BBL_Size(bbl), RTN_FindByAddress(addr)));
+        ADDRINT end_addr = addr + BBL_Size(bbl);
+
+        auto pit = bblsSet.insert(BBLClass(addr, end_addr, RTN_FindByAddress(addr)));
+        if (pit.second == false) {
+            continue;
+        } 
+/*
+        TODO
+        // otherwise, there's a duplicate.
+        // Assuming a BBL may have multiple entries, we will merge them now.
+        if (addr < pit.first->_src) {
+            // set the 1st BBL's start address to the minimal address of the two
+            pit.first->extendStartAddress(addr);
+        }*/
      }
 }
 
@@ -334,23 +314,31 @@ VOID Routine(RTN rtn, VOID *v) {
     RTN_Open(rtn);
             
     // Insert a call at the entry point of a routine to increment the call count
-    RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)incrementRoutineRCounter, IARG_UINT32, routine_id, IARG_END);
+    RTN_InsertCall(rtn, IPOINT_BEFORE, \
+        (AFUNPTR)incrementRoutineRCounter, IARG_UINT32, routine_id, IARG_END);
     
     // For each instruction of the routine
     for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))
     {
         // Insert a call to docount to increment the instruction counter for this rtn
-        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)incrementRoutineICounter, IARG_UINT32, routine_id, IARG_END);
+        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)incrementRoutineICounter,\
+            IARG_UINT32, routine_id, IARG_END);
 
         // count the edges ((indirect)
         if (INS_IsDirectBranchOrCall(ins)) {
             //ETYPE type = INS_IsCall(ins) ? ETYPE_CALL : ETYPE_BRANCH;
     
             int edge_index = routinesDict[routine_id].edges.size();
-            routinesDict[routine_id].edges.push_back(EDGEClass(INS_Address(ins), INS_DirectBranchOrCallTargetAddress(ins), INS_NextAddress(ins), rtn));
+            routinesDict[routine_id].edges.push_back(\
+                EDGEClass(
+                    INS_Address(ins),
+                    INS_DirectBranchOrCallTargetAddress(ins),
+                    INS_NextAddress(ins), rtn));
 
             // insert a call to increment edge's counter, called iff the branch was taken
-            INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, (AFUNPTR)incrementRoutineEdgeCounter, IARG_UINT32, routine_id, IARG_UINT32, edge_index, IARG_END);
+            INS_InsertCall(ins, IPOINT_TAKEN_BRANCH,
+                (AFUNPTR)incrementRoutineEdgeCounter, IARG_UINT32,
+                routine_id, IARG_UINT32, edge_index, IARG_END);
         }
     }
 
@@ -389,13 +377,15 @@ VOID Fini(INT32 code, VOID *v) {
         rc.edges.erase(std::remove_if(rc.edges.begin(), rc.edges.end(), 
             [](const EDGEClass& edge){return edge.getInstructionCount() == 0;}),
             rc.edges.end());
+        // sort edges
+        std::sort(rc.edges.begin(), rc.edges.end(), compareEdgeCounterIsGreaterThan);
 
         // append to vector
         routinesVector.push_back(rc);
     }
 
     // print the sorted output
-    std::sort(routinesVector.begin(), routinesVector.end(), compareIsGreaterThan);
+    std::sort(routinesVector.begin(), routinesVector.end(), compareRoutineIsGreaterThan);
     for (auto&& rc : routinesVector) {
         outFile << rc;
     }
@@ -418,8 +408,7 @@ INT32 Usage()
 /* Main                                                                  */
 /* ===================================================================== */
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
     // Initialize symbol table code, needed for rtn instrumentation
     PIN_InitSymbols();
 
