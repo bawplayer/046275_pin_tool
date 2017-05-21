@@ -12,7 +12,8 @@ also removed redundent code.
 #include <iomanip>
 #include <iostream>
 #include <algorithm>
-#include <string.h>
+#include <string>
+#include <set>
 #include "pin.H"
 
 using namespace std;
@@ -52,16 +53,6 @@ string StringFromEtype( ETYPE etype)
     }
 }
 */
-
-typedef struct BblStruct
-{
-    ADDRINT _start_address;
-    ADDRINT _end_address;
-    RTN     _rtn;
-    int     _rtn_id;
-    struct BblStruct* _next;
-} BBL_OBJECT;
-BBL_OBJECT* BblList = 0; // Linked list of bbl objects
 
 class EDGEClass {
 private:
@@ -122,10 +113,6 @@ public:
         _validateSourceAndDestination();
     }
 
-    BBLClass(const BBL_OBJECT *bbl): _src(bbl->_start_address), _dst(bbl->_end_address) {
-        _validateSourceAndDestination();   
-    }
-
     int getRoutineId() const {
         return this->_rtn_id;
     }
@@ -142,6 +129,10 @@ public:
     friend bool operator==(const BBLClass& a, const BBLClass& b) {
         return (a._src == b._src) && (a._dst == b._dst);
     }
+
+    friend bool operator<(const BBLClass& a, const BBLClass& b) {
+        return (a._src < b._src);
+    }
 }; // end of BBLClass
 
 bool operator!=(const BBLClass& a, const BBLClass& b) {
@@ -156,12 +147,12 @@ private:
     ADDRINT _address;
 
     int findBBLIndex(ADDRINT addr) const {
-        int i = 1;
+        int i = 0;
         for (auto&& bbl : this->bbls) {
+            ++i;
             if (bbl.isInstructionIn(addr)) {
                 return i;
             }
-            i++;
         }
 
         return -1;
@@ -208,25 +199,68 @@ public:
         _rcount += inc;
         return this->getRoutineCount();
     }
+/*
+    void printToProfileFile(const std::string& fname = "_profile.map") const {
+        out << this->getName() << " at: 0x" << hex << this->_address;
+        out << dec << " icount: " << this->getInstructionCount() << std::endl;
 
+        int i = 1;
+        const size_t array_len = 100;
+        char char_array[array_len];
+        for (auto&& bbl : this->bbls) {
+            snprintf(char_array, array_len, "\tBB%d: 0x%llx - 0x%llx\n", i,
+                static_cast<unsigned long long>(bbl._src), static_cast<unsigned long long>(bbl._dst));
+            out << std::string(char_array);
+            ++i;
+        }
+
+        i = 1;
+        for (auto&& edge : this->edges) {
+            int bbl1 = this->findBBLIndex(edge._src), bbl2 = this->findBBLIndex(edge._dst);
+#ifdef NDEBUG
+            if ((bbl1 == (-1)) || (bbl2 == (-1))) {
+                // ignore edges that were not in the trace, or leaving the routine
+                continue;
+            }
+#endif
+            //std::cout << bbl1 << " " << bbl2 << endl;
+            out << "\t\tEdge" << i << ": BB" << bbl1;
+            out << " -> BB";
+            out << bbl2 << " ";
+            out << decstr(edge.getInstructionCount()) << std::endl;
+            ++i;
+        }
+    }
+*/
     friend std::ostream& operator<<(std::ostream& out, const RoutineClass& self) {
         out << self.getName() << " at: 0x" << hex << self._address;
         out << dec << " icount: " << self.getInstructionCount() << std::endl;
 
+        int i = 1;
+        const size_t array_len = 100;
+        char char_array[array_len];
         for (auto&& bbl : self.bbls) {
-            out << bbl;
+            snprintf(char_array, array_len, "\tBB%d: 0x%llx - 0x%llx\n", i,
+                static_cast<unsigned long long>(bbl._src), static_cast<unsigned long long>(bbl._dst));
+            out << std::string(char_array);
+            ++i;
         }
 
-        int i = 1;
+        i = 1;
         for (auto&& edge : self.edges) {
             int bbl1 = self.findBBLIndex(edge._src), bbl2 = self.findBBLIndex(edge._dst);
 #ifdef NDEBUG
             if ((bbl1 == (-1)) || (bbl2 == (-1))) {
+                // ignore edges that were not in the trace, or leaving the routine
                 continue;
             }
 #endif
-            out << "\t\tEdge" << i++ << ": BB" << bbl1 << " -> BB" << bbl2;
+            //std::cout << bbl1 << " " << bbl2 << endl;
+            out << "\t\tEdge" << i << ": BB" << bbl1;
+            out << " -> BB";
+            out << bbl2 << " ";
             out << decstr(edge.getInstructionCount()) << std::endl;
+            ++i;
         }
 
         return out;
@@ -248,7 +282,7 @@ bool compareIsGreaterThan(const RoutineClass& a, const RoutineClass& b) {
 }
 
 std::map<int, RoutineClass> routinesDict;
-
+std::set<BBLClass> bblsSet;
 
 void incrementRoutineICounter(int i) {
     routinesDict[i].incInstructionCount();
@@ -278,29 +312,20 @@ const char * StripPath(const char * path)
 }
 
 */
-VOID Trace(TRACE trace, VOID *v)
-{
-    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
-    {
-
-        BBL_OBJECT* bbl_obj = new BBL_OBJECT;
-        bbl_obj->_start_address = BBL_Address(bbl);
-        bbl_obj->_end_address = bbl_obj->_start_address + BBL_Size(bbl);
-        bbl_obj->_rtn = RTN_FindByAddress(bbl_obj->_start_address);
-        bbl_obj->_rtn_id = RTN_Id(bbl_obj->_rtn);
-        
-        // Add bbl_obj to list of bbl's
-        bbl_obj->_next = BblList;
-        BblList = bbl_obj;
+VOID Trace(TRACE trace, VOID *v) {
+    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
+        ADDRINT addr = BBL_Address(bbl);
+        // Since bblsSet is a set, the item is inserted iff bbl start address differs
+        bblsSet.insert(BBLClass(addr, addr + BBL_Size(bbl), RTN_FindByAddress(addr)));
      }
 }
 
 // Pin calls this function every time a new rtn is executed
-VOID Routine(RTN rtn, VOID *v)
-{
+VOID Routine(RTN rtn, VOID *v) {
     RoutineClass rc(rtn);
     int routine_id = rc.getId();
-    if (routinesDict.count(routine_id) < 1) { // check if key (routine id) already exist
+    // check if key (routine id) already exist in dictionary
+    if (routinesDict.count(routine_id) < 1) {
         routinesDict[routine_id] = rc;
     } else {
         return;
@@ -335,19 +360,15 @@ VOID Routine(RTN rtn, VOID *v)
 // This function is called when the application exits
 // It prints the name and count for each procedure
 VOID Fini(INT32 code, VOID *v) {
-    //TODO: Initialize routines vector from profile.map
-
     // move BBL from global linked list to the vector in the relevant rtn
-    for (BBL_OBJECT* bbl_obj = BblList; bbl_obj; bbl_obj = bbl_obj->_next) {
-        BBLClass bbl(bbl_obj);
-        vector<BBLClass>& bblVector =routinesDict[bbl_obj->_rtn_id].bbls;
-        if (std::find(bblVector.begin(), bblVector.end(), bbl) != bblVector.end()) {
-            // duplicate
-            continue;
-        }
-        bbl._index = bblVector.size() + 1;
-        routinesDict[bbl_obj->_rtn_id].bbls.push_back(bbl);
+    for (auto&& bbl : bblsSet) {
+        // TODO: merge inclusive bbls counters
+        routinesDict[bbl.getRoutineId()].bbls.push_back(bbl);
     }
+
+    
+    //TODO: Initialize routines vector from profile.map
+    //parseProfileMapIfFound();
 
 
 /********************
@@ -358,9 +379,19 @@ VOID Fini(INT32 code, VOID *v) {
     // copy from dictionary to routines vector all routines that have been called
     for (auto&& di: routinesDict) {
         RoutineClass& rc = di.second;
-        if (rc.getRoutineCount() > 0) {
-            routinesVector.push_back(rc);
+
+        // ignore silent routines
+        if (rc.getRoutineCount() == 0) {
+            continue;
         }
+
+        // clean silent edges
+        rc.edges.erase(std::remove_if(rc.edges.begin(), rc.edges.end(), 
+            [](const EDGEClass& edge){return edge.getInstructionCount() == 0;}),
+            rc.edges.end());
+
+        // append to vector
+        routinesVector.push_back(rc);
     }
 
     // print the sorted output
