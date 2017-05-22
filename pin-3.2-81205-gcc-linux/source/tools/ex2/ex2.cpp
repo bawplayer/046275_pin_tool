@@ -14,11 +14,15 @@ also removed redundent code.
 #include <algorithm>
 #include <string>
 #include <set>
+#include <exception>
 #include "pin.H"
 
 using namespace std;
-ofstream outFile;
-
+const std::string profileFilename = "_profile.map";
+const std::string edgeString = "\t\tEdge%d: BB%d -> BB%d %u\n";
+const std::string edgeProfString = "\t\tEdge%d: (%llu, %llu, %llu) %u\n";
+const std::string bblString = "\tBB%d: 0x%llx - 0x%llx\n";
+const std::string routineProfString = "%d %s at: 0x%llx icount: %u rcount: %u\n";
 /*
 typedef enum {
     ETYPE_INVALID,
@@ -65,8 +69,15 @@ public:
         
     EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n, const RTN& rtn) :
         _src(s),_dst(d), _next_ins(n) {
-            _rtn_id = RTN_Id(rtn);
-        }
+        _rtn_id = RTN_Id(rtn);
+    }
+
+    EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n, unsigned icount,
+        int rtn_id = 0):
+        _src(s),_dst(d), _next_ins(n) {
+        this->_rtn_id = rtn_id;
+        this->_icount = icount;
+    }
 
     unsigned getInstructionCount() const {
         return this->_icount;
@@ -79,6 +90,17 @@ public:
 
     int getRoutineId() const {
         return this->_rtn_id;
+    }
+
+    EDGEClass& operator+=(const EDGEClass& left) {
+        this->incInstructionCount(left.getInstructionCount());
+        return *this;
+    }
+
+    friend bool operator==(const EDGEClass& ea, const EDGEClass& eb) {
+        return (ea.getRoutineId() == eb.getRoutineId()) && \
+            (ea._src == eb._src) && (ea._dst == eb._dst) && \
+            (ea._next_ins == eb._next_ins);
     }
 
     bool operator<(const EDGEClass& edge) const {
@@ -103,13 +125,15 @@ private:
     }
 public:
     ADDRINT _src = 0, _dst = 0;
-    int _index = 0;
+    //int _index = 0;
 
     BBLClass(ADDRINT src, ADDRINT dst, const RTN& rtn): _src(src), _dst(dst) {
         //_rtn_name = string(RTN_Name(rtn));
         _rtn_id = RTN_Id(rtn);
         _validateSourceAndDestination();
     }
+
+    BBLClass(ADDRINT src, ADDRINT dst): _src(src), _dst(dst) {}
 
     int getRoutineId() const {
         return this->_rtn_id;
@@ -126,25 +150,26 @@ public:
         return this->_src;
     }
 
-    friend std::ostream& operator<<(std::ostream& out, const BBLClass& self) {
-        out << "\tBB" << self._index << ": 0x" << hex << self._src << " - 0x" << self._dst;
-        return out << dec << std::endl;
-    }
-
     /**
         Essantially, BBLs are differentiated by their start address.
     */
     friend bool operator<(const BBLClass& a, const BBLClass& b) {
         return (a._dst < b._dst);
     }
+
+    friend bool operator==(const BBLClass& ba, const BBLClass& bb) {
+        return (ba._rtn_id == bb._rtn_id) && \
+            !((ba < bb) || (bb < ba));
+    }
 }; // end of BBLClass
 
 class RoutineClass {
 private:
-    unsigned _icount = 0, _rcount = 0;
     int _id;
     string _name;
     ADDRINT _address;
+    unsigned _icount = 0;
+    unsigned _rcount = 0;
 
     int findBBLIndex(ADDRINT addr) const {
         int i = 0;
@@ -162,15 +187,17 @@ public:
     std::vector<EDGEClass> edges;
     std::vector<BBLClass> bbls;
 
-    RoutineClass(int id = 0, const string& name = "", ADDRINT addr = 0): 
-        _id(id), _name(name), _address(addr) {}
+    RoutineClass(int id = 0, const string& name = "", ADDRINT addr = 0, \
+        unsigned icount = 0, unsigned rcount = 0): \
+        _id(id), _name(name), _address(addr), _icount(icount), \
+        _rcount(rcount) {}
     RoutineClass(const RTN& rtn):
         _id(RTN_Id(rtn)), _name(RTN_Name(rtn)), _address(RTN_Address(rtn)) {}
     
     string getName() const {
         return this->_name;
     }
-;
+
     ADDRINT getAddress() const {
         return this->_address;
     }
@@ -186,6 +213,7 @@ public:
     unsigned getInstructionCount() const {
         return this->_icount;
     }
+
     unsigned incInstructionCount(int inc=1) {
         _icount += inc;
         return this->getInstructionCount();
@@ -200,11 +228,46 @@ public:
         return this->getRoutineCount();
     }
 
+    RoutineClass& operator+=(const RoutineClass& rc) {
+        if ((this->getId() != rc.getId()) || \
+            (this->getName().compare(rc.getName()) != 0)) {
+            // not the same routine
+            return *this;
+        }
+
+        RoutineClass tmp_rtn_obj(*this); // clone self
+
+        // add counters
+        tmp_rtn_obj._icount += rc._icount;
+        tmp_rtn_obj._rcount += rc._rcount;
+
+        // append missing bbls
+        for (const BBLClass& bbl : rc.bbls) {
+            if (std::find(tmp_rtn_obj.bbls.begin(), tmp_rtn_obj.bbls.end(), bbl) == tmp_rtn_obj.bbls.end()) {
+                tmp_rtn_obj.bbls.push_back(bbl);
+            }
+        }
+
+        // merge edges
+        for (const EDGEClass& edge_right : rc.edges) {
+            auto it = std::find(tmp_rtn_obj.edges.begin(), tmp_rtn_obj.edges.end(), edge_right);
+            if (it == tmp_rtn_obj.edges.end()) {
+                tmp_rtn_obj.edges.push_back(edge_right);
+            } else {
+                *it += edge_right;
+            }
+        }
+
+        *this = tmp_rtn_obj;
+        return *this;
+    }
+
     friend std::ostream& operator<<(std::ostream& out, const RoutineClass& self) {
         const size_t array_len = 100;
         char char_array[array_len+1];
         char_array[array_len] = '\0';
 
+        // Set buffer with routine data
         snprintf(char_array, array_len, "%s at: 0x%llx icount: %u\n",
             self.getName().c_str(), static_cast<unsigned long long>(self._address),
             self.getInstructionCount());
@@ -213,7 +276,7 @@ public:
 
         int i = 1;
         for (auto&& bbl : self.bbls) {
-            snprintf(char_array, array_len, "\tBB%d: 0x%llx - 0x%llx\n", i,
+            snprintf(char_array, array_len, bblString.c_str(), i,
                 static_cast<unsigned long long>(bbl._src), static_cast<unsigned long long>(bbl._dst));
             out << std::string(char_array);
             ++i;
@@ -221,6 +284,7 @@ public:
 
         i = 1;
         for (auto&& edge : self.edges) {
+            // Set buffer with edge data
             int bbl1 = self.findBBLIndex(edge._src), bbl2 = self.findBBLIndex(edge._dst);
 #ifdef NDEBUG
             if ((bbl1 == (-1)) || (bbl2 == (-1))) {
@@ -228,7 +292,7 @@ public:
                 continue;
             }
 #endif
-            snprintf(char_array, array_len, "\t\tEdge %d: BB%d -> BB%d %u\n",
+            snprintf(char_array, array_len, edgeString.c_str(),
                 i++, bbl1, bbl2, edge.getInstructionCount());
             out << std::string(char_array);
         }
@@ -236,19 +300,50 @@ public:
         return out;
     }
 
+    std::ofstream& printProfile(std::ofstream& profileFile) const {
+        RoutineClass const& self = *this;
+        const size_t array_len = 100;
+        char char_array[array_len+1];
+        char_array[array_len] = '\0';
+
+        // Set buffer with routine data
+        snprintf(char_array, array_len, routineProfString.c_str(),
+            self.getId(), self.getName().c_str(),
+            static_cast<unsigned long long>(self._address),
+            self.getInstructionCount(), self.getRoutineCount());
+        profileFile << std::string(char_array);
+
+
+        int i = 1;
+        for (auto&& bbl : self.bbls) {
+            snprintf(char_array, array_len, bblString.c_str(), i,
+                static_cast<unsigned long long>(bbl._src), static_cast<unsigned long long>(bbl._dst));
+            profileFile << std::string(char_array);
+            ++i;
+        }
+
+        i = 1;
+        for (auto&& edge : self.edges) {
+            // Set buffer with edge data
+            snprintf(char_array, array_len, edgeProfString.c_str(),
+                i++, edge._src, edge._dst, edge._next_ins,
+                edge.getInstructionCount());
+            profileFile << std::string(char_array);
+        }
+
+        return profileFile;
+    }
+
     friend bool operator==(const RoutineClass& a, const RoutineClass& b) {
         return a._id == b._id;
     }
 }; // END of RoutineClass
 
-bool operator<(const RoutineClass& a, const RoutineClass& b) {
-    return (a.getInstructionCount() < b.getInstructionCount()) \
-        || ((a.getInstructionCount() == b.getInstructionCount()) \
-        && (0 < a.getName().compare(b.getName())));
-}
-
 bool compareRoutineIsGreaterThan(const RoutineClass& a, const RoutineClass& b) {
-    return !((a<b) || (a.getInstructionCount() == b.getInstructionCount()));
+    return !(((a.getInstructionCount() < b.getInstructionCount()) \
+        || ((a.getInstructionCount() == b.getInstructionCount()) \
+        && (0 < a.getName().compare(b.getName())))) \
+        || (a.getInstructionCount() == b.getInstructionCount()));
 }
 
 std::map<int, RoutineClass> routinesDict;
@@ -265,16 +360,70 @@ void incrementRoutineEdgeCounter(int i, int j) {
     routinesDict[i].edges[j].incInstructionCount();
 }
 
-/*
-const char * StripPath(const char * path)
-{
-    const char * file = strrchr(path,'/');
-    if (file)
-        return file+1;
-    else
-        return path;
+void parseProfileMapIfFound() {
+    std::ifstream inFile(profileFilename.c_str());
+    if (!inFile.is_open()) {
+        return;
+    }
+
+    std::string strBuffer;
+
+    const std::string bblPrefix = "\tBB";
+    const std::string edgePrefix = "\t\tEdge";
+
+    RoutineClass currentRoutine(0);
+    while (std::getline(inFile, strBuffer)) {
+        if (strBuffer.compare(0, std::string("#").length(), std::string("#")) == 0) {
+            // ignore comments
+            continue;
+        } else if (strBuffer.compare(0, edgePrefix.length(), edgePrefix) == 0) {
+            // parse edge refernced the most recent routine
+            unsigned long long src_ins, dst_ins, next_ins;
+            int num;
+            unsigned icount;
+            sscanf(strBuffer.c_str(), edgeProfString.c_str(), &num,
+                &src_ins, &dst_ins, &next_ins, &icount);
+            currentRoutine.edges.push_back(EDGEClass(src_ins, dst_ins, next_ins, icount));
+        } else if (strBuffer.compare(0, bblPrefix.length(), bblPrefix) == 0) {
+            // parse bbl referenced the most recent routine
+            unsigned long long start, end;
+            int num;
+            sscanf(strBuffer.c_str(), bblString.c_str(), &num, &start, &end);
+            currentRoutine.bbls.push_back(BBLClass(start, end));
+        } else {
+            // parse routine
+             // merge previous routine to routinesDict
+            if (currentRoutine.getId() != 0) {
+                if (routinesDict.find(currentRoutine.getId()) == routinesDict.end()) {
+                    routinesDict[currentRoutine.getId()] = currentRoutine;
+                } else {
+                    routinesDict[currentRoutine.getId()] += currentRoutine;
+                }
+            }
+
+            char rtn_name[101];
+            unsigned long long rtn_addr = 0;
+            unsigned rtn_icnt = 0, rtn_rcnt = 0;
+            int rtn_id;
+            sscanf(strBuffer.c_str(), routineProfString.c_str(),
+                &rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt);
+            currentRoutine = RoutineClass(rtn_id, std::string(rtn_name), rtn_addr,
+                rtn_icnt, rtn_rcnt);
+        }
+
+        // merge last routine to routinesDict
+        if (currentRoutine.getId() != 0) {
+            if (routinesDict.find(currentRoutine.getId()) == routinesDict.end()) {
+                routinesDict[currentRoutine.getId()] = currentRoutine;
+            } else {
+                routinesDict[currentRoutine.getId()] += currentRoutine;
+            }
+        }
+    }
+
+    inFile.close();
 }
-*/
+
 
 /**
     Note: PIN_DEPRECATED_API BBL LEVEL_PINCLIENT::RTN_BblHead (   RTN     x    )
@@ -354,9 +503,7 @@ VOID Fini(INT32 code, VOID *v) {
         routinesDict[bbl.getRoutineId()].bbls.push_back(bbl);
     }
 
-    
-    //TODO: Initialize routines vector from profile.map
-    //parseProfileMapIfFound();
+    parseProfileMapIfFound();
 
 
 /********************
@@ -386,8 +533,11 @@ VOID Fini(INT32 code, VOID *v) {
 
     // print the sorted output
     std::sort(routinesVector.begin(), routinesVector.end(), compareRoutineIsGreaterThan);
+
+    std::ofstream outFile("rtn-output.txt"), profileFile(profileFilename.c_str());
     for (auto&& rc : routinesVector) {
         outFile << rc;
+        rc.printProfile(profileFile);
     }
 }
 
@@ -412,8 +562,6 @@ int main(int argc, char * argv[]) {
     // Initialize symbol table code, needed for rtn instrumentation
     PIN_InitSymbols();
 
-    outFile.open("rtn-output.txt");
-    
     // Initialize pin
     if (PIN_Init(argc, argv)) return Usage();
 
