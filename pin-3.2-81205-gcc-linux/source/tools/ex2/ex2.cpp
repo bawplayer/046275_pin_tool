@@ -14,7 +14,6 @@ also removed redundent code.
 #include <algorithm>
 #include <string>
 #include <set>
-#include <exception>
 #include "pin.H"
 
 using namespace std;
@@ -23,6 +22,8 @@ const std::string edgeString = "\t\tEdge%d: BB%d -> BB%d %u\n";
 const std::string edgeProfString = "\t\tEdge%d: (%llu, %llu, %llu) %u\n";
 const std::string bblString = "\tBB%d: 0x%llx - 0x%llx\n";
 const std::string routineProfString = "%d %s at: 0x%llx icount: %u rcount: %u\n";
+std::ofstream mylog;
+
 /*
 typedef enum {
     ETYPE_INVALID,
@@ -133,7 +134,8 @@ public:
         _validateSourceAndDestination();
     }
 
-    BBLClass(ADDRINT src, ADDRINT dst): _src(src), _dst(dst) {}
+    BBLClass(ADDRINT src, ADDRINT dst, int rtn_id): _rtn_id(rtn_id),
+        _src(src), _dst(dst) {}
 
     int getRoutineId() const {
         return this->_rtn_id;
@@ -228,9 +230,12 @@ public:
         return this->getRoutineCount();
     }
 
+    friend bool operator==(const RoutineClass& a, const RoutineClass& b) {
+        return a.getId() == b.getId();
+    }
+
     RoutineClass& operator+=(const RoutineClass& rc) {
-        if ((this->getId() != rc.getId()) || \
-            (this->getName().compare(rc.getName()) != 0)) {
+        if (!(*this == rc)) {
             // not the same routine
             return *this;
         }
@@ -238,19 +243,21 @@ public:
         RoutineClass tmp_rtn_obj(*this); // clone self
 
         // add counters
-        tmp_rtn_obj._icount += rc._icount;
-        tmp_rtn_obj._rcount += rc._rcount;
+        tmp_rtn_obj.incInstructionCount(rc._icount);
+        tmp_rtn_obj.incRoutineCount(rc._rcount);
 
         // append missing bbls
         for (const BBLClass& bbl : rc.bbls) {
-            if (std::find(tmp_rtn_obj.bbls.begin(), tmp_rtn_obj.bbls.end(), bbl) == tmp_rtn_obj.bbls.end()) {
+            if (std::find(tmp_rtn_obj.bbls.begin(), tmp_rtn_obj.bbls.end(),
+                bbl) == tmp_rtn_obj.bbls.end()) {
                 tmp_rtn_obj.bbls.push_back(bbl);
             }
         }
 
         // merge edges
         for (const EDGEClass& edge_right : rc.edges) {
-            auto it = std::find(tmp_rtn_obj.edges.begin(), tmp_rtn_obj.edges.end(), edge_right);
+            auto it = std::find(tmp_rtn_obj.edges.begin(), tmp_rtn_obj.edges.end(),
+                edge_right);
             if (it == tmp_rtn_obj.edges.end()) {
                 tmp_rtn_obj.edges.push_back(edge_right);
             } else {
@@ -277,7 +284,8 @@ public:
         int i = 1;
         for (auto&& bbl : self.bbls) {
             snprintf(char_array, array_len, bblString.c_str(), i,
-                static_cast<unsigned long long>(bbl._src), static_cast<unsigned long long>(bbl._dst));
+                static_cast<unsigned long long>(bbl._src),
+                static_cast<unsigned long long>(bbl._dst));
             out << std::string(char_array);
             ++i;
         }
@@ -316,10 +324,10 @@ public:
 
         int i = 1;
         for (auto&& bbl : self.bbls) {
-            snprintf(char_array, array_len, bblString.c_str(), i,
-                static_cast<unsigned long long>(bbl._src), static_cast<unsigned long long>(bbl._dst));
+            snprintf(char_array, array_len, bblString.c_str(), i++,
+                static_cast<unsigned long long>(bbl._src),
+                static_cast<unsigned long long>(bbl._dst));
             profileFile << std::string(char_array);
-            ++i;
         }
 
         i = 1;
@@ -332,10 +340,6 @@ public:
         }
 
         return profileFile;
-    }
-
-    friend bool operator==(const RoutineClass& a, const RoutineClass& b) {
-        return a._id == b._id;
     }
 }; // END of RoutineClass
 
@@ -389,7 +393,7 @@ void parseProfileMapIfFound() {
             unsigned long long start, end;
             int num;
             sscanf(strBuffer.c_str(), bblString.c_str(), &num, &start, &end);
-            currentRoutine.bbls.push_back(BBLClass(start, end));
+            currentRoutine.bbls.push_back(BBLClass(start, end, currentRoutine.getId()));
         } else {
             // parse routine
              // merge previous routine to routinesDict
@@ -397,7 +401,25 @@ void parseProfileMapIfFound() {
                 if (routinesDict.find(currentRoutine.getId()) == routinesDict.end()) {
                     routinesDict[currentRoutine.getId()] = currentRoutine;
                 } else {
-                    routinesDict[currentRoutine.getId()] += currentRoutine;
+#ifndef NDEBUG
+                    if (true) {
+                        mylog << currentRoutine.getId() << " ";
+                        mylog << currentRoutine.getName() << endl;
+                        mylog << "Routine's current run instruction count:\t" <<
+                            routinesDict[currentRoutine.getId()].getInstructionCount()
+                            << endl;
+                        mylog << "Routine's previous runs instruction count:\t" <<
+                            currentRoutine.getInstructionCount() << endl;
+                        routinesDict[currentRoutine.getId()] += currentRoutine;
+                        mylog << "Instruction count merged: " <<
+                            routinesDict[currentRoutine.getId()].getInstructionCount()
+                            << endl;
+                    } else {
+#endif
+                  routinesDict[currentRoutine.getId()] += currentRoutine;
+#ifndef NDEBUG
+                    }
+#endif
                 }
             }
 
@@ -516,7 +538,7 @@ VOID Fini(INT32 code, VOID *v) {
         RoutineClass& rc = di.second;
 
         // ignore silent routines
-        if (rc.getRoutineCount() == 0) {
+        if (rc.getInstructionCount() == 0) {
             continue;
         }
 
@@ -561,6 +583,10 @@ INT32 Usage()
 int main(int argc, char * argv[]) {
     // Initialize symbol table code, needed for rtn instrumentation
     PIN_InitSymbols();
+
+#ifndef NDEBUG
+    mylog.open("deb.log");
+#endif
 
     // Initialize pin
     if (PIN_Init(argc, argv)) return Usage();
