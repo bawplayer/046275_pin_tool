@@ -41,7 +41,7 @@ DLL_ROOTS :=
 LIB_ROOTS :=
 
 # enable c++11 & c++14
-TOOL_CXXFLAGS += -DNDEBUG # -std=c++14
+#TOOL_CXXFLAGS += -DNDEBUG # -std=c++14
 
 ###### Place architecture-specific definitions here ######
 

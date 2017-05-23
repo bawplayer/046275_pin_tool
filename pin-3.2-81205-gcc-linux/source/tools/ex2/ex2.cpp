@@ -19,9 +19,10 @@ also removed redundent code.
 using namespace std;
 const std::string profileFilename = "_profile.map";
 const std::string edgeString = "\t\tEdge%d: BB%d -> BB%d %u\n";
-const std::string edgeProfString = "\t\tEdge%d: (%llu, %llu, %llu) %u\n";
+const std::string edgeProfString = "e\t\tEdge%d: (%llu, %llu, %llu) %u\n";
 const std::string bblString = "\tBB%d: 0x%llx - 0x%llx\n";
-const std::string routineProfString = "%d %s at: 0x%llx icount: %u rcount: %u\n";
+const std::string bblProfString = "b\tBB%d: 0x%llx - 0x%llx\n";
+const std::string routineProfString = "r%d %s at: 0x%llx\ticount: %u\trcount: %u\n";
 std::ofstream mylog;
 
 /*
@@ -345,12 +346,11 @@ public:
             self.getInstructionCount(), self.getRoutineCount());
         profileFile << std::string(char_array);
 
-
         int i = 1;
         for (std::vector<BBLClass>::const_iterator it = self.bbls.begin();
             it != self.bbls.end(); ++it) {
             const BBLClass& bbl = *it;
-            snprintf(char_array, array_len, bblString.c_str(), i++,
+            snprintf(char_array, array_len, bblProfString.c_str(), i++,
                 static_cast<unsigned long long>(bbl._src),
                 static_cast<unsigned long long>(bbl._dst));
             profileFile << std::string(char_array);
@@ -374,7 +374,7 @@ public:
 bool compareRoutineIsGreaterThan(const RoutineClass& a, const RoutineClass& b) {
     return !(((a.getInstructionCount() < b.getInstructionCount()) \
         || ((a.getInstructionCount() == b.getInstructionCount()) \
-        && (0 < a.getName().compare(b.getName())))) \
+            && (a.getId() < b.getId()))) \
         || (a.getInstructionCount() == b.getInstructionCount()));
 }
 
@@ -409,10 +409,12 @@ void parseProfileMapIfFound() {
 
     RoutineClass currentRoutine(0);
     while (std::getline(inFile, strBuffer)) {
-        if (strBuffer.compare(0, std::string("#").length(), std::string("#")) == 0) {
+        const char firstChar = strBuffer[0];
+
+        if (firstChar == '#') {
             // ignore comments
             continue;
-        } else if (strBuffer.compare(0, edgePrefix.length(), edgePrefix) == 0) {
+        } else if (firstChar == 'e') {
             // parse edge refernced the most recent routine
             unsigned long long src_ins, dst_ins, next_ins;
             int num;
@@ -420,13 +422,13 @@ void parseProfileMapIfFound() {
             sscanf(strBuffer.c_str(), edgeProfString.c_str(), &num,
                 &src_ins, &dst_ins, &next_ins, &icount);
             currentRoutine.edges.push_back(EDGEClass(src_ins, dst_ins, next_ins, icount));
-        } else if (strBuffer.compare(0, bblPrefix.length(), bblPrefix) == 0) {
+        } else if (firstChar == 'b') {
             // parse bbl referenced the most recent routine
             unsigned long long start, end;
             int num;
-            sscanf(strBuffer.c_str(), bblString.c_str(), &num, &start, &end);
+            sscanf(strBuffer.c_str(), bblProfString.c_str(), &num, &start, &end);
             currentRoutine.bbls.push_back(BBLClass(start, end, currentRoutine.getId()));
-        } else {
+        } else if (firstChar == 'r') {
             // parse routine
             // merge previous routine to routinesDict
             if (currentRoutine.getId() != 0) {
@@ -463,15 +465,17 @@ void parseProfileMapIfFound() {
                 &rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt);
             currentRoutine = RoutineClass(rtn_id, std::string(rtn_name), rtn_addr,
                 rtn_icnt, rtn_rcnt);
+        } else {
+            std::cerr << "Could not compile line: " << strBuffer << endl;
         }
+    } // end of while loop
 
-        // merge last routine to routinesDict
-        if (currentRoutine.getId() != 0) {
-            if (routinesDict.find(currentRoutine.getId()) == routinesDict.end()) {
-                routinesDict[currentRoutine.getId()] = currentRoutine;
-            } else {
-                routinesDict[currentRoutine.getId()] += currentRoutine;
-            }
+    // merge last routine to routinesDict
+    if (currentRoutine.getId() != 0) {
+        if (routinesDict.find(currentRoutine.getId()) == routinesDict.end()) {
+            routinesDict[currentRoutine.getId()] = currentRoutine;
+        } else {
+            routinesDict[currentRoutine.getId()] += currentRoutine;
         }
     }
 

@@ -20,10 +20,10 @@ private:
 	string _name;
 	unsigned _icount;
 public:
-	RoutineClass(int id = 0, const string& name = ""): _id(id), _name(name),
-		_icount(0) {}
-	RoutineClass(const RTN& rtn): _id(RTN_Id(rtn)), _name(RTN_Name(rtn)),
-		_icount(0) {}
+	RoutineClass(int id = 0, const string& name = "", unsigned icount = 0):
+		_id(id), _name(name), _icount(icount) {}
+	RoutineClass(const RTN& rtn):
+		_id(RTN_Id(rtn)), _name(RTN_Name(rtn)), _icount(0) {}
 
     int getId() const {
         return this->_id;
@@ -71,7 +71,6 @@ void incrementICounter(unsigned i) {
 	routinesDict[i].incInstructionCount();
 }
 
-
 VOID Fini(int, VOID * v);
 std::ostream& printRoutineInstructionCount(std::ostream&);
 
@@ -104,7 +103,7 @@ std::ostream& printRoutineInstructionCount(std::ostream& os)  {
 		for (std::vector<RoutineClass>::iterator it = routinesVec.begin();
 			it != routinesVec.end(); ++it) {
 			RoutineClass& vr = *it;
-			if (rot.getName() == vr.getName()) {
+			if (rot == vr) {
 				vr.incInstructionCount(rot.getInstructionCount());
 				dup_found = true;
 			}
@@ -133,7 +132,8 @@ VOID Routine(RTN rtn, VOID *v) {
 
 	for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins)) {
 	    // Increment routine's counter on every executed instruction
-	    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)incrementICounter, IARG_UINT32, routine_id, IARG_END);
+	    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)incrementICounter,
+	    	IARG_UINT32, routine_id, IARG_END);
 	}
 	RTN_Close(rtn);
 }
