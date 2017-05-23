@@ -16,17 +16,24 @@ Written by: B
 class RoutineClass {
 private:
 	//RTN _rtn;
-	unsigned _icount = 0;
 	int _id;
 	string _name;
+	unsigned _icount;
 public:
-	RoutineClass(int id = 0, const string& name = ""): _id(id), _name(name) {}
-	RoutineClass(const RTN& rtn): _id(RTN_Id(rtn)), _name(RTN_Name(rtn)) {}
-	
-	explicit operator int() const {
-		return this->_id;
-	}
+	RoutineClass(int id = 0, const string& name = ""): _id(id), _name(name),
+		_icount(0) {}
+	RoutineClass(const RTN& rtn): _id(RTN_Id(rtn)), _name(RTN_Name(rtn)),
+		_icount(0) {}
 
+    int getId() const {
+        return this->_id;
+    }
+
+/*  
+	explicit operator int() const {
+        this->getId();
+    }
+*/
 	string getName() const {
 		return this->_name;
 	}
@@ -48,26 +55,23 @@ public:
 	}
 }; // END of ROUTINECLASS
 
-
 bool operator<(const RoutineClass& a, const RoutineClass& b) {
 	return (a.getInstructionCount() < b.getInstructionCount()) \
 		|| ((a.getInstructionCount() == b.getInstructionCount()) \
-		&& (0 < a.getName().compare(b.getName())));
+		&& (a.getId() < b.getId()));
 }
 
 bool compareIsGreaterThan(const RoutineClass& a, const RoutineClass& b) {
-	return !((a<b) || (return a.getInstructionCount() == b.getInstructionCount()));
+	return !(a<b); // || (a.getInstructionCount() == b.getInstructionCount()));
 }
 
-
-std::unordered_map<int, RoutineClass> routinesDict;
+std::map<int, RoutineClass> routinesDict;
 
 void incrementICounter(unsigned i) {
 	routinesDict[i].incInstructionCount();
 }
 
 
-VOID Trace(TRACE trace, VOID *v);
 VOID Fini(int, VOID * v);
 std::ostream& printRoutineInstructionCount(std::ostream&);
 
@@ -85,32 +89,37 @@ std::ostream& printRoutineInstructionCount(std::ostream& os)  {
 	// Insert routines into a vector, do clean-up, sort, and finally, print
 	
 	std::vector<RoutineClass> routinesVec;
-	for (auto&& r : routinesDict) {
-		auto& rot = r.second;
+	//for (auto&& r : routinesDict) {
+	for (std::map<int, RoutineClass>::const_iterator it = routinesDict.begin();
+		it != routinesDict.end(); ++it) {
+		const RoutineClass& rot = it->second;
 		// ignore zero-ed routines
 		if (rot.getInstructionCount() == 0) {
 			continue;
 		}
 
 		// merge name-duplicates
-		bool dup_found = 0;
-		for (auto&& vr : routinesVec) {
+		bool dup_found = false;
+		//for (auto&& vr : routinesVec) {
+		for (std::vector<RoutineClass>::iterator it = routinesVec.begin();
+			it != routinesVec.end(); ++it) {
+			RoutineClass& vr = *it;
 			if (rot.getName() == vr.getName()) {
 				vr.incInstructionCount(rot.getInstructionCount());
-				dup_found = 1;
+				dup_found = true;
 			}
 		}
-		if (dup_found) {
-			continue;
-		}
 
-		routinesVec.push_back(rot);
+		if (!dup_found) {
+			routinesVec.push_back(rot);
+		}
 	}
 
 	std::sort(routinesVec.begin(), routinesVec.end(), compareIsGreaterThan);
 	//print routines
-	for (auto&& r : routinesVec) {
-		os << r << std::endl;
+	for (std::vector<RoutineClass>::iterator it = routinesVec.begin();
+			it != routinesVec.end(); ++it) {
+		os << *it << std::endl;
 	}
 
 	return os;
@@ -119,11 +128,12 @@ std::ostream& printRoutineInstructionCount(std::ostream& os)  {
 VOID Routine(RTN rtn, VOID *v) {
 	RTN_Open(rtn);
 	RoutineClass routine(rtn);
-	routinesDict[int(routine)] = routine;
+	int routine_id = routine.getId();
+	routinesDict[routine_id] = routine;
 
 	for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins)) {
 	    // Increment routine's counter on every executed instruction
-	    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)incrementICounter, IARG_UINT32, int(routine), IARG_END);
+	    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)incrementICounter, IARG_UINT32, routine_id, IARG_END);
 	}
 	RTN_Close(rtn);
 }

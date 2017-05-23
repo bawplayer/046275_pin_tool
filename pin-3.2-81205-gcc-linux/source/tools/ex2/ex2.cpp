@@ -61,24 +61,21 @@ string StringFromEtype( ETYPE etype)
 
 class EDGEClass {
 private:
-    int _rtn_id = 0;
-    unsigned _icount = 0;
+    int _rtn_id ;
+    unsigned _icount;
 public:
     ADDRINT _src, _dst;
     ADDRINT _next_ins;
     //ETYPE   _type; // must be integer to make stl happy
         
     EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n, const RTN& rtn) :
-        _src(s),_dst(d), _next_ins(n) {
+        _rtn_id(0), _icount(0), _src(s),_dst(d), _next_ins(n) {
         _rtn_id = RTN_Id(rtn);
     }
 
     EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n, unsigned icount,
         int rtn_id = 0):
-        _src(s),_dst(d), _next_ins(n) {
-        this->_rtn_id = rtn_id;
-        this->_icount = icount;
-    }
+        _rtn_id(rtn_id), _icount(icount), _src(s),_dst(d), _next_ins(n) {}
 
     unsigned getInstructionCount() const {
         return this->_icount;
@@ -95,6 +92,17 @@ public:
 
     EDGEClass& operator+=(const EDGEClass& left) {
         this->incInstructionCount(left.getInstructionCount());
+        return *this;
+    }
+
+    EDGEClass operator++() {
+        EDGEClass res(*this);
+        this->incInstructionCount();
+        return res;
+    }
+
+    EDGEClass& operator++(int) {
+        this->incInstructionCount();
         return *this;
     }
 
@@ -116,7 +124,7 @@ bool compareEdgeCounterIsGreaterThan(const EDGEClass& a, const EDGEClass& b) {
 
 class BBLClass {
 private:
-    int _rtn_id = 0;
+    int _rtn_id;
 
     bool _validateSourceAndDestination() {
         if (_src > _dst) {
@@ -125,12 +133,13 @@ private:
         return true;
     }
 public:
-    ADDRINT _src = 0, _dst = 0;
+    ADDRINT _src, _dst;
     //int _index = 0;
 
-    BBLClass(ADDRINT src, ADDRINT dst, const RTN& rtn): _src(src), _dst(dst) {
+    BBLClass(ADDRINT src, ADDRINT dst, const RTN& rtn): 
+        _rtn_id(0), _src(src), _dst(dst) {
         //_rtn_name = string(RTN_Name(rtn));
-        _rtn_id = RTN_Id(rtn);
+        this->_rtn_id = RTN_Id(rtn);
         _validateSourceAndDestination();
     }
 
@@ -170,12 +179,15 @@ private:
     int _id;
     string _name;
     ADDRINT _address;
-    unsigned _icount = 0;
-    unsigned _rcount = 0;
+    unsigned _icount;
+    unsigned _rcount;
 
-    int findBBLIndex(ADDRINT addr) const {
+    int _findBBLIndex(ADDRINT addr) const {
         int i = 0;
-        for (auto&& bbl : this->bbls) {
+        // for (auto&& bbl : this->bbls) {
+        for (std::vector<BBLClass>::const_iterator it = this->bbls.begin();
+            it != this->bbls.end(); ++it) {
+            const BBLClass& bbl = *it;
             ++i;
             if (bbl.isInstructionIn(addr)) {
                 return i;
@@ -194,7 +206,8 @@ public:
         _id(id), _name(name), _address(addr), _icount(icount), \
         _rcount(rcount) {}
     RoutineClass(const RTN& rtn):
-        _id(RTN_Id(rtn)), _name(RTN_Name(rtn)), _address(RTN_Address(rtn)) {}
+        _id(RTN_Id(rtn)), _name(RTN_Name(rtn)), _address(RTN_Address(rtn)),
+        _icount(0), _rcount(0) {}
     
     string getName() const {
         return this->_name;
@@ -208,9 +221,11 @@ public:
         return this->_id;
     }
 
-/*    explicit operator int() const {
+/*  
+    explicit operator int() const {
         this->getId();
-    }*/
+    }
+*/
 
     unsigned getInstructionCount() const {
         return this->_icount;
@@ -247,7 +262,10 @@ public:
         tmp_rtn_obj.incRoutineCount(rc._rcount);
 
         // append missing bbls
-        for (const BBLClass& bbl : rc.bbls) {
+        //for (const BBLClass& bbl : rc.bbls) {
+        for (std::vector<BBLClass>::const_iterator it = rc.bbls.begin();
+            it != rc.bbls.end(); ++it) {
+            const BBLClass& bbl = *it;
             if (std::find(tmp_rtn_obj.bbls.begin(), tmp_rtn_obj.bbls.end(),
                 bbl) == tmp_rtn_obj.bbls.end()) {
                 tmp_rtn_obj.bbls.push_back(bbl);
@@ -255,13 +273,16 @@ public:
         }
 
         // merge edges
-        for (const EDGEClass& edge_right : rc.edges) {
-            auto it = std::find(tmp_rtn_obj.edges.begin(), tmp_rtn_obj.edges.end(),
+        for (std::vector<EDGEClass>::const_iterator it = rc.edges.begin();
+            it != rc.edges.end(); ++it) {
+            const EDGEClass& edge_right = *it;
+            std::vector<EDGEClass>::iterator fit = std::find(
+                tmp_rtn_obj.edges.begin(), tmp_rtn_obj.edges.end(),
                 edge_right);
-            if (it == tmp_rtn_obj.edges.end()) {
+            if (fit == tmp_rtn_obj.edges.end()) {
                 tmp_rtn_obj.edges.push_back(edge_right);
             } else {
-                *it += edge_right;
+                *fit += edge_right;
             }
         }
 
@@ -282,7 +303,9 @@ public:
 
 
         int i = 1;
-        for (auto&& bbl : self.bbls) {
+        for (std::vector<BBLClass>::const_iterator it = self.bbls.begin();
+            it != self.bbls.end(); ++it) {
+            const BBLClass& bbl = *it;
             snprintf(char_array, array_len, bblString.c_str(), i,
                 static_cast<unsigned long long>(bbl._src),
                 static_cast<unsigned long long>(bbl._dst));
@@ -291,15 +314,16 @@ public:
         }
 
         i = 1;
-        for (auto&& edge : self.edges) {
+        for (std::vector<EDGEClass>::const_iterator it = self.edges.begin();
+            it != self.edges.end(); ++it) {
+            const EDGEClass& edge = *it;
             // Set buffer with edge data
-            int bbl1 = self.findBBLIndex(edge._src), bbl2 = self.findBBLIndex(edge._dst);
-#ifdef NDEBUG
+            int bbl1 = self._findBBLIndex(edge._src), bbl2 = self._findBBLIndex(edge._dst);
             if ((bbl1 == (-1)) || (bbl2 == (-1))) {
                 // ignore edges that were not in the trace, or exiting the routine
                 continue;
             }
-#endif
+
             snprintf(char_array, array_len, edgeString.c_str(),
                 i++, bbl1, bbl2, edge.getInstructionCount());
             out << std::string(char_array);
@@ -323,7 +347,9 @@ public:
 
 
         int i = 1;
-        for (auto&& bbl : self.bbls) {
+        for (std::vector<BBLClass>::const_iterator it = self.bbls.begin();
+            it != self.bbls.end(); ++it) {
+            const BBLClass& bbl = *it;
             snprintf(char_array, array_len, bblString.c_str(), i++,
                 static_cast<unsigned long long>(bbl._src),
                 static_cast<unsigned long long>(bbl._dst));
@@ -331,7 +357,9 @@ public:
         }
 
         i = 1;
-        for (auto&& edge : self.edges) {
+        for (std::vector<EDGEClass>::const_iterator it = self.edges.begin();
+            it != self.edges.end(); ++it) {
+            const EDGEClass& edge = *it;
             // Set buffer with edge data
             snprintf(char_array, array_len, edgeProfString.c_str(),
                 i++, edge._src, edge._dst, edge._next_ins,
@@ -362,6 +390,10 @@ void incrementRoutineRCounter(int i) {
 
 void incrementRoutineEdgeCounter(int i, int j) {
     routinesDict[i].edges[j].incInstructionCount();
+}
+
+bool edgeWithZeroCalls(const EDGEClass& edge) {
+    return edge.getInstructionCount() == 0;
 }
 
 void parseProfileMapIfFound() {
@@ -396,12 +428,12 @@ void parseProfileMapIfFound() {
             currentRoutine.bbls.push_back(BBLClass(start, end, currentRoutine.getId()));
         } else {
             // parse routine
-             // merge previous routine to routinesDict
+            // merge previous routine to routinesDict
             if (currentRoutine.getId() != 0) {
                 if (routinesDict.find(currentRoutine.getId()) == routinesDict.end()) {
                     routinesDict[currentRoutine.getId()] = currentRoutine;
                 } else {
-#ifndef NDEBUG
+/*#ifndef NDEBUG
                     if (true) {
                         mylog << currentRoutine.getId() << " ";
                         mylog << currentRoutine.getName() << endl;
@@ -415,11 +447,11 @@ void parseProfileMapIfFound() {
                             routinesDict[currentRoutine.getId()].getInstructionCount()
                             << endl;
                     } else {
-#endif
+#endif*/
                   routinesDict[currentRoutine.getId()] += currentRoutine;
-#ifndef NDEBUG
+/*#ifndef NDEBUG
                     }
-#endif
+#endif*/
                 }
             }
 
@@ -456,17 +488,17 @@ VOID Trace(TRACE trace, VOID *v) {
         ADDRINT addr = BBL_Address(bbl);
         ADDRINT end_addr = addr + BBL_Size(bbl);
 
-        auto pit = bblsSet.insert(BBLClass(addr, end_addr, RTN_FindByAddress(addr)));
-        if (pit.second == false) {
+        std::pair<std::set<BBLClass>::iterator, bool> pairset = bblsSet.insert(BBLClass(addr, end_addr, RTN_FindByAddress(addr)));
+        if (pairset.second == false) {
             continue;
         } 
 /*
         TODO
         // otherwise, there's a duplicate.
         // Assuming a BBL may have multiple entries, we will merge them now.
-        if (addr < pit.first->_src) {
+        if (addr < pairset.first->_src) {
             // set the 1st BBL's start address to the minimal address of the two
-            pit.first->extendStartAddress(addr);
+            pairset.first->extendStartAddress(addr);
         }*/
      }
 }
@@ -520,7 +552,10 @@ VOID Routine(RTN rtn, VOID *v) {
 // It prints the name and count for each procedure
 VOID Fini(INT32 code, VOID *v) {
     // move BBL from global linked list to the vector in the relevant rtn
-    for (auto&& bbl : bblsSet) {
+    //for (auto&& bbl : bblsSet) {
+    for (std::set<BBLClass>::const_iterator it = bblsSet.begin();
+        it != bblsSet.end(); ++it) {
+        const BBLClass& bbl = *it;
         // TODO: merge inclusive bbls counters
         routinesDict[bbl.getRoutineId()].bbls.push_back(bbl);
     }
@@ -534,8 +569,10 @@ VOID Fini(INT32 code, VOID *v) {
     std::vector<RoutineClass> routinesVector;
 
     // copy from dictionary to routines vector all routines that have been called
-    for (auto&& di: routinesDict) {
-        RoutineClass& rc = di.second;
+    //for (auto&& di: routinesDict) {
+    for (std::map<int, RoutineClass>::iterator it = routinesDict.begin();
+        it != routinesDict.end(); ++it) {
+        RoutineClass& rc = it->second;
 
         // ignore silent routines
         if (rc.getInstructionCount() == 0) {
@@ -544,8 +581,7 @@ VOID Fini(INT32 code, VOID *v) {
 
         // clean silent edges
         rc.edges.erase(std::remove_if(rc.edges.begin(), rc.edges.end(), 
-            [](const EDGEClass& edge){return edge.getInstructionCount() == 0;}),
-            rc.edges.end());
+            edgeWithZeroCalls), rc.edges.end());
         // sort edges
         std::sort(rc.edges.begin(), rc.edges.end(), compareEdgeCounterIsGreaterThan);
 
@@ -557,7 +593,10 @@ VOID Fini(INT32 code, VOID *v) {
     std::sort(routinesVector.begin(), routinesVector.end(), compareRoutineIsGreaterThan);
 
     std::ofstream outFile("rtn-output.txt"), profileFile(profileFilename.c_str());
-    for (auto&& rc : routinesVector) {
+    //for (auto&& rc : routinesVector) {
+    for (std::vector<RoutineClass>::const_iterator it = routinesVector.begin();
+        it != routinesVector.end(); ++it) {
+        const RoutineClass& rc = *it;
         outFile << rc;
         rc.printProfile(profileFile);
     }
@@ -584,10 +623,10 @@ int main(int argc, char * argv[]) {
     // Initialize symbol table code, needed for rtn instrumentation
     PIN_InitSymbols();
 
-#ifndef NDEBUG
+/*#ifndef NDEBUG
     mylog.open("deb.log");
 #endif
-
+*/
     // Initialize pin
     if (PIN_Init(argc, argv)) return Usage();
 
