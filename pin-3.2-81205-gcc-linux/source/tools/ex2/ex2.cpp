@@ -282,6 +282,7 @@ public:
                 edge_right);
             if (fit == tmp_rtn_obj.edges.end()) {
                 tmp_rtn_obj.edges.push_back(edge_right);
+				break;
             } else {
                 *fit += edge_right;
             }
