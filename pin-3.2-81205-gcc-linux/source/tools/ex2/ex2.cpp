@@ -120,7 +120,8 @@ public:
 }; // END of EDGEClass
 
 bool compareEdgeCounterIsGreaterThan(const EDGEClass& a, const EDGEClass& b) {
-    return (a.getInstructionCount() > b.getInstructionCount());
+    return (a.getInstructionCount() > b.getInstructionCount()) || \
+        ((a.getInstructionCount() == b.getInstructionCount()) && (b<a));
 }
 
 class BBLClass {
