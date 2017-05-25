@@ -1,12 +1,6 @@
-//Oren Kaikov, 037832292
-/*This tool counts the number of times a routine is executed and the number of instructions executed in a routine.
-this is based on the original proccount sample provided by pin tool.
-I modified proccount by sorting the output and aggragating the instruction count of all the functions with the same name.
-we still use proccount original linked list data structure to contain all the routins information, since the assumption that there are less then 1K rtns is valid for rtns that run more then 1 instructions.
-since there are rtns with the same name but with diffrent image, they are counted seperatly.
-the desired output doesn't distinguish between images, so I aggragated all the instruction count of all the rtns with the same name (even though they have a diffrent image.) 
-also removed redundent code.
-*/
+//O
+//B
+
 #include <vector>
 #include <fstream>
 #include <iomanip>
@@ -25,41 +19,6 @@ const std::string bblProfString = "b\tBB%d: 0x%llx - 0x%llx\n";
 const std::string routineProfString = "r%d %s at: 0x%llx\ticount: %u\trcount: %u\n";
 std::ofstream mylog;
 
-/*
-typedef enum {
-    ETYPE_INVALID,
-    ETYPE_CALL,
-    ETYPE_ICALL,
-    ETYPE_BRANCH,
-    ETYPE_IBRANCH,
-    ETYPE_RETURN,
-    ETYPE_SYSCALL,
-    ETYPE_LAST
-}ETYPE;
-
-string StringFromEtype( ETYPE etype)
-{
-    switch(etype)
-    {
-      case ETYPE_CALL:
-        return "C";
-      case ETYPE_ICALL:
-        return "c";
-      case ETYPE_BRANCH:
-        return "B";
-      case ETYPE_IBRANCH:
-        return "b";
-      case ETYPE_RETURN:
-        return "r";
-      case ETYPE_SYSCALL:
-        return "s";
-      default:
-        ASSERTX(0);
-        return "INVALID";
-    }
-}
-*/
-
 class EDGEClass {
 private:
     int _rtn_id ;
@@ -67,7 +26,6 @@ private:
 public:
     ADDRINT _src, _dst;
     ADDRINT _next_ins;
-    //ETYPE   _type; // must be integer to make stl happy
         
     EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n, const RTN& rtn) :
         _rtn_id(0), _icount(0), _src(s),_dst(d), _next_ins(n) {
@@ -136,11 +94,9 @@ private:
     }
 public:
     ADDRINT _src, _dst;
-    //int _index = 0;
 
     BBLClass(ADDRINT src, ADDRINT dst, const RTN& rtn): 
         _rtn_id(0), _src(src), _dst(dst) {
-        //_rtn_name = string(RTN_Name(rtn));
         this->_rtn_id = RTN_Id(rtn);
         _validateSourceAndDestination();
     }
@@ -163,7 +119,7 @@ public:
         return this->_src;
     }
 
-    /**
+    /*
         Essantially, BBLs are differentiated by their start address.
     */
     friend bool operator<(const BBLClass& a, const BBLClass& b) {
@@ -186,7 +142,6 @@ private:
 
     int _findBBLIndex(ADDRINT addr) const {
         int i = 0;
-        // for (auto&& bbl : this->bbls) {
         for (std::vector<BBLClass>::const_iterator it = this->bbls.begin();
             it != this->bbls.end(); ++it) {
             const BBLClass& bbl = *it;
@@ -223,12 +178,6 @@ public:
         return this->_id;
     }
 
-/*  
-    explicit operator int() const {
-        this->getId();
-    }
-*/
-
     unsigned getInstructionCount() const {
         return this->_icount;
     }
@@ -264,7 +213,6 @@ public:
         tmp_rtn_obj.incRoutineCount(rc._rcount);
 
         // append missing bbls
-        //for (const BBLClass& bbl : rc.bbls) {
         for (std::vector<BBLClass>::const_iterator it = rc.bbls.begin();
             it != rc.bbls.end(); ++it) {
             const BBLClass& bbl = *it;
@@ -437,25 +385,7 @@ void parseProfileMapIfFound() {
                 if (routinesDict.find(currentRoutine.getId()) == routinesDict.end()) {
                     routinesDict[currentRoutine.getId()] = currentRoutine;
                 } else {
-/*#ifndef NDEBUG
-                    if (true) {
-                        mylog << currentRoutine.getId() << " ";
-                        mylog << currentRoutine.getName() << endl;
-                        mylog << "Routine's current run instruction count:\t" <<
-                            routinesDict[currentRoutine.getId()].getInstructionCount()
-                            << endl;
-                        mylog << "Routine's previous runs instruction count:\t" <<
-                            currentRoutine.getInstructionCount() << endl;
-                        routinesDict[currentRoutine.getId()] += currentRoutine;
-                        mylog << "Instruction count merged: " <<
-                            routinesDict[currentRoutine.getId()].getInstructionCount()
-                            << endl;
-                    } else {
-#endif*/
                   routinesDict[currentRoutine.getId()] += currentRoutine;
-/*#ifndef NDEBUG
-                    }
-#endif*/
                 }
             }
 
@@ -485,10 +415,6 @@ void parseProfileMapIfFound() {
 }
 
 
-/**
-    Note: PIN_DEPRECATED_API BBL LEVEL_PINCLIENT::RTN_BblHead (   RTN     x    )
-    Here we will register each BBL sequence only once.
-*/
 VOID Trace(TRACE trace, VOID *v) {
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
         ADDRINT addr = BBL_Address(bbl);
@@ -498,14 +424,6 @@ VOID Trace(TRACE trace, VOID *v) {
         if (pairset.second == false) {
             continue;
         } 
-/*
-        TODO
-        // otherwise, there's a duplicate.
-        // Assuming a BBL may have multiple entries, we will merge them now.
-        if (addr < pairset.first->_src) {
-            // set the 1st BBL's start address to the minimal address of the two
-            pairset.first->extendStartAddress(addr);
-        }*/
      }
 }
 
@@ -535,8 +453,6 @@ VOID Routine(RTN rtn, VOID *v) {
 
         // count the edges ((indirect)
         if (INS_IsDirectBranchOrCall(ins)) {
-            //ETYPE type = INS_IsCall(ins) ? ETYPE_CALL : ETYPE_BRANCH;
-    
             int edge_index = routinesDict[routine_id].edges.size();
             routinesDict[routine_id].edges.push_back(\
                 EDGEClass(
@@ -558,11 +474,9 @@ VOID Routine(RTN rtn, VOID *v) {
 // It prints the name and count for each procedure
 VOID Fini(INT32 code, VOID *v) {
     // move BBL from global linked list to the vector in the relevant rtn
-    //for (auto&& bbl : bblsSet) {
     for (std::set<BBLClass>::const_iterator it = bblsSet.begin();
         it != bblsSet.end(); ++it) {
         const BBLClass& bbl = *it;
-        // TODO: merge inclusive bbls counters
         routinesDict[bbl.getRoutineId()].bbls.push_back(bbl);
     }
 
@@ -575,7 +489,6 @@ VOID Fini(INT32 code, VOID *v) {
     std::vector<RoutineClass> routinesVector;
 
     // copy from dictionary to routines vector all routines that have been called
-    //for (auto&& di: routinesDict) {
     for (std::map<int, RoutineClass>::iterator it = routinesDict.begin();
         it != routinesDict.end(); ++it) {
         RoutineClass& rc = it->second;
@@ -599,7 +512,6 @@ VOID Fini(INT32 code, VOID *v) {
     std::sort(routinesVector.begin(), routinesVector.end(), compareRoutineIsGreaterThan);
 
     std::ofstream outFile("rtn-output.txt"), profileFile(profileFilename.c_str());
-    //for (auto&& rc : routinesVector) {
     for (std::vector<RoutineClass>::const_iterator it = routinesVector.begin();
         it != routinesVector.end(); ++it) {
         const RoutineClass& rc = *it;
@@ -629,10 +541,6 @@ int main(int argc, char * argv[]) {
     // Initialize symbol table code, needed for rtn instrumentation
     PIN_InitSymbols();
 
-/*#ifndef NDEBUG
-    mylog.open("deb.log");
-#endif
-*/
     // Initialize pin
     if (PIN_Init(argc, argv)) return Usage();
 
