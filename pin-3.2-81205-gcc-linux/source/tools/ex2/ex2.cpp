@@ -75,7 +75,7 @@ public:
     }
 
     EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n, unsigned icount,
-        int rtn_id = 0):
+        int rtn_id):
         _rtn_id(rtn_id), _icount(icount), _src(s),_dst(d), _next_ins(n) {}
 
     unsigned getInstructionCount() const {
@@ -421,7 +421,8 @@ void parseProfileMapIfFound() {
             unsigned icount;
             sscanf(strBuffer.c_str(), edgeProfString.c_str(), &num,
                 &src_ins, &dst_ins, &next_ins, &icount);
-            currentRoutine.edges.push_back(EDGEClass(src_ins, dst_ins, next_ins, icount));
+            currentRoutine.edges.push_back(EDGEClass(src_ins, dst_ins,
+                next_ins, icount, currentRoutine.getId()));
         } else if (firstChar == 'b') {
             // parse bbl referenced the most recent routine
             unsigned long long start, end;
