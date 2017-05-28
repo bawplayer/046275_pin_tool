@@ -29,10 +29,8 @@ KNOB<BOOL>   KnobOptimizeHottestTen(KNOB_MODE_WRITEONCE,   "pintool",
     "inst", "0", "should run in probe mode and generate the binary code of the top 10 routines according to the gathered profiling data");
 KNOB<BOOL>   KnobVerbose(KNOB_MODE_WRITEONCE,    "pintool",
     "verbose", "0", "Verbose run");
-
 KNOB<BOOL>   KnobDumpTranslatedCode(KNOB_MODE_WRITEONCE,    "pintool",
     "dump_tc", "0", "Dump Translated Code");
-
 KNOB<BOOL>   KnobDoNotCommitTranslatedCode(KNOB_MODE_WRITEONCE,    "pintool",
     "no_tc_commit", "0", "Do not commit translated code");
 
@@ -347,7 +345,7 @@ bool compareRoutineIsGreaterThan(const RoutineClass& a, const RoutineClass& b) {
 
 std::map<int, RoutineClass> routinesDict;
 std::set<BBLClass> bblsSet;
-std::vector<int> routineCandidateIdsVector;
+std::vector<std::pair<int, bool> > routineCandidateIdsVector;
 
 void incrementRoutineICounter(int i) {
     routinesDict[i].incInstructionCount();
@@ -489,6 +487,22 @@ VOID Routine(RTN rtn, VOID *v) {
     RTN_Close(rtn);
 }
 
+bool routineInTopTen(int rtn_id, bool mainImgOnly=false) {
+    const int n = 10;
+    int i = 0;
+    for (std::vector<std::pair<int, bool> >::const_iterator it = routineCandidateIdsVector.begin();
+        (it != routineCandidateIdsVector.end()) && (i<n); ++it) {
+        if (!mainImgOnly || it->second) {
+            if (it->first == rtn_id) {
+                return true;
+            }
+            ++i;
+        }
+    }
+
+    return false;
+}
+
 // This function is called when the application exits
 // It prints the name and count for each procedure
 VOID Fini(INT32 code, VOID *v) {
@@ -546,7 +560,6 @@ void parsePorfileForCandidates() {
     }
 
     std::string strBuffer;
-
     while (std::getline(inFile, strBuffer)) {
         const char firstChar = strBuffer[0];
 
@@ -567,7 +580,7 @@ void parsePorfileForCandidates() {
             int rtn_id;
             sscanf(strBuffer.c_str(), routineProfString.c_str(),
                 &rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt);
-            routineCandidateIdsVector.push_back(rtn_id);
+            routineCandidateIdsVector.push_back(std::pair<int,bool>(rtn_id, false));
         } else {
             std::cerr << "Could not compile line: " << strBuffer << endl;
         }
@@ -1259,15 +1272,17 @@ int find_candidate_rtns_for_translation(IMG img)
 
     for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
     {   
-        if (!SEC_IsExecutable(sec) || SEC_IsWriteable(sec) || !SEC_Address(sec))
+        if (!SEC_IsExecutable(sec) || SEC_IsWriteable(sec) || !SEC_Address(sec)) {
             continue;
+        }
 
         for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
-        {   
-
-            if (rtn == RTN_Invalid()) 
-            {
+        {
+            if (rtn == RTN_Invalid()) {
                 cerr << "Warning: invalid routine " << RTN_Name(rtn) << endl;
+                continue;
+            }
+            if (!routineInTopTen(RTN_Id(rtn), true)) {
                 continue;
             }
 
@@ -1317,16 +1332,16 @@ int find_candidate_rtns_for_translation(IMG img)
                 cerr <<   "rtn name: " << RTN_Name(rtn) << " : " << dec << translated_rtn_num << endl;
             }           
 
-
             // Close the RTN.
             RTN_Close( rtn );
 
-            translated_rtn_num++;
-
+            if (++translated_rtn_num >= 10) {
+                return 0;
+            }
          } // end for RTN..
     } // end for SEC...
 
-
+    std::cerr << "WOOPS: translated_rtn_num = " << translated_rtn_num << endl;
     return 0;
 }
 
@@ -1429,6 +1444,12 @@ int allocate_and_init_memory(IMG img)
 
                   max_ins_count += RTN_NumIns(rtn);
                   max_rtn_count++;
+
+                  std::pair<int, bool> rtn_pair(RTN_Id(rtn), false);
+                  std::vector<pair<int, bool> >::iterator it = std::find(
+                    routineCandidateIdsVector.begin(),
+                    routineCandidateIdsVector.end(), rtn_pair);
+                  it->second = true;
             }
     }
 
@@ -1569,9 +1590,7 @@ int main(int argc, char * argv[]) {
     // Initialize pin
     if (PIN_Init(argc, argv)) return Usage();
 
-    // parsePorfileForCandidates();
-
-    // if (KnobRunEx2) {
+    if (KnobRunEx2) {
         // Register Routine to be called to instrument rtn
         RTN_AddInstrumentFunction(Routine, 0);
         
@@ -1582,16 +1601,16 @@ int main(int argc, char * argv[]) {
 
         // Start the program, never returns
         PIN_StartProgram(); 
- /*   } else if (KnobOptimizeHottestTen) {
+    } else if (KnobOptimizeHottestTen) {
+        parsePorfileForCandidates();
         // Register ImageLoad
         IMG_AddInstrumentFunction(ImageLoad, 0);
 
         // Start the program, never returns
         PIN_StartProgramProbed();
+    } else {
+        PIN_StartProgram();
     }
- */       
-    
 
-    
     return 0;
 }
