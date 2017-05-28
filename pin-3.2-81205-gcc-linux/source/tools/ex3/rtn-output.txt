@@ -1,0 +1,492 @@
+after memory allocation
+after identifying candidate routines
+after calculate direct br targets
+after fix instructions displacements
+after write all new instructions to memory tc
+committing rtN: .plt from: 0x401050 to: 0x7f347c7de00e
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401050 replacement routine addr: 0x7f347c7de00e
+0x401050: jmp qword ptr [rip+0x1bfaa]
+committing rtN: getenv@plt from: 0x401060 to: 0x7f347c7de020
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401060 replacement routine addr: 0x7f347c7de020
+0x401060: jmp qword ptr [rip+0x1bfa2]
+committing rtN: utime@plt from: 0x401070 to: 0x7f347c7de031
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401070 replacement routine addr: 0x7f347c7de031
+0x401070: jmp qword ptr [rip+0x1bf9a]
+committing rtN: free@plt from: 0x401080 to: 0x7f347c7de042
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401080 replacement routine addr: 0x7f347c7de042
+0x401080: jmp qword ptr [rip+0x1bf92]
+committing rtN: __errno_location@plt from: 0x401090 to: 0x7f347c7de053
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401090 replacement routine addr: 0x7f347c7de053
+0x401090: jmp qword ptr [rip+0x1bf8a]
+committing rtN: strncpy@plt from: 0x4010a0 to: 0x7f347c7de064
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4010a0 replacement routine addr: 0x7f347c7de064
+0x4010a0: jmp qword ptr [rip+0x1bf82]
+committing rtN: remove@plt from: 0x4010b0 to: 0x7f347c7de075
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4010b0 replacement routine addr: 0x7f347c7de075
+0x4010b0: jmp qword ptr [rip+0x1bf7a]
+committing rtN: strncmp@plt from: 0x4010c0 to: 0x7f347c7de086
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4010c0 replacement routine addr: 0x7f347c7de086
+0x4010c0: jmp qword ptr [rip+0x1bf72]
+committing rtN: strcpy@plt from: 0x4010d0 to: 0x7f347c7de097
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4010d0 replacement routine addr: 0x7f347c7de097
+0x4010d0: jmp qword ptr [rip+0x1bf6a]
+committing rtN: GOMP_parallel_start@plt from: 0x4010e0 to: 0x7f347c7de0a8
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4010e0 replacement routine addr: 0x7f347c7de0a8
+0x4010e0: jmp qword ptr [rip+0x1bf62]
+committing rtN: ferror@plt from: 0x4010f0 to: 0x7f347c7de0b9
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4010f0 replacement routine addr: 0x7f347c7de0b9
+0x4010f0: jmp qword ptr [rip+0x1bf5a]
+committing rtN: isatty@plt from: 0x401100 to: 0x7f347c7de0ca
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401100 replacement routine addr: 0x7f347c7de0ca
+0x401100: jmp qword ptr [rip+0x1bf52]
+committing rtN: fread@plt from: 0x401110 to: 0x7f347c7de0db
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401110 replacement routine addr: 0x7f347c7de0db
+0x401110: jmp qword ptr [rip+0x1bf4a]
+committing rtN: fclose@plt from: 0x401120 to: 0x7f347c7de0ec
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401120 replacement routine addr: 0x7f347c7de0ec
+0x401120: jmp qword ptr [rip+0x1bf42]
+committing rtN: GOMP_parallel_end@plt from: 0x401130 to: 0x7f347c7de0fd
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401130 replacement routine addr: 0x7f347c7de0fd
+0x401130: jmp qword ptr [rip+0x1bf3a]
+committing rtN: omp_get_thread_num@plt from: 0x401140 to: 0x7f347c7de10e
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401140 replacement routine addr: 0x7f347c7de10e
+0x401140: jmp qword ptr [rip+0x1bf32]
+committing rtN: strlen@plt from: 0x401150 to: 0x7f347c7de11f
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401150 replacement routine addr: 0x7f347c7de11f
+0x401150: jmp qword ptr [rip+0x1ceaa]
+committing rtN: __lxstat@plt from: 0x401160 to: 0x7f347c7de130
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401160 replacement routine addr: 0x7f347c7de130
+0x401160: jmp qword ptr [rip+0x1cea2]
+committing rtN: rewind@plt from: 0x401170 to: 0x7f347c7de141
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401170 replacement routine addr: 0x7f347c7de141
+0x401170: jmp qword ptr [rip+0x1ce9a]
+committing rtN: fgetc@plt from: 0x401180 to: 0x7f347c7de152
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401180 replacement routine addr: 0x7f347c7de152
+0x401180: jmp qword ptr [rip+0x1ce92]
+committing rtN: close@plt from: 0x401190 to: 0x7f347c7de163
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401190 replacement routine addr: 0x7f347c7de163
+0x401190: jmp qword ptr [rip+0x1ce8a]
+committing rtN: fputc@plt from: 0x4011a0 to: 0x7f347c7de174
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4011a0 replacement routine addr: 0x7f347c7de174
+0x4011a0: jmp qword ptr [rip+0x1ce82]
+committing rtN: __libc_start_main@plt from: 0x4011b0 to: 0x7f347c7de185
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4011b0 replacement routine addr: 0x7f347c7de185
+0x4011b0: jmp qword ptr [rip+0x1ce7a]
+committing rtN: strcmp@plt from: 0x4011c0 to: 0x7f347c7de196
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4011c0 replacement routine addr: 0x7f347c7de196
+0x4011c0: jmp qword ptr [rip+0x1ce72]
+committing rtN: signal@plt from: 0x4011d0 to: 0x7f347c7de1a7
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4011d0 replacement routine addr: 0x7f347c7de1a7
+0x4011d0: jmp qword ptr [rip+0x1ce6a]
+committing rtN: omp_get_num_threads@plt from: 0x4011e0 to: 0x7f347c7de1b8
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4011e0 replacement routine addr: 0x7f347c7de1b8
+0x4011e0: jmp qword ptr [rip+0x1ce62]
+committing rtN: fprintf@plt from: 0x4011f0 to: 0x7f347c7de1c9
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4011f0 replacement routine addr: 0x7f347c7de1c9
+0x4011f0: jmp qword ptr [rip+0x1ce5a]
+committing rtN: fileno@plt from: 0x401200 to: 0x7f347c7de1da
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401200 replacement routine addr: 0x7f347c7de1da
+0x401200: jmp qword ptr [rip+0x1ce52]
+committing rtN: __xstat@plt from: 0x401210 to: 0x7f347c7de1eb
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401210 replacement routine addr: 0x7f347c7de1eb
+0x401210: jmp qword ptr [rip+0x1ce4a]
+committing rtN: malloc@plt from: 0x401220 to: 0x7f347c7de1fc
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401220 replacement routine addr: 0x7f347c7de1fc
+0x401220: jmp qword ptr [rip+0x1ce42]
+committing rtN: fflush@plt from: 0x401230 to: 0x7f347c7de20d
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401230 replacement routine addr: 0x7f347c7de20d
+0x401230: jmp qword ptr [rip+0x1ce3a]
+committing rtN: ungetc@plt from: 0x401240 to: 0x7f347c7de21e
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401240 replacement routine addr: 0x7f347c7de21e
+0x401240: jmp qword ptr [rip+0x1ce32]
+committing rtN: chown@plt from: 0x401250 to: 0x7f347c7de22f
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401250 replacement routine addr: 0x7f347c7de22f
+0x401250: jmp qword ptr [rip+0x1ddaa]
+committing rtN: fdopen@plt from: 0x401260 to: 0x7f347c7de240
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401260 replacement routine addr: 0x7f347c7de240
+0x401260: jmp qword ptr [rip+0x1dda2]
+committing rtN: chmod@plt from: 0x401270 to: 0x7f347c7de251
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401270 replacement routine addr: 0x7f347c7de251
+0x401270: jmp qword ptr [rip+0x1dd9a]
+committing rtN: open@plt from: 0x401280 to: 0x7f347c7de262
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401280 replacement routine addr: 0x7f347c7de262
+0x401280: jmp qword ptr [rip+0x1dd92]
+committing rtN: fopen@plt from: 0x401290 to: 0x7f347c7de273
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401290 replacement routine addr: 0x7f347c7de273
+0x401290: jmp qword ptr [rip+0x1dd8a]
+committing rtN: perror@plt from: 0x4012a0 to: 0x7f347c7de284
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4012a0 replacement routine addr: 0x7f347c7de284
+0x4012a0: jmp qword ptr [rip+0x1dd82]
+committing rtN: strcat@plt from: 0x4012b0 to: 0x7f347c7de295
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4012b0 replacement routine addr: 0x7f347c7de295
+0x4012b0: jmp qword ptr [rip+0x1dd7a]
+committing rtN: exit@plt from: 0x4012c0 to: 0x7f347c7de2a6
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4012c0 replacement routine addr: 0x7f347c7de2a6
+0x4012c0: jmp qword ptr [rip+0x1dd72]
+committing rtN: fwrite@plt from: 0x4012d0 to: 0x7f347c7de2b7
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4012d0 replacement routine addr: 0x7f347c7de2b7
+0x4012d0: jmp qword ptr [rip+0x1dd6a]
+committing rtN: strerror@plt from: 0x4012e0 to: 0x7f347c7de2c8
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4012e0 replacement routine addr: 0x7f347c7de2c8
+0x4012e0: jmp qword ptr [rip+0x1dd62]
+committing rtN: strstr@plt from: 0x4012f0 to: 0x7f347c7de2d9
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4012f0 replacement routine addr: 0x7f347c7de2d9
+0x4012f0: jmp qword ptr [rip+0x1dd5a]
+committing rtN: __ctype_b_loc@plt from: 0x401300 to: 0x7f347c7de2ea
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401300 replacement routine addr: 0x7f347c7de2ea
+0x401300: jmp qword ptr [rip+0x1dd52]
+committing rtN: _start from: 0x401310 to: 0x7f347c7de2fb
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401310 replacement routine addr: 0x7f347c7de2fb
+0x401310: jmp qword ptr [rip+0x1dd4a]
+committing rtN: call_gmon_start from: 0x40133c to: 0x7f347c7de327
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40133c replacement routine addr: 0x7f347c7de327
+0x40133c: jmp qword ptr [rip+0x1dd26]
+committing rtN: deregister_tm_clones from: 0x401360 to: 0x7f347c7de343
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401360 replacement routine addr: 0x7f347c7de343
+0x401360: jmp qword ptr [rip+0x1dd0a]
+committing rtN: register_tm_clones from: 0x401390 to: 0x7f347c7de37b
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401390 replacement routine addr: 0x7f347c7de37b
+0x401390: jmp qword ptr [rip+0x1dce2]
+committing rtN: __do_global_dtors_aux from: 0x4013d0 to: 0x7f347c7de3c3
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4013d0 replacement routine addr: 0x7f347c7de3c3
+0x4013d0: jmp qword ptr [rip+0x1ec2a]
+committing rtN: frame_dummy from: 0x4013f0 to: 0x7f347c7de3e5
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4013f0 replacement routine addr: 0x7f347c7de3e5
+0x4013f0: jmp qword ptr [rip+0x1ec12]
+committing rtN: uInt64_from_UInt32s from: 0x40141c to: 0x7f347c7de41a
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40141c replacement routine addr: 0x7f347c7de41a
+0x40141c: jmp qword ptr [rip+0x1ebee]
+committing rtN: uInt64_to_double from: 0x40149d to: 0x7f347c7de49b
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40149d replacement routine addr: 0x7f347c7de49b
+0x40149d: jmp qword ptr [rip+0x1eb75]
+committing rtN: uInt64_isZero from: 0x40151b to: 0x7f347c7de521
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40151b replacement routine addr: 0x7f347c7de521
+0x40151b: jmp qword ptr [rip+0x1eaff]
+committing rtN: uInt64_qrm10 from: 0x401555 to: 0x7f347c7de569
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401555 replacement routine addr: 0x7f347c7de569
+0x401555: jmp qword ptr [rip+0x1eacd]
+committing rtN: uInt64_toAscii from: 0x4015dd to: 0x7f347c7de5f8
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4015dd replacement routine addr: 0x7f347c7de5f8
+0x4015dd: jmp qword ptr [rip+0x1ea4d]
+committing rtN: myfeof from: 0x40168e to: 0x7f347c7de6ad
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40168e replacement routine addr: 0x7f347c7de6ad
+0x40168e: jmp qword ptr [rip+0x1e9a4]
+committing rtN: compressStream from: 0x4016ce to: 0x7f347c7de6f4
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4016ce replacement routine addr: 0x7f347c7de6f4
+0x4016ce: jmp qword ptr [rip+0x1e96c]
+committing rtN: uncompressStream from: 0x401af4 to: 0x7f347c7deb6b
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401af4 replacement routine addr: 0x7f347c7deb6b
+0x401af4: jmp qword ptr [rip+0x1e54e]
+committing rtN: testStream from: 0x401f8c to: 0x7f347c7df072
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x401f8c replacement routine addr: 0x7f347c7df072
+0x401f8c: jmp qword ptr [rip+0x1e0be]
+committing rtN: setExit from: 0x4022ea to: 0x7f347c7df412
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4022ea replacement routine addr: 0x7f347c7df412
+0x4022ea: jmp qword ptr [rip+0x1dd68]
+committing rtN: cadvise from: 0x402307 to: 0x7f347c7df435
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402307 replacement routine addr: 0x7f347c7df435
+0x402307: jmp qword ptr [rip+0x1dd53]
+committing rtN: showFileNames from: 0x402336 to: 0x7f347c7df46a
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402336 replacement routine addr: 0x7f347c7df46a
+0x402336: jmp qword ptr [rip+0x1dd2c]
+committing rtN: cleanUpAndFail from: 0x40236a to: 0x7f347c7df4a4
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40236a replacement routine addr: 0x7f347c7df4a4
+0x40236a: jmp qword ptr [rip+0x1dd00]
+committing rtN: panic from: 0x402557 to: 0x7f347c7df6c2
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402557 replacement routine addr: 0x7f347c7df6c2
+0x402557: jmp qword ptr [rip+0x1db1b]
+committing rtN: crcError from: 0x402596 to: 0x7f347c7df703
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402596 replacement routine addr: 0x7f347c7df703
+0x402596: jmp qword ptr [rip+0x1ea64]
+committing rtN: compressedStreamEOF from: 0x4025ce to: 0x7f347c7df73d
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4025ce replacement routine addr: 0x7f347c7df73d
+0x4025ce: jmp qword ptr [rip+0x1ea34]
+committing rtN: ioError from: 0x402620 to: 0x7f347c7df797
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402620 replacement routine addr: 0x7f347c7df797
+0x402620: jmp qword ptr [rip+0x1e9ea]
+committing rtN: mySignalCatcher from: 0x402662 to: 0x7f347c7df7dc
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402662 replacement routine addr: 0x7f347c7df7dc
+0x402662: jmp qword ptr [rip+0x1e9b0]
+committing rtN: mySIGSEGVorSIGBUScatcher from: 0x402697 to: 0x7f347c7df813
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402697 replacement routine addr: 0x7f347c7df813
+0x402697: jmp qword ptr [rip+0x1e983]
+committing rtN: outOfMemory from: 0x402718 to: 0x7f347c7df8a5
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402718 replacement routine addr: 0x7f347c7df8a5
+0x402718: jmp qword ptr [rip+0x1e90a]
+committing rtN: configError from: 0x40274b to: 0x7f347c7df8da
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40274b replacement routine addr: 0x7f347c7df8da
+0x40274b: jmp qword ptr [rip+0x1e8df]
+committing rtN: pad from: 0x402784 to: 0x7f347c7df915
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402784 replacement routine addr: 0x7f347c7df915
+0x402784: jmp qword ptr [rip+0x1e8ae]
+committing rtN: copyFileName from: 0x4027f1 to: 0x7f347c7df993
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4027f1 replacement routine addr: 0x7f347c7df993
+0x4027f1: jmp qword ptr [rip+0x1e849]
+committing rtN: fileExists from: 0x402875 to: 0x7f347c7dfa1d
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402875 replacement routine addr: 0x7f347c7dfa1d
+0x402875: jmp qword ptr [rip+0x1e7cd]
+committing rtN: fopen_output_safely from: 0x4028ba to: 0x7f347c7dfa66
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4028ba replacement routine addr: 0x7f347c7dfa66
+0x4028ba: jmp qword ptr [rip+0x1e790]
+committing rtN: notAStandardFile from: 0x402921 to: 0x7f347c7dfad8
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402921 replacement routine addr: 0x7f347c7dfad8
+0x402921: jmp qword ptr [rip+0x1e731]
+committing rtN: countHardLinks from: 0x40297c to: 0x7f347c7dfb41
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40297c replacement routine addr: 0x7f347c7dfb41
+0x40297c: jmp qword ptr [rip+0x1e6de]
+committing rtN: saveInputFileMetaInfo from: 0x4029c3 to: 0x7f347c7dfb8f
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4029c3 replacement routine addr: 0x7f347c7dfb8f
+0x4029c3: jmp qword ptr [rip+0x1e69f]
+committing rtN: applySavedMetaInfoToOutputFile from: 0x4029f0 to: 0x7f347c7dfbc0
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4029f0 replacement routine addr: 0x7f347c7dfbc0
+0x4029f0: jmp qword ptr [rip+0x1e67a]
+committing rtN: containsDubiousChars from: 0x402a74 to: 0x7f347c7dfc51
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402a74 replacement routine addr: 0x7f347c7dfc51
+0x402a74: jmp qword ptr [rip+0x1e5fe]
+committing rtN: hasSuffix from: 0x402a83 to: 0x7f347c7dfc60
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402a83 replacement routine addr: 0x7f347c7dfc60
+0x402a83: jmp qword ptr [rip+0x1f577]
+committing rtN: mapSuffix from: 0x402af6 to: 0x7f347c7dfce1
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402af6 replacement routine addr: 0x7f347c7dfce1
+0x402af6: jmp qword ptr [rip+0x1f50c]
+committing rtN: compress from: 0x402b73 to: 0x7f347c7dfd65
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x402b73 replacement routine addr: 0x7f347c7dfd65
+0x402b73: jmp qword ptr [rip+0x1f497]
+committing rtN: uncompress from: 0x4032c4 to: 0x7f347c7e0597
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4032c4 replacement routine addr: 0x7f347c7e0597
+0x4032c4: jmp qword ptr [rip+0x1ed4e]
+committing rtN: testf from: 0x403a6c to: 0x7f347c7e0e44
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x403a6c replacement routine addr: 0x7f347c7e0e44
+0x403a6c: jmp qword ptr [rip+0x1e5ae]
+committing rtN: license from: 0x403dc3 to: 0x7f347c7e1211
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x403dc3 replacement routine addr: 0x7f347c7e1211
+0x403dc3: jmp qword ptr [rip+0x1e25f]
+committing rtN: usage from: 0x403dea to: 0x7f347c7e1239
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x403dea replacement routine addr: 0x7f347c7e1239
+0x403dea: jmp qword ptr [rip+0x1e240]
+committing rtN: redundant from: 0x403e1d to: 0x7f347c7e126d
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x403e1d replacement routine addr: 0x7f347c7e126d
+0x403e1d: jmp qword ptr [rip+0x1e215]
+committing rtN: myMalloc from: 0x403e4f to: 0x7f347c7e12a1
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x403e4f replacement routine addr: 0x7f347c7e12a1
+0x403e4f: jmp qword ptr [rip+0x1e1eb]
+committing rtN: mkCell from: 0x403e7d to: 0x7f347c7e12d3
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x403e7d replacement routine addr: 0x7f347c7e12d3
+0x403e7d: jmp qword ptr [rip+0x1e1c5]
+committing rtN: snocString from: 0x403eb0 to: 0x7f347c7e1306
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x403eb0 replacement routine addr: 0x7f347c7e1306
+0x403eb0: jmp qword ptr [rip+0x1e19a]
+committing rtN: addFlagsFromEnvVar from: 0x403f51 to: 0x7f347c7e13b5
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x403f51 replacement routine addr: 0x7f347c7e13b5
+0x403f51: jmp qword ptr [rip+0x1e101]
+committing rtN: main from: 0x4040af to: 0x7f347c7e1533
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4040af replacement routine addr: 0x7f347c7e1533
+0x4040af: jmp qword ptr [rip+0x1dfab]
+committing rtN: testStream._omp_fn.0 from: 0x404cd5 to: 0x7f347c7e2310
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x404cd5 replacement routine addr: 0x7f347c7e2310
+0x404cd5: jmp qword ptr [rip+0x1d38d]
+committing rtN: uncompressStream._omp_fn.1 from: 0x404d6e to: 0x7f347c7e23bb
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x404d6e replacement routine addr: 0x7f347c7e23bb
+0x404d6e: jmp qword ptr [rip+0x1d2fc]
+committing rtN: uInt64_toAscii._omp_fn.2 from: 0x404e07 to: 0x7f347c7e2466
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x404e07 replacement routine addr: 0x7f347c7e2466
+0x404e07: jmp qword ptr [rip+0x1d26b]
+committing rtN: BZ2_bz__AssertH__fail from: 0x404ea8 to: 0x7f347c7e2517
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x404ea8 replacement routine addr: 0x7f347c7e2517
+0x404ea8: jmp qword ptr [rip+0x1e152]
+committing rtN: default_bzalloc from: 0x404f13 to: 0x7f347c7e2588
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x404f13 replacement routine addr: 0x7f347c7e2588
+0x404f13: jmp qword ptr [rip+0x1e0ef]
+committing rtN: default_bzfree from: 0x404f40 to: 0x7f347c7e25b5
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x404f40 replacement routine addr: 0x7f347c7e25b5
+0x404f40: jmp qword ptr [rip+0x1e0ca]
+committing rtN: prepare_new_block from: 0x404f65 to: 0x7f347c7e25de
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x404f65 replacement routine addr: 0x7f347c7e25de
+0x404f65: jmp qword ptr [rip+0x1e0ad]
+committing rtN: init_RL from: 0x404fdc to: 0x7f347c7e265c
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x404fdc replacement routine addr: 0x7f347c7e265c
+0x404fdc: jmp qword ptr [rip+0x1e03e]
+committing rtN: isempty_RL from: 0x404ffc to: 0x7f347c7e267c
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x404ffc replacement routine addr: 0x7f347c7e267c
+0x404ffc: jmp qword ptr [rip+0x1e026]
+committing rtN: BZ2_bzCompressInit from: 0x40502b to: 0x7f347c7e26b6
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40502b replacement routine addr: 0x7f347c7e26b6
+0x40502b: jmp qword ptr [rip+0x1dfff]
+committing rtN: add_pair_to_block from: 0x405388 to: 0x7f347c7e2a53
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x405388 replacement routine addr: 0x7f347c7e2a53
+0x405388: jmp qword ptr [rip+0x1dcaa]
+committing rtN: flush_RL from: 0x405628 to: 0x7f347c7e2cfe
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x405628 replacement routine addr: 0x7f347c7e2cfe
+0x405628: jmp qword ptr [rip+0x1da12]
+committing rtN: copy_input_until_stop from: 0x40565c to: 0x7f347c7e2d36
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40565c replacement routine addr: 0x7f347c7e2d36
+0x40565c: jmp qword ptr [rip+0x1d9e6]
+committing rtN: copy_output_until_stop from: 0x4059f2 to: 0x7f347c7e3103
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4059f2 replacement routine addr: 0x7f347c7e3103
+0x4059f2: jmp qword ptr [rip+0x1d658]
+committing rtN: handle_compress from: 0x405ac7 to: 0x7f347c7e31de
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x405ac7 replacement routine addr: 0x7f347c7e31de
+0x405ac7: jmp qword ptr [rip+0x1d58b]
+committing rtN: BZ2_bzCompress from: 0x405c64 to: 0x7f347c7e33ae
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x405c64 replacement routine addr: 0x7f347c7e33ae
+0x405c64: jmp qword ptr [rip+0x1d3f6]
+committing rtN: BZ2_bzCompressEnd from: 0x405e91 to: 0x7f347c7e363e
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x405e91 replacement routine addr: 0x7f347c7e363e
+0x405e91: jmp qword ptr [rip+0x1d1d1]
+committing rtN: BZ2_bzDecompressInit from: 0x405f9c to: 0x7f347c7e3761
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x405f9c replacement routine addr: 0x7f347c7e3761
+0x405f9c: jmp qword ptr [rip+0x1d0ce]
+committing rtN: unRLE_obuf_to_output_FAST from: 0x40612b to: 0x7f347c7e3914
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40612b replacement routine addr: 0x7f347c7e3914
+0x40612b: jmp qword ptr [rip+0x1cf47]
+committing rtN: BZ2_indexIntoF from: 0x406aea to: 0x7f347c7e434c
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x406aea replacement routine addr: 0x7f347c7e434c
+0x406aea: jmp qword ptr [rip+0x1d510]
+committing rtN: unRLE_obuf_to_output_SMALL from: 0x406b4f to: 0x7f347c7e43bc
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x406b4f replacement routine addr: 0x7f347c7e43bc
+0x406b4f: jmp qword ptr [rip+0x1d4b3]
+committing rtN: BZ2_bzDecompress from: 0x407842 to: 0x7f347c7e5116
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x407842 replacement routine addr: 0x7f347c7e5116
+0x407842: jmp qword ptr [rip+0x1c7c8]
+committing rtN: BZ2_bzDecompressEnd from: 0x407a9d to: 0x7f347c7e53b0
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x407a9d replacement routine addr: 0x7f347c7e53b0
+0x407a9d: jmp qword ptr [rip+0x1c575]
+committing rtN: myfeof from: 0x407bba to: 0x7f347c7e54e5
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x407bba replacement routine addr: 0x7f347c7e54e5
+0x407bba: jmp qword ptr [rip+0x1c460]
+committing rtN: BZ2_bzWriteOpen from: 0x407bfa to: 0x7f347c7e552c
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x407bfa replacement routine addr: 0x7f347c7e552c
+0x407bfa: jmp qword ptr [rip+0x1c428]
+committing rtN: BZ2_bzWrite from: 0x407e2e to: 0x7f347c7e57bf
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x407e2e replacement routine addr: 0x7f347c7e57bf
+0x407e2e: jmp qword ptr [rip+0x1c1fc]
+committing rtN: BZ2_bzWriteClose from: 0x4080de to: 0x7f347c7e5ada
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4080de replacement routine addr: 0x7f347c7e5ada
+0x4080de: jmp qword ptr [rip+0x1bf54]
+committing rtN: BZ2_bzWriteClose64 from: 0x408127 to: 0x7f347c7e5b23
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x408127 replacement routine addr: 0x7f347c7e5b23
+0x408127: jmp qword ptr [rip+0x1bf13]
+committing rtN: BZ2_bzReadOpen from: 0x4084a2 to: 0x7f347c7e5f1b
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4084a2 replacement routine addr: 0x7f347c7e5f1b
+0x4084a2: jmp qword ptr [rip+0x1bba0]
+committing rtN: BZ2_bzReadClose from: 0x408742 to: 0x7f347c7e6229
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x408742 replacement routine addr: 0x7f347c7e6229
+0x408742: jmp qword ptr [rip+0x1b908]
+committing rtN: BZ2_bzRead from: 0x40881b to: 0x7f347c7e6332
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40881b replacement routine addr: 0x7f347c7e6332
+0x40881b: jmp qword ptr [rip+0x1b837]
+committing rtN: BZ2_bzReadGetUnused from: 0x408b70 to: 0x7f347c7e6718
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x408b70 replacement routine addr: 0x7f347c7e6718
+0x408b70: jmp qword ptr [rip+0x1b4ea]
+committing rtN: BZ2_bzBuffToBuffCompress from: 0x408c8b to: 0x7f347c7e6867
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x408c8b replacement routine addr: 0x7f347c7e6867
+0x408c8b: jmp qword ptr [rip+0x1b3d7]
+committing rtN: BZ2_bzBuffToBuffDecompress from: 0x408dd3 to: 0x7f347c7e69e9
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x408dd3 replacement routine addr: 0x7f347c7e69e9
+0x408dd3: jmp qword ptr [rip+0x1b297]
+committing rtN: bzopen_or_bzdopen from: 0x408f1e to: 0x7f347c7e6b69
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x408f1e replacement routine addr: 0x7f347c7e6b69
+0x408f1e: jmp qword ptr [rip+0x1b154]
+committing rtN: BZ2_bzopen from: 0x4091fb to: 0x7f347c7e6ea8
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4091fb replacement routine addr: 0x7f347c7e6ea8
+0x4091fb: jmp qword ptr [rip+0x1bdff]
+committing rtN: BZ2_bzdopen from: 0x409227 to: 0x7f347c7e6ed4
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x409227 replacement routine addr: 0x7f347c7e6ed4
+0x409227: jmp qword ptr [rip+0x1bddb]
+committing rtN: BZ2_bzread from: 0x409250 to: 0x7f347c7e6efd
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x409250 replacement routine addr: 0x7f347c7e6efd
+0x409250: jmp qword ptr [rip+0x1bdba]
+committing rtN: BZ2_bzwrite from: 0x4092ae to: 0x7f347c7e6f6d
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4092ae replacement routine addr: 0x7f347c7e6f6d
+0x4092ae: jmp qword ptr [rip+0x1bd64]
+committing rtN: BZ2_bzflush from: 0x4092eb to: 0x7f347c7e6fb1
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4092eb replacement routine addr: 0x7f347c7e6fb1
+0x4092eb: jmp qword ptr [rip+0x1bd2f]
+committing rtN: BZ2_bzclose from: 0x4092fa to: 0x7f347c7e6fc0
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4092fa replacement routine addr: 0x7f347c7e6fc0
+0x4092fa: jmp qword ptr [rip+0x1bd28]
+committing rtN: BZ2_bzerror from: 0x4093b0 to: 0x7f347c7e708b
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4093b0 replacement routine addr: 0x7f347c7e708b
+0x4093b0: jmp qword ptr [rip+0x1bc7a]
+committing rtN: fallbackSimpleSort from: 0x4093f0 to: 0x7f347c7e70cf
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4093f0 replacement routine addr: 0x7f347c7e70cf
+0x4093f0: jmp qword ptr [rip+0x1bc42]
+committing rtN: fallbackQSort3 from: 0x4095ec to: 0x7f347c7e72e4
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4095ec replacement routine addr: 0x7f347c7e72e4
+0x4095ec: jmp qword ptr [rip+0x1ba4e]
+committing rtN: fallbackSort from: 0x409c33 to: 0x7f347c7e7973
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x409c33 replacement routine addr: 0x7f347c7e7973
+0x409c33: jmp qword ptr [rip+0x1b40f]
+committing rtN: mainGtU from: 0x40a468 to: 0x7f347c7e8253
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40a468 replacement routine addr: 0x7f347c7e8253
+0x40a468: jmp qword ptr [rip+0x1abe2]
+committing rtN: mainSimpleSort from: 0x40abe8 to: 0x7f347c7e8a4e
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40abe8 replacement routine addr: 0x7f347c7e8a4e
+0x40abe8: jmp qword ptr [rip+0x1a46a]
+committing rtN: mmed3 from: 0x40af61 to: 0x7f347c7e8dfb
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40af61 replacement routine addr: 0x7f347c7e8dfb
+0x40af61: jmp qword ptr [rip+0x1a0f9]
+committing rtN: mainQSort3 from: 0x40afb7 to: 0x7f347c7e8e5d
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40afb7 replacement routine addr: 0x7f347c7e8e5d
+0x40afb7: jmp qword ptr [rip+0x1a0ab]
+committing rtN: mainSort from: 0x40b826 to: 0x7f347c7e9710
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40b826 replacement routine addr: 0x7f347c7e9710
+0x40b826: jmp qword ptr [rip+0x19844]
+committing rtN: BZ2_blockSort from: 0x40c679 to: 0x7f347c7ea5e4
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40c679 replacement routine addr: 0x7f347c7ea5e4
+0x40c679: jmp qword ptr [rip+0x189f9]
+committing rtN: BZ2_bsInitWrite from: 0x40c8a8 to: 0x7f347c7ea848
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40c8a8 replacement routine addr: 0x7f347c7ea848
+0x40c8a8: jmp qword ptr [rip+0x19752]
+committing rtN: bsFinishWrite from: 0x40c8ce to: 0x7f347c7ea86e
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40c8ce replacement routine addr: 0x7f347c7ea86e
+0x40c8ce: jmp qword ptr [rip+0x19734]
+committing rtN: bsW from: 0x40c94c to: 0x7f347c7ea8f3
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40c94c replacement routine addr: 0x7f347c7ea8f3
+0x40c94c: jmp qword ptr [rip+0x196be]
+committing rtN: bsPutUInt32 from: 0x40ca25 to: 0x7f347c7ea9d3
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40ca25 replacement routine addr: 0x7f347c7ea9d3
+0x40ca25: jmp qword ptr [rip+0x195ed]
+committing rtN: bsPutUChar from: 0x40ca9a to: 0x7f347c7eaa48
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40ca9a replacement routine addr: 0x7f347c7eaa48
+0x40ca9a: jmp qword ptr [rip+0x19580]
+committing rtN: makeMaps_e from: 0x40cac2 to: 0x7f347c7eaa70
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40cac2 replacement routine addr: 0x7f347c7eaa70
+0x40cac2: jmp qword ptr [rip+0x19560]
+committing rtN: generateMTFValues from: 0x40cb2c to: 0x7f347c7eaae5
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40cb2c replacement routine addr: 0x7f347c7eaae5
+0x40cb2c: jmp qword ptr [rip+0x194fe]
+committing rtN: sendMTFValues from: 0x40ceee to: 0x7f347c7eaeda
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x40ceee replacement routine addr: 0x7f347c7eaeda
+0x40ceee: jmp qword ptr [rip+0x19144]
+committing rtN: BZ2_compressBlock from: 0x41216d to: 0x7f347c7f02a3
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x41216d replacement routine addr: 0x7f347c7f02a3
+0x41216d: jmp qword ptr [rip+0x13ecd]
+committing rtN: makeMaps_d from: 0x41247c to: 0x7f347c7f05c3
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x41247c replacement routine addr: 0x7f347c7f05c3
+0x41247c: jmp qword ptr [rip+0x13bc6]
+committing rtN: BZ2_decompress from: 0x4124f2 to: 0x7f347c7f0644
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x4124f2 replacement routine addr: 0x7f347c7f0644
+0x4124f2: jmp qword ptr [rip+0x13b58]
+committing rtN: BZ2_hbMakeCodeLengths from: 0x417d54 to: 0x7f347c7f610d
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x417d54 replacement routine addr: 0x7f347c7f610d
+0x417d54: jmp qword ptr [rip+0xe2fe]
+committing rtN: BZ2_hbAssignCodes from: 0x418294 to: 0x7f347c7f66a2
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x418294 replacement routine addr: 0x7f347c7f66a2
+0x418294: jmp qword ptr [rip+0xddc6]
+committing rtN: BZ2_hbCreateDecodeTables from: 0x418314 to: 0x7f347c7f6734
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x418314 replacement routine addr: 0x7f347c7f6734
+0x418314: jmp qword ptr [rip+0xdd4e]
+committing rtN: __libc_csu_init from: 0x418580 to: 0x7f347c7f69ce
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x418580 replacement routine addr: 0x7f347c7f69ce
+0x418580: jmp qword ptr [rip+0xdaea]
+committing rtN: stat from: 0x418610 to: 0x7f347c7f6a61
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x418610 replacement routine addr: 0x7f347c7f6a61
+0x418610: jmp qword ptr [rip+0xda62]
+committing rtN: lstat from: 0x418620 to: 0x7f347c7f6a71
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x418620 replacement routine addr: 0x7f347c7f6a71
+0x418620: jmp qword ptr [rip+0xe9da]
+committing rtN: _fini from: 0x418630 to: 0x7f347c7f6a81
+RTN_ReplaceProbed succeeded.  orig routine addr: 0x418630 replacement routine addr: 0x7f347c7f6a81
+0x418630: jmp qword ptr [rip+0xe9d2]
+after commit translated routines

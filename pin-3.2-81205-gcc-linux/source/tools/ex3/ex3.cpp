@@ -24,10 +24,9 @@ std::ofstream mylog;
 /* ===================================================================== */
 
 KNOB<BOOL>   KnobRunEx2(KNOB_MODE_WRITEONCE,   "pintool",
-    "prof", "0", "append pid to output");
+    "prof", "0", "print out edge profiling into the file output");
 KNOB<BOOL>   KnobOptimizeHottestTen(KNOB_MODE_WRITEONCE,   "pintool",
-    "inst", "0", "append pid to output");
-
+    "inst", "0", "should run in probe mode and generate the binary code of the top 10 routines according to the gathered profiling data");
 
 class EDGEClass {
 private:

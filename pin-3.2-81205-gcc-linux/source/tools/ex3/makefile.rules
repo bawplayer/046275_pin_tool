@@ -40,10 +40,6 @@ DLL_ROOTS :=
 # This defines any static libraries (archives), that need to be built.
 LIB_ROOTS :=
 
-# enable c++11 & c++14
-TOOL_CXXFLAGS += -std=c++14
-
-
 ###### Place architecture-specific definitions here ######
 
 # Place ia32-specific definitions here if they apply to all supported operating systems.
