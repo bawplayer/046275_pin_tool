@@ -487,9 +487,18 @@ VOID Routine(RTN rtn, VOID *v) {
     RTN_Close(rtn);
 }
 
-bool routineInTopTen(int rtn_id, bool mainImgOnly=false) {
-    const int n = 10;
-    int i = 0;
+/**
+    The routine traverses through routineCandidateIdsVector's pairs.
+    Each pair stands for <routine_id:int, is_in_main_image:bool>.
+    To find routine_id within the top 10, specify n = 10.
+    To exclude routines that aren't found in the main image, call
+    with mainImgOnly = true.
+*/
+bool routineIsTopCandidate(int rtn_id, bool mainImgOnly=false, unsigned n = 0) {
+    if (n < 1) {
+        n = routineCandidateIdsVector.size();
+    }
+    unsigned i = 0;
     for (std::vector<std::pair<int, bool> >::const_iterator it = routineCandidateIdsVector.begin();
         (it != routineCandidateIdsVector.end()) && (i<n); ++it) {
         if (!mainImgOnly || it->second) {
@@ -1282,7 +1291,7 @@ int find_candidate_rtns_for_translation(IMG img)
                 cerr << "Warning: invalid routine " << RTN_Name(rtn) << endl;
                 continue;
             }
-            if (!routineInTopTen(RTN_Id(rtn), true)) {
+            if (!routineIsTopCandidate(RTN_Id(rtn), true, 10)) {
                 continue;
             }
 
@@ -1579,6 +1588,11 @@ INT32 Usage()
     return -1;
 }
 
+int printIllegalFlags() {
+    std::cerr << "Illegal flages entered. Please enter either -prof or -inst.\n";
+    return -1;    
+}
+
 /* ===================================================================== */
 /* Main                                                                  */
 /* ===================================================================== */
@@ -1588,7 +1602,11 @@ int main(int argc, char * argv[]) {
     PIN_InitSymbols();
 
     // Initialize pin
-    if (PIN_Init(argc, argv)) return Usage();
+    if (PIN_Init(argc, argv)) {
+        return Usage();
+    } else if (!(KnobRunEx2 ^ KnobOptimizeHottestTen)) {
+        printIllegalFlags(); // return from here would thwart compilation
+    }
 
     if (KnobRunEx2) {
         // Register Routine to be called to instrument rtn
@@ -1609,6 +1627,8 @@ int main(int argc, char * argv[]) {
         // Start the program, never returns
         PIN_StartProgramProbed();
     } else {
+        /* This scenario is required for the program to complete
+        compilation properly. */
         PIN_StartProgram();
     }
 
