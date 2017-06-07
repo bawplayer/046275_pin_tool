@@ -16,7 +16,7 @@ const std::string edgeString = "\t\tEdge%d: BB%d -> BB%d %u\n";
 const std::string edgeProfString = "e\t\tEdge%d: (%llu, %llu, %llu) %u\n";
 const std::string bblString = "\tBB%d: 0x%llx - 0x%llx\n";
 const std::string bblProfString = "b\tBB%d: 0x%llx - 0x%llx\n";
-const std::string routineProfString = "r%d %s at: 0x%llx\ticount: %u\trcount: %u\n";
+const std::string routineProfString = "r%d %s at: 0x%llx\ticount: %u\trcount: %u\tImage address: %llx\n";
 std::ofstream mylog;
 
 /* ===================================================================== */
@@ -40,23 +40,26 @@ private:
     int _rtn_id ;
     unsigned _icount;
 public:
-    ADDRINT _src, _dst;
-    ADDRINT _next_ins;
+    bool _exitRoutine;
+    ADDRINT _src_offset, _dst_offset;
+    ADDRINT _next_ins_offset;
         
     EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n, const RTN& rtn) :
-        _rtn_id(0), _icount(0), _src(s),_dst(d), _next_ins(n) {
+        _rtn_id(0), _icount(0), _exitRoutine(false), _src_offset(s),
+        _dst_offset(d), _next_ins_offset(n) {
         _rtn_id = RTN_Id(rtn);
     }
 
     EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n, unsigned icount,
         int rtn_id):
-        _rtn_id(rtn_id), _icount(icount), _src(s),_dst(d), _next_ins(n) {}
+        _rtn_id(rtn_id), _icount(icount), _exitRoutine(false),
+        _src_offset(s),_dst_offset(d), _next_ins_offset(n) {}
 
     unsigned getInstructionCount() const {
         return this->_icount;
     }
 
-    unsigned incInstructionCount(int inc=1) {
+    unsigned incInstructionCount(int inc) {
         this->_icount += inc;
         return this->getInstructionCount();
     }
@@ -72,30 +75,34 @@ public:
 
     EDGEClass operator++() {
         EDGEClass res(*this);
-        this->incInstructionCount();
+        this->incInstructionCount(1);
         return res;
     }
 
     EDGEClass& operator++(int) {
-        this->incInstructionCount();
+        this->incInstructionCount(1);
         return *this;
     }
 
     friend bool operator==(const EDGEClass& ea, const EDGEClass& eb) {
         return (ea.getRoutineId() == eb.getRoutineId()) && \
-            (ea._src == eb._src) && (ea._dst == eb._dst) && \
-            (ea._next_ins == eb._next_ins);
+            (ea._src_offset == eb._src_offset) && (ea._dst_offset == eb._dst_offset) && \
+            (ea._next_ins_offset == eb._next_ins_offset);
     }
 
     bool operator<(const EDGEClass& edge) const {
-        return (this->_src < edge._src) || \
-            ((this->_src == edge._src) && (this->_dst < edge._dst));
+        return (this->_src_offset < edge._src_offset) || \
+            ((this->_src_offset == edge._src_offset) && (this->_dst_offset < edge._dst_offset));
     }
 }; // END of EDGEClass
 
 bool compareEdgeCounterIsGreaterThan(const EDGEClass& a, const EDGEClass& b) {
     return (a.getInstructionCount() > b.getInstructionCount()) || \
         ((a.getInstructionCount() == b.getInstructionCount()) && (b<a));
+}
+
+bool isEdgeExitsThisRoutine(const EDGEClass& edge) {
+    return edge._exitRoutine;
 }
 
 class BBLClass {
@@ -110,22 +117,36 @@ private:
     }
 public:
     ADDRINT _src, _dst;
+    ADDRINT _src_offset, _dst_offset;
 
     BBLClass(ADDRINT src, ADDRINT dst, const RTN& rtn): 
-        _rtn_id(0), _src(src), _dst(dst) {
+        _rtn_id(0), _src(src), _dst(dst),
+        _src_offset(0), _dst_offset(0) {
         this->_rtn_id = RTN_Id(rtn);
         _validateSourceAndDestination();
     }
 
     BBLClass(ADDRINT src, ADDRINT dst, int rtn_id): _rtn_id(rtn_id),
-        _src(src), _dst(dst) {}
+        _src(src), _dst(dst),
+        _src_offset(0), _dst_offset(0) {}
 
     int getRoutineId() const {
         return this->_rtn_id;
     }
 
+    std::pair<ADDRINT, ADDRINT> setOffset(ADDRINT image_addr) {
+        this->_src_offset = this->_src - image_addr;
+        this->_dst_offset = this->_dst - image_addr;
+        return std::pair<ADDRINT, ADDRINT>(
+            this->_src_offset, this->_dst_offset);
+    }
+/*
     bool isInstructionIn(ADDRINT addr) const {
         return (addr >= this->_src) && (addr <= this->_dst);
+    }
+*/
+    bool isInstructionOffsetIn(ADDRINT off) const {
+        return (off >= this->_src_offset) && (off <= this->_dst_offset);
     }
 
     ADDRINT extendStartAddress(ADDRINT addr) {
@@ -155,14 +176,15 @@ private:
     ADDRINT _address;
     unsigned _icount;
     unsigned _rcount;
+    ADDRINT _imageAddress;
 
-    int _findBBLIndex(ADDRINT addr) const {
+    int _findBBLIndex(ADDRINT off) const {
         int i = 0;
         for (std::vector<BBLClass>::const_iterator it = this->bbls.begin();
             it != this->bbls.end(); ++it) {
             const BBLClass& bbl = *it;
             ++i;
-            if (bbl.isInstructionIn(addr)) {
+            if (bbl.isInstructionOffsetIn(off)) {
                 return i;
             }
         }
@@ -175,12 +197,13 @@ public:
     std::vector<BBLClass> bbls;
 
     RoutineClass(int id = 0, const string& name = "", ADDRINT addr = 0, \
-        unsigned icount = 0, unsigned rcount = 0): \
+        unsigned icount = 0, unsigned rcount = 0, ADDRINT imageAddress = 0): \
         _id(id), _name(name), _address(addr), _icount(icount), \
-        _rcount(rcount) {}
+        _rcount(rcount), _imageAddress(imageAddress) {}
     RoutineClass(const RTN& rtn):
         _id(RTN_Id(rtn)), _name(RTN_Name(rtn)), _address(RTN_Address(rtn)),
-        _icount(0), _rcount(0) {}
+        _icount(0), _rcount(0),
+        _imageAddress(IMG_LowAddress(IMG_FindByAddress(_address))) {}
     
     string getName() const {
         return this->_name;
@@ -212,6 +235,14 @@ public:
         return this->getRoutineCount();
     }
 
+    ADDRINT getRoutineOffsetFromImage() const {
+        return this->_address - this->_imageAddress;
+    }
+
+    ADDRINT getImageAddress() const {
+        return this->_imageAddress;
+    }
+
     friend bool operator==(const RoutineClass& a, const RoutineClass& b) {
         return a.getId() == b.getId();
     }
@@ -229,12 +260,23 @@ public:
         tmp_rtn_obj.incRoutineCount(rc._rcount);
 
         // append missing bbls
-        for (std::vector<BBLClass>::const_iterator it = rc.bbls.begin();
-            it != rc.bbls.end(); ++it) {
-            const BBLClass& bbl = *it;
-            if (std::find(tmp_rtn_obj.bbls.begin(), tmp_rtn_obj.bbls.end(),
-                bbl) == tmp_rtn_obj.bbls.end()) {
-                tmp_rtn_obj.bbls.push_back(bbl);
+        for (std::vector<BBLClass>::const_iterator bbl_i_iter = rc.bbls.begin();
+            bbl_i_iter != rc.bbls.end(); ++bbl_i_iter) {
+            bool is_found = false;
+            for (std::vector<BBLClass>::const_iterator bbl_j_iter = tmp_rtn_obj.bbls.begin();
+                bbl_j_iter != tmp_rtn_obj.bbls.end(); ++bbl_j_iter) {
+                if (bbl_i_iter->_src == bbl_j_iter->_src_offset) {
+                    is_found = true;
+                    break;
+                }
+            }
+
+            if (!is_found) {
+                BBLClass tmp_bbl(*bbl_i_iter);
+                tmp_bbl._src += this->getImageAddress();
+                tmp_bbl._dst += this->getImageAddress();
+                tmp_bbl.setOffset(this->getImageAddress());
+                tmp_rtn_obj.bbls.push_back(tmp_bbl);
             }
         }
 
@@ -256,6 +298,18 @@ public:
         return *this;
     }
 
+    void cleanEdgesThatExitRoutine() {
+        for (std::vector<EDGEClass>::iterator it = this->edges.begin();
+            it != this->edges.end(); ++it) {
+            int bbl1 = this->_findBBLIndex(it->_src_offset);
+            int bbl2 = this->_findBBLIndex(it->_dst_offset);
+            it->_exitRoutine = ((bbl1 == (-1)) || (bbl2 == (-1)));
+        }
+
+        this->edges.erase(std::remove_if(this->edges.begin(), this->edges.end(), 
+            isEdgeExitsThisRoutine), this->edges.end());
+    }
+
     friend std::ostream& operator<<(std::ostream& out, const RoutineClass& self) {
         const size_t array_len = 100;
         char char_array[array_len+1];
@@ -263,10 +317,10 @@ public:
 
         // Set buffer with routine data
         snprintf(char_array, array_len, "%s at: 0x%llx icount: %u\n",
-            self.getName().c_str(), static_cast<unsigned long long>(self._address),
+            self.getName().c_str(),
+            static_cast<unsigned long long>(self.getAddress()),
             self.getInstructionCount());
         out << std::string(char_array);
-
 
         int i = 1;
         for (std::vector<BBLClass>::const_iterator it = self.bbls.begin();
@@ -284,7 +338,7 @@ public:
             it != self.edges.end(); ++it) {
             const EDGEClass& edge = *it;
             // Set buffer with edge data
-            int bbl1 = self._findBBLIndex(edge._src), bbl2 = self._findBBLIndex(edge._dst);
+            int bbl1 = self._findBBLIndex(edge._src_offset), bbl2 = self._findBBLIndex(edge._dst_offset);
             if ((bbl1 == (-1)) || (bbl2 == (-1))) {
                 // ignore edges that were not in the trace, or exiting the routine
                 continue;
@@ -307,7 +361,7 @@ public:
         // Set buffer with routine data
         snprintf(char_array, array_len, routineProfString.c_str(),
             self.getId(), self.getName().c_str(),
-            static_cast<unsigned long long>(self._address),
+            static_cast<unsigned long long>(self.getRoutineOffsetFromImage()),
             self.getInstructionCount(), self.getRoutineCount());
         profileFile << std::string(char_array);
 
@@ -316,8 +370,8 @@ public:
             it != self.bbls.end(); ++it) {
             const BBLClass& bbl = *it;
             snprintf(char_array, array_len, bblProfString.c_str(), i++,
-                static_cast<unsigned long long>(bbl._src),
-                static_cast<unsigned long long>(bbl._dst));
+                static_cast<unsigned long long>(bbl._src_offset),
+                static_cast<unsigned long long>(bbl._dst_offset));
             profileFile << std::string(char_array);
         }
 
@@ -327,7 +381,8 @@ public:
             const EDGEClass& edge = *it;
             // Set buffer with edge data
             snprintf(char_array, array_len, edgeProfString.c_str(),
-                i++, edge._src, edge._dst, edge._next_ins,
+                i++, edge._src_offset, edge._dst_offset,
+                edge._next_ins_offset,
                 edge.getInstructionCount());
             profileFile << std::string(char_array);
         }
@@ -355,7 +410,7 @@ void incrementRoutineRCounter(int i) {
 }
 
 void incrementRoutineEdgeCounter(int i, int j) {
-    routinesDict[i].edges[j].incInstructionCount();
+    ++(routinesDict[i].edges[j]);
 }
 
 bool edgeWithZeroCalls(const EDGEClass& edge) {
@@ -407,13 +462,13 @@ void parseProfileMapIfFound() {
             }
 
             char rtn_name[101];
-            unsigned long long rtn_addr = 0;
+            unsigned long long rtn_addr = 0, img_addr = 0;
             unsigned rtn_icnt = 0, rtn_rcnt = 0;
             int rtn_id;
             sscanf(strBuffer.c_str(), routineProfString.c_str(),
-                &rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt);
+                &rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt, &img_addr);
             currentRoutine = RoutineClass(rtn_id, std::string(rtn_name), rtn_addr,
-                rtn_icnt, rtn_rcnt);
+                rtn_icnt, rtn_rcnt, img_addr);
         } else {
             std::cerr << "Could not compile line: " << strBuffer << endl;
         }
@@ -473,9 +528,11 @@ VOID Routine(RTN rtn, VOID *v) {
             int edge_index = routinesDict[routine_id].edges.size();
             routinesDict[routine_id].edges.push_back(\
                 EDGEClass(
-                    INS_Address(ins),
-                    INS_DirectBranchOrCallTargetAddress(ins),
-                    INS_NextAddress(ins), rtn));
+                    INS_Address(ins) - rc.getImageAddress(),
+                    INS_DirectBranchOrCallTargetAddress(ins) - rc.getImageAddress(),
+                    INS_NextAddress(ins) - rc.getImageAddress(),
+                    rtn)
+                );
 
             // insert a call to increment edge's counter, called iff the branch was taken
             INS_InsertCall(ins, IPOINT_TAKEN_BRANCH,
@@ -522,10 +579,27 @@ VOID Fini(INT32 code, VOID *v) {
         routinesDict[bbl.getRoutineId()].bbls.push_back(bbl);
     }
 
+    // fix all absolute addresses to relative offset
+    for (std::map<int, RoutineClass>::iterator routine_map_iter = routinesDict.begin();
+        routine_map_iter != routinesDict.end(); ++routine_map_iter) {
+        RoutineClass& rc = routine_map_iter->second;
+        for (std::vector<BBLClass>::iterator bbl_iter = rc.bbls.begin();
+            bbl_iter != rc.bbls.end(); ++bbl_iter) {
+            // fix address to offset from lowest image address
+            bbl_iter->setOffset(rc.getImageAddress());
+        }
+    }
+
+    // clean all the edges that jump outside the routine
+    for (std::map<int, RoutineClass>::iterator it = routinesDict.begin();
+        it != routinesDict.end(); ++it) {
+        it->second.cleanEdgesThatExitRoutine();
+    }
+
     parseProfileMapIfFound();
 
 
-/********************
+/********************            it != rc.bbls.end(); ++it)
 *****print to file***
 ********************/
     std::vector<RoutineClass> routinesVector;
@@ -584,11 +658,11 @@ void parsePorfileForCandidates() {
         } else if (firstChar == 'r') {
             // append routine to result vector
             char rtn_name[101];
-            unsigned long long rtn_addr = 0;
+            unsigned long long rtn_addr = 0, img_addr =0;
             unsigned rtn_icnt = 0, rtn_rcnt = 0;
             int rtn_id;
             sscanf(strBuffer.c_str(), routineProfString.c_str(),
-                &rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt);
+                &rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt, &img_addr);
             routineCandidateIdsVector.push_back(std::pair<int,bool>(rtn_id, false));
         } else {
             std::cerr << "Could not compile line: " << strBuffer << endl;
