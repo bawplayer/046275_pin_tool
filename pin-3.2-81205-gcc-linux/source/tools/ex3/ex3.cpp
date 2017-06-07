@@ -193,17 +193,20 @@ private:
     }
 
 public:
+    bool obsoleteImageAddress;
     std::vector<EDGEClass> edges;
     std::vector<BBLClass> bbls;
 
     RoutineClass(int id = 0, const string& name = "", ADDRINT addr = 0, \
         unsigned icount = 0, unsigned rcount = 0, ADDRINT imageAddress = 0): \
         _id(id), _name(name), _address(addr), _icount(icount), \
-        _rcount(rcount), _imageAddress(imageAddress) {}
+        _rcount(rcount), _imageAddress(imageAddress),
+        obsoleteImageAddress(false) {}
     RoutineClass(const RTN& rtn):
         _id(RTN_Id(rtn)), _name(RTN_Name(rtn)), _address(RTN_Address(rtn)),
         _icount(0), _rcount(0),
-        _imageAddress(IMG_LowAddress(IMG_FindByAddress(_address))) {}
+        _imageAddress(IMG_LowAddress(IMG_FindByAddress(_address))),
+        obsoleteImageAddress(false) {}
     
     string getName() const {
         return this->_name;
@@ -316,10 +319,17 @@ public:
         char_array[array_len] = '\0';
 
         // Set buffer with routine data
-        snprintf(char_array, array_len, "%s at: 0x%llx icount: %u\n",
-            self.getName().c_str(),
-            static_cast<unsigned long long>(self.getAddress()),
-            self.getInstructionCount());
+        if (self.obsoleteImageAddress) {
+            snprintf(char_array, array_len, "%s at: 0x%llx (rela) icount: %u\n",
+                self.getName().c_str(), 
+                static_cast<unsigned long long>(self.getRoutineOffsetFromImage()),
+                self.getInstructionCount());
+        } else {
+            snprintf(char_array, array_len, "%s at: 0x%llx icount: %u\n",
+                self.getName().c_str(), 
+                static_cast<unsigned long long>(self.getAddress()),
+                self.getInstructionCount());
+        }
         out << std::string(char_array);
 
         int i = 1;
@@ -469,6 +479,7 @@ void parseProfileMapIfFound() {
                 &rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt, &img_addr);
             currentRoutine = RoutineClass(rtn_id, std::string(rtn_name), rtn_addr,
                 rtn_icnt, rtn_rcnt, img_addr);
+            currentRoutine.obsoleteImageAddress = true;
         } else {
             std::cerr << "Could not compile line: " << strBuffer << endl;
         }
@@ -483,7 +494,7 @@ void parseProfileMapIfFound() {
         }
     }
 
-    inFile.close();
+    inFile.close(); 
 }
 
 
