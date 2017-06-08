@@ -19,6 +19,7 @@ const std::string bblProfString = "b\tBB%d: 0x%llx - 0x%llx\n";
 const std::string routineProfString = "r%d %s at: 0x%llx\ticount: %u\trcount: %u\tImage address: %llx\n";
 std::ofstream mylog;
 
+const int NUMBER_OF_CANDIDATES = 10;
 /* ===================================================================== */
 /* Commandline Switches */
 /* ===================================================================== */
@@ -33,6 +34,7 @@ KNOB<BOOL>   KnobDumpTranslatedCode(KNOB_MODE_WRITEONCE,    "pintool",
     "dump_tc", "0", "Dump Translated Code");
 KNOB<BOOL>   KnobDoNotCommitTranslatedCode(KNOB_MODE_WRITEONCE,    "pintool",
     "no_tc_commit", "0", "Do not commit translated code");
+
 
 
 class EDGEClass {
@@ -173,7 +175,7 @@ class RoutineClass {
 private:
     int _id;
     string _name;
-    ADDRINT _address;
+    ADDRINT _address; // absolute address
     unsigned _icount;
     unsigned _rcount;
     ADDRINT _imageAddress;
@@ -410,6 +412,11 @@ bool compareRoutineIsGreaterThan(const RoutineClass& a, const RoutineClass& b) {
 
 std::map<int, RoutineClass> routinesDict;
 std::set<BBLClass> bblsSet;
+
+/**
+    routine ids of routines that are found in the main image are
+    marked with true.
+*/
 std::vector<std::pair<int, bool> > routineCandidateIdsVector;
 
 void incrementRoutineICounter(int i) {
@@ -569,7 +576,7 @@ bool routineIsTopCandidate(int rtn_id, bool mainImgOnly=false, unsigned n = 0) {
     unsigned i = 0;
     for (std::vector<std::pair<int, bool> >::const_iterator it = routineCandidateIdsVector.begin();
         (it != routineCandidateIdsVector.end()) && (i<n); ++it) {
-        if (!mainImgOnly || it->second) {
+        if (!mainImgOnly || it->second) { // it->second equal to routine_is_in_main_image
             if (it->first == rtn_id) {
                 return true;
             }
@@ -760,7 +767,8 @@ typedef struct {
 translated_rtn_t *translated_rtn;
 int translated_rtn_num = 0;
 
-
+// MUTEX HERE
+volatile bool allocate_and_init_memory_has_been_called;
 
 /* ============================================================= */
 /* Service dump routines                                         */
@@ -1361,6 +1369,7 @@ int fix_instructions_displacements()
 int find_candidate_rtns_for_translation(IMG img)
 {
     int rc;
+    const int original_tranlated_rtn_num = translated_rtn_num;
 
     // go over routines and check if they are candidates for translation and mark them for translation:
 
@@ -1376,7 +1385,7 @@ int find_candidate_rtns_for_translation(IMG img)
                 cerr << "Warning: invalid routine " << RTN_Name(rtn) << endl;
                 continue;
             }
-            if (!routineIsTopCandidate(RTN_Id(rtn), true, 10)) {
+            if (!routineIsTopCandidate(RTN_Id(rtn), false, NUMBER_OF_CANDIDATES)) {
                 continue;
             }
 
@@ -1429,14 +1438,13 @@ int find_candidate_rtns_for_translation(IMG img)
             // Close the RTN.
             RTN_Close( rtn );
 
-            if (++translated_rtn_num >= 10) {
-                return 0;
+            if (++translated_rtn_num >= NUMBER_OF_CANDIDATES) {
+                return translated_rtn_num - original_tranlated_rtn_num;
             }
          } // end for RTN..
     } // end for SEC...
 
-    std::cerr << "WOOPS: translated_rtn_num = " << translated_rtn_num << endl;
-    return 0;
+    return translated_rtn_num - original_tranlated_rtn_num;
 }
 
 
@@ -1512,39 +1520,43 @@ inline void commit_translated_routines()
 
 /****************************/
 /* allocate_and_init_memory */
-/****************************/ 
+/****************************/
 int allocate_and_init_memory(IMG img) 
 {
+    allocate_and_init_memory_has_been_called = true;
     // Calculate size of executable sections and allocate required memory:
-    //TODO: need to find a more efficient way to calculate the size 
     for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec))
     {   
-        if (!SEC_IsExecutable(sec) || SEC_IsWriteable(sec) || !SEC_Address(sec))
+        if (!SEC_IsExecutable(sec) || SEC_IsWriteable(sec) || !SEC_Address(sec)) {
             continue;
+        }
 
 
-        if (!lowest_sec_addr || lowest_sec_addr > SEC_Address(sec))
+        if (!lowest_sec_addr || lowest_sec_addr > SEC_Address(sec)) {
             lowest_sec_addr = SEC_Address(sec);
+        }
 
-        if (highest_sec_addr < SEC_Address(sec) + SEC_Size(sec))
+        if (highest_sec_addr < SEC_Address(sec) + SEC_Size(sec)) {
             highest_sec_addr = SEC_Address(sec) + SEC_Size(sec);
+        }
 
         // need to avouid using RTN_Open as it is expensive...
-        for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
-        {       
-
-            if (rtn == RTN_Invalid())
+        if (IMG_IsMainExecutable(img)) {
+            for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn)) {       
+                if (rtn == RTN_Invalid()) {
                     continue;
+                }
 
-                  max_ins_count += RTN_NumIns(rtn);
-                  max_rtn_count++;
+                max_ins_count += RTN_NumIns(rtn);
+                max_rtn_count++;
 
-                  std::pair<int, bool> rtn_pair(RTN_Id(rtn), false);
-                  std::vector<pair<int, bool> >::iterator it = std::find(
+                std::pair<int, bool> rtn_pair(RTN_Id(rtn), false);
+                std::vector<pair<int, bool> >::iterator it = std::find(
                     routineCandidateIdsVector.begin(),
                     routineCandidateIdsVector.end(), rtn_pair);
-                  it->second = true;
+                it->second = true;
             }
+        }
     }
 
     max_ins_count *= 4; // estimating that the num of instrs of the inlined functions will not exceed the total nunmber of the entire code.
@@ -1595,26 +1607,28 @@ VOID ImageLoad(IMG img, VOID *v)
 {
     // debug print of all images' instructions
     //dump_all_image_instrs(img);
-
-
-    // Step 0: Check the image and the CPU:
-    if (!IMG_IsMainExecutable(img))
-        return;
-
     int rc = 0;
 
-    // step 1: Check size of executable sections and allocate required memory:  
-    rc = allocate_and_init_memory(img);
-    if (rc < 0)
+    // step 1: Check size of executable sections and allocate required memory:
+    if (IMG_IsMainExecutable(img)) {
+        rc = allocate_and_init_memory(img);
+    } else if (!allocate_and_init_memory_has_been_called || (rc < 0)) {
+        std::cerr << "allocate_memory() did not execute as expected." << std::endl;
         return;
+    }
 
     cout << "after memory allocation" << endl;
 
     
     // Step 2: go over all routines and identify candidate routines and copy their code into the instr map IR:
-    rc = find_candidate_rtns_for_translation(img);
-    if (rc < 0)
+    // MUTEX HERE
+    if (translated_rtn_num >= NUMBER_OF_CANDIDATES) {
         return;
+    }
+    rc = find_candidate_rtns_for_translation(img);
+    if ((rc < 0) || (translated_rtn_num < NUMBER_OF_CANDIDATES)) {
+        return;
+    }
 
     cout << "after identifying candidate routines" << endl;  
     
