@@ -1,0 +1,21 @@
+L0:
+	PUSH %EBP
+	MOV %ESP, %EBP
+	JMP L1
+..data
+..data
+L1:
+	mov x,y ## BBL starts here
+	TEST x, 10h # JUMP from L3 to here - new BBL starts here
+	JZ L3	## BBL ends here? - YES! Note that this is a short jump
+	JMP L4	## another single instruction BBL
+L2: ...
+L3: ...
+L4: ...
+
+# need to list to entry-points
+# after unconditional jump, you cannot assume there's another instruction
+# Remove\add unconditional jumps if needed (XED_INST1())
+# Edit short jumps to long jumps if needed (XED_ENCODE())
+# Indirect jumps shouldn't be touched, as they return back to the original code.
+# Currently we don't count how many times an edge was NOT taken
