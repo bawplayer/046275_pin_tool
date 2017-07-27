@@ -10,6 +10,26 @@
 #include <set>
 #include "pin.H"
 
+/*********************************************************************************/
+extern "C" {
+#include "xed-interface.h"
+}
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sys/mman.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <malloc.h>
+#include <errno.h>
+#include <assert.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <values.h>
+
 using namespace std;
 const std::string profileFilename = "_profile.map";
 const std::string edgeString = "\t\tEdge%d: BB%d -> BB%d %u\n";
@@ -34,7 +54,24 @@ KNOB<BOOL>   KnobDumpTranslatedCode(KNOB_MODE_WRITEONCE,    "pintool",
     "dump_tc", "0", "Dump Translated Code");
 KNOB<BOOL>   KnobDoNotCommitTranslatedCode(KNOB_MODE_WRITEONCE,    "pintool",
     "no_tc_commit", "0", "Do not commit translated code");
+KNOB<BOOL>   KnobReorderBBLsInHottestRoutine(KNOB_MODE_WRITEONCE,    "pintool",
+    "opt", "0", "optimize bbl order");
 
+
+int hottestRoutineId = 0;
+
+class InstructionClass {
+public:
+    ADDRINT addr;
+    bool hasNewTargAddr = 0;
+    char encoded_ins[XED_MAX_INSTRUCTION_BYTES] = {0};
+    xed_category_enum_t category_enum;
+    unsigned int size = 0;
+    int new_targ_entry = 0;
+
+    InstructionClass(ADDRINT addr, xed_category_enum_t category):
+        addr(addr), category_enum(category) {}
+};
 
 
 class EDGEClass {
@@ -77,6 +114,10 @@ public:
         return this->getTakenCount();
     }
 
+    unsigned getFallThroughCount() const {
+        return getInstructionCount() - getTakenCount();
+    }
+
     int getRoutineId() const {
         return this->_rtn_id;
     }
@@ -99,7 +140,7 @@ public:
     }
 }; // END of EDGEClass
 
-bool compareEdgeCounterIsGreaterThan(const EDGEClass& a, const EDGEClass& b) {
+bool compareEdgeTakenCounterIsGreaterThan(const EDGEClass& a, const EDGEClass& b) {
     return (a.getTakenCount() > b.getTakenCount()) || \
         ((a.getTakenCount() == b.getTakenCount()) && (b<a));
 }
@@ -363,7 +404,7 @@ public:
 
     std::ofstream& printProfile(std::ofstream& profileFile) const {
         RoutineClass const& self = *this;
-        const size_t array_len = 100;
+        const size_t array_len = 200;
         char char_array[array_len+1];
         char_array[array_len] = '\0';
 
@@ -445,9 +486,6 @@ void parseProfileMapIfFound() {
 
     std::string strBuffer;
 
-    const std::string bblPrefix = "\tBB";
-    const std::string edgePrefix = "\t\tEdge";
-
     RoutineClass currentRoutine(0);
     while (std::getline(inFile, strBuffer)) {
         const char firstChar = strBuffer[0];
@@ -521,6 +559,106 @@ VOID Trace(TRACE trace, VOID *v) {
      }
 }
 
+
+void parsePorfileForCandidates() {
+    std::ifstream inFile(profileFilename.c_str());
+    if (!inFile.is_open()) {
+        return;
+    }
+
+    std::string strBuffer;
+    while (std::getline(inFile, strBuffer)) {
+        const char firstChar = strBuffer[0];
+
+        if (firstChar == '#') {
+            // ignore comments
+            continue;
+        } else if (firstChar == 'e') {
+            // parse edge refernced the most recent routine
+            continue;
+        } else if (firstChar == 'b') {
+            // parse bbl referenced the most recent routine
+            continue;
+        } else if (firstChar == 'r') {
+            // append routine to result vector
+            char rtn_name[101];
+            unsigned long long rtn_addr = 0, img_addr =0;
+            unsigned rtn_icnt = 0, rtn_rcnt = 0;
+            int rtn_id;
+            sscanf(strBuffer.c_str(), routineProfString.c_str(),
+                &rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt, &img_addr);
+            routineCandidateIdsVector.push_back(std::pair<int,bool>(rtn_id, false));
+        } else {
+            std::cerr << "Could not compile line: " << strBuffer << endl;
+        }
+    } // end of while loop
+
+    inFile.close();
+}
+
+
+void set_up_data_structures_for_hottest_routine_optimization() {
+    parsePorfileForCandidates(); // TODO: parse edges and bbls too, not only routines
+
+}
+
+
+/**
+    The routine traverses through routineCandidateIdsVector's pairs.
+    Each pair stands for <routine_id:int, is_in_main_image:bool>.
+    To find routine_id within the top 10, specify n = 10.
+    To exclude routines that aren't found in the main image, call
+    with mainImgOnly = true.
+*/
+bool routineIsTopCandidate(int rtn_id, bool mainImgOnly=true, unsigned n = 0) {
+    if (n < 1) {
+        n = routineCandidateIdsVector.size();
+    }
+    unsigned i = 0;
+    for (std::vector<std::pair<int, bool> >::const_iterator it = routineCandidateIdsVector.begin();
+        (it != routineCandidateIdsVector.end()) && (i<n); ++it) {
+        if (!mainImgOnly || it->second) { // it->second equal to routine_is_in_main_image
+            if (it->first == rtn_id) {
+                return true;
+            }
+            ++i;
+        }
+    }
+
+    return false;
+}
+
+std::vector<InstructionClass> instructionsVector;
+void parseRoutineManually(RTN rtn) {
+    RTN_Open(rtn);
+
+    for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins)) {
+        xed_decoded_inst_t *xedd = INS_XedDec(ins);
+        xed_category_enum_t category_enum = xed_decoded_inst_get_category(xedd);
+        InstructionClass curr(INS_Address(ins), category_enum);
+        instructionsVector.push_back(curr);
+    }
+
+    for (const auto& i : instructionsVector) {
+        std::cout << i.addr << " " << i.category_enum << std::endl;
+    }
+
+    RTN_Close(rtn);
+}
+
+VOID xedRoutine(RTN rtn, VOID *v) {
+    RoutineClass rc(rtn);
+    int routine_id = rc.getId();
+    if (!routineIsTopCandidate(routine_id, true, 1)) {
+        return;
+    }
+
+    std::cout << "Entered routine No. " << routine_id << std::endl;
+
+    //TODO: parse the routine instructions
+    parseRoutineManually(rtn);
+}
+
 // Pin calls this function every time a new rtn is executed
 VOID Routine(RTN rtn, VOID *v) {
     RoutineClass rc(rtn);
@@ -569,30 +707,6 @@ VOID Routine(RTN rtn, VOID *v) {
     RTN_Close(rtn);
 }
 
-/**
-    The routine traverses through routineCandidateIdsVector's pairs.
-    Each pair stands for <routine_id:int, is_in_main_image:bool>.
-    To find routine_id within the top 10, specify n = 10.
-    To exclude routines that aren't found in the main image, call
-    with mainImgOnly = true.
-*/
-bool routineIsTopCandidate(int rtn_id, bool mainImgOnly=false, unsigned n = 0) {
-    if (n < 1) {
-        n = routineCandidateIdsVector.size();
-    }
-    unsigned i = 0;
-    for (std::vector<std::pair<int, bool> >::const_iterator it = routineCandidateIdsVector.begin();
-        (it != routineCandidateIdsVector.end()) && (i<n); ++it) {
-        if (!mainImgOnly || it->second) { // it->second equal to routine_is_in_main_image
-            if (it->first == rtn_id) {
-                return true;
-            }
-            ++i;
-        }
-    }
-
-    return false;
-}
 
 // This function is called when the application exits
 // It prints the name and count for each procedure
@@ -624,7 +738,7 @@ VOID Fini(INT32 code, VOID *v) {
     parseProfileMapIfFound();
 
 
-/********************            it != rc.bbls.end(); ++it)
+/********************
 *****print to file***
 ********************/
     std::vector<RoutineClass> routinesVector;
@@ -639,11 +753,12 @@ VOID Fini(INT32 code, VOID *v) {
             continue;
         }
 
-        // clean silent edges
+        // clean silent edges (The instruction was not executed)
         rc.edges.erase(std::remove_if(rc.edges.begin(), rc.edges.end(), 
             edgeWithZeroCalls), rc.edges.end());
+
         // sort edges
-        std::sort(rc.edges.begin(), rc.edges.end(), compareEdgeCounterIsGreaterThan);
+        std::sort(rc.edges.begin(), rc.edges.end(), compareEdgeTakenCounterIsGreaterThan);
 
         // append to vector
         routinesVector.push_back(rc);
@@ -661,61 +776,7 @@ VOID Fini(INT32 code, VOID *v) {
     }
 }
 
-void parsePorfileForCandidates() {
-    std::ifstream inFile(profileFilename.c_str());
-    if (!inFile.is_open()) {
-        return;
-    }
 
-    std::string strBuffer;
-    while (std::getline(inFile, strBuffer)) {
-        const char firstChar = strBuffer[0];
-
-        if (firstChar == '#') {
-            // ignore comments
-            continue;
-        } else if (firstChar == 'e') {
-            // parse edge refernced the most recent routine
-            continue;
-        } else if (firstChar == 'b') {
-            // parse bbl referenced the most recent routine
-            continue;
-        } else if (firstChar == 'r') {
-            // append routine to result vector
-            char rtn_name[101];
-            unsigned long long rtn_addr = 0, img_addr =0;
-            unsigned rtn_icnt = 0, rtn_rcnt = 0;
-            int rtn_id;
-            sscanf(strBuffer.c_str(), routineProfString.c_str(),
-                &rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt, &img_addr);
-            routineCandidateIdsVector.push_back(std::pair<int,bool>(rtn_id, false));
-        } else {
-            std::cerr << "Could not compile line: " << strBuffer << endl;
-        }
-    } // end of while loop
-
-    inFile.close();
-}
-
-/*********************************************************************************/
-extern "C" {
-#include "xed-interface.h"
-}
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <sys/mman.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <errno.h>
-#include <assert.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <values.h>
 
 /* ===================================================================== */
 /* Global Variables */
@@ -753,6 +814,7 @@ typedef struct {
     unsigned int size;
     int new_targ_entry;
 } instr_map_t;
+
 
 
 instr_map_t *instr_map = NULL;
@@ -1392,7 +1454,7 @@ int find_candidate_rtns_for_translation(IMG img)
                 cerr << "Warning: invalid routine " << RTN_Name(rtn) << endl;
                 continue;
             }
-            if (!routineIsTopCandidate(RTN_Id(rtn), false, NUMBER_OF_CANDIDATES)) {
+            if (!routineIsTopCandidate(RTN_Id(rtn), true, NUMBER_OF_CANDIDATES)) {
                 continue;
             }
 
@@ -1710,9 +1772,9 @@ int main(int argc, char * argv[]) {
     // Initialize pin
     if (PIN_Init(argc, argv)) {
         return Usage();
-    } else if (!(KnobRunEx2 ^ KnobOptimizeHottestTen)) {
+    } /*else if (!(KnobRunEx2 ^ KnobOptimizeHottestTen)) {
         printIllegalFlags(); // return from here would thwart compilation
-    }
+    }*/
 
     if (KnobRunEx2) {
         // Register Routine to be called to instrument rtn
@@ -1732,6 +1794,12 @@ int main(int argc, char * argv[]) {
 
         // Start the program, never returns
         PIN_StartProgramProbed();
+    } else if (KnobReorderBBLsInHottestRoutine) {
+        set_up_data_structures_for_hottest_routine_optimization();
+
+        RTN_AddInstrumentFunction(xedRoutine, 0);
+
+        PIN_StartProgramProbed();
     } else {
         /* This scenario is required for the program to complete
         compilation properly. */
@@ -1740,3 +1808,5 @@ int main(int argc, char * argv[]) {
 
     return 0;
 }
+
+

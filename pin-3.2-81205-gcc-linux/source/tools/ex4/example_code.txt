@@ -15,7 +15,9 @@ L4: ...
 
 # need to list to entry-points
 # after unconditional jump, you cannot assume there's another instruction
-# Remove\add unconditional jumps if needed (XED_INST1())
-# Edit short jumps to long jumps if needed (XED_ENCODE())
-# Indirect jumps shouldn't be touched, as they return back to the original code.
+# Remove\add unconditional jumps if needed (XED_INST1() to add instruction)
+# Edit short jumps to long jumps if needed (XED_ENCODE()?)
+# Indirect jumps shouldn't be touched, since they return back to the original code.
 # Currently we don't count how many times an edge was NOT taken
+# We do not analyse inside CALL instruction.
+# We can assume that CALL returns to the next instruction.
