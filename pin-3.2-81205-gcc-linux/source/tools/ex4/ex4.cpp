@@ -33,7 +33,7 @@ extern "C" {
 using namespace std;
 const std::string profileFilename = "_profile.map";
 const std::string edgeString = "\t\tEdge%d: BB%d -> BB%d %u\n";
-const std::string edgeProfString = "e\t\tEdge%d: (%llu, %llu, %llu) (taken: %u out of %u calls)\n";
+const std::string edgeProfString = "e\t\tEdge%d: (%llu, %llu, %llu) (taken: %u out of %u calls) (conditional=%d) (call=%d)\n";
 const std::string bblString = "\tBB%d: 0x%llx - 0x%llx\n";
 const std::string bblProfString = "b\tBB%d: 0x%llx - 0x%llx\n";
 const std::string routineProfString = "r%d %s at: 0x%llx\ticount: %u\trcount: %u\tImage address: %llx\n";
@@ -62,15 +62,20 @@ int hottestRoutineId = 0;
 
 class InstructionClass {
 public:
-    ADDRINT addr;
+    ADDRINT address;
     bool hasNewTargAddr = 0;
-    char encoded_ins[XED_MAX_INSTRUCTION_BYTES] = {0};
-    xed_category_enum_t category_enum;
-    unsigned int size = 0;
-    int new_targ_entry = 0;
+    //char encoded_ins[XED_MAX_INSTRUCTION_BYTES] = {0};
+    xed_decoded_inst_t xedd;
+    //xed_category_enum_t category_enum;
+    //unsigned int size = 0;
+    //int new_targ_entry = 0;
 
-    InstructionClass(ADDRINT addr, xed_category_enum_t category):
-        addr(addr), category_enum(category) {}
+    InstructionClass(ADDRINT addr, xed_decoded_inst_t *xedd_ptr = nullptr):
+        address(addr), xedd(*xedd_ptr) {}
+
+    bool operator==(const ADDRINT& a) const {
+        return a == this->address;
+    }
 };
 
 
@@ -78,21 +83,27 @@ class EDGEClass {
 private:
     int _rtn_id ;
     unsigned _icount, _taken_count;
+    bool _conditional_branch;
+    bool _is_call;
 public:
     bool _exitRoutine;
     ADDRINT _src_offset, _dst_offset;
     ADDRINT _next_ins_offset;
         
-    EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n, const RTN& rtn) :
+    EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n,
+        bool cond_branch, bool is_call, const RTN& rtn) :
         _rtn_id(0), _icount(0), _taken_count(0),
+        _conditional_branch(cond_branch), _is_call(is_call),
         _exitRoutine(false), _src_offset(s),
         _dst_offset(d), _next_ins_offset(n) {
         _rtn_id = RTN_Id(rtn);
     }
 
     EDGEClass(ADDRINT s, ADDRINT d, ADDRINT n, unsigned icount,
+        bool cond_branch, bool is_call,
         unsigned tcount, int rtn_id):
         _rtn_id(rtn_id), _icount(icount), _taken_count(tcount),
+        _conditional_branch(cond_branch), _is_call(is_call),
         _exitRoutine(false),
         _src_offset(s),_dst_offset(d), _next_ins_offset(n) {}
 
@@ -126,6 +137,14 @@ public:
         this->incInstructionCount(right.getInstructionCount());
         this->incTakenCount(right.getTakenCount());
         return *this;
+    }
+
+    bool is_conditional_branch() const {
+        return this->_conditional_branch;
+    }
+
+    bool is_call() const {
+        return this->_is_call;
     }
 
     friend bool operator==(const EDGEClass& ea, const EDGEClass& eb) {
@@ -434,7 +453,9 @@ public:
                 i++, edge._src_offset, edge._dst_offset,
                 edge._next_ins_offset,
                 edge.getTakenCount(),
-                edge.getInstructionCount()
+                edge.getInstructionCount(),
+                edge.is_conditional_branch(),
+                edge.is_call()
                 );
             profileFile << std::string(char_array);
         }
@@ -498,10 +519,14 @@ void parseProfileMapIfFound() {
             unsigned long long src_ins, dst_ins, next_ins;
             int num;
             unsigned icount, tcount;
+            int cond_branch, is_call;
             sscanf(strBuffer.c_str(), edgeProfString.c_str(), &num,
-                &src_ins, &dst_ins, &next_ins, &tcount, &icount);
-            currentRoutine.edges.push_back(EDGEClass(src_ins, dst_ins,
-                next_ins, icount, tcount, currentRoutine.getId()));
+                &src_ins, &dst_ins, &next_ins, &tcount, &icount,
+                &cond_branch, &is_call);
+            currentRoutine.edges.push_back(
+                EDGEClass(src_ins, dst_ins,
+                next_ins, cond_branch, is_call,
+                icount, tcount, currentRoutine.getId()));
         } else if (firstChar == 'b') {
             // parse bbl referenced the most recent routine
             unsigned long long start, end;
@@ -559,6 +584,14 @@ VOID Trace(TRACE trace, VOID *v) {
      }
 }
 
+/*
+    struct bbl {
+        addrint start_offset, end_offset;
+        xed_decoded_inst_t *start_inst, *end_inst;
+    }
+
+    std::vector<bbl> bbl_vector
+*/
 
 void parsePorfileForCandidates() {
     std::ifstream inFile(profileFilename.c_str());
@@ -596,10 +629,90 @@ void parsePorfileForCandidates() {
     inFile.close();
 }
 
+std::set<ADDRINT> BBL_Opening_Addresses_set;
+
+void parseForBBLReordering() {
+    std::ifstream inFile(profileFilename.c_str());
+    if (!inFile.is_open()) {
+        return;
+    }
+
+    std::string strBuffer;
+    int first_routine_entered = false; // TODO: Receive the top routine ID as an argument
+    int second_routine_entered = false;
+    while (std::getline(inFile, strBuffer)) {
+        const char firstChar = strBuffer[0];
+
+        if (firstChar == '#') {
+            // ignore comments
+            continue;
+        } else if (firstChar == 'e') {
+            // parse edge refernced the most recent routine
+            if (second_routine_entered) {
+                continue;
+            }
+            unsigned long long src_ins, dst_ins, next_ins;
+            int num;
+            unsigned icount, tcount;
+            int cond_branch, is_call;
+            sscanf(strBuffer.c_str(), edgeProfString.c_str(), &num,
+                &src_ins, &dst_ins, &next_ins, &tcount, &icount,
+                &cond_branch, &is_call);
+
+            if (is_call) {
+                // Calls should not appear in the file
+                continue;
+            }
+            bool dest_found = false, next_inst_found = false;
+            for (auto& addr : BBL_Opening_Addresses_set) {
+                if (addr == dst_ins) {
+                    dest_found = true;
+                    if (!cond_branch || next_inst_found) {
+                        break;
+                    }
+                }
+                if (cond_branch) {
+                    if (addr == next_ins) {
+                        next_inst_found = true;
+                        if (dest_found) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (!dest_found) {
+                BBL_Opening_Addresses_set.insert(dst_ins);
+            }
+            if (!next_inst_found) {
+                BBL_Opening_Addresses_set.insert(next_ins);
+            }
+        } else if (firstChar == 'b') {
+            // parse bbl referenced the most recent routine
+            continue;
+        } else if (firstChar == 'r') {
+            // append routine to result vector
+            if (first_routine_entered) {
+                second_routine_entered = true;
+            }
+            first_routine_entered = true;
+            char rtn_name[101];
+            unsigned long long rtn_addr = 0, img_addr =0;
+            unsigned rtn_icnt = 0, rtn_rcnt = 0;
+            int rtn_id;
+            sscanf(strBuffer.c_str(), routineProfString.c_str(),
+                &rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt, &img_addr);
+            routineCandidateIdsVector.push_back(std::pair<int,bool>(rtn_id, false));
+        } else {
+            std::cerr << "Could not compile line: " << strBuffer << endl;
+        }
+    } // end of while loop
+
+    inFile.close();
+}
 
 void set_up_data_structures_for_hottest_routine_optimization() {
-    parsePorfileForCandidates(); // TODO: parse edges and bbls too, not only routines
-
+    parseForBBLReordering(); // TODO: parse edges and bbls too, not only routines
 }
 
 
@@ -615,6 +728,7 @@ bool routineIsTopCandidate(int rtn_id, bool mainImgOnly=true, unsigned n = 0) {
         n = routineCandidateIdsVector.size();
     }
     unsigned i = 0;
+
     for (std::vector<std::pair<int, bool> >::const_iterator it = routineCandidateIdsVector.begin();
         (it != routineCandidateIdsVector.end()) && (i<n); ++it) {
         if (!mainImgOnly || it->second) { // it->second equal to routine_is_in_main_image
@@ -633,14 +747,24 @@ void parseRoutineManually(RTN rtn) {
     RTN_Open(rtn);
 
     for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins)) {
+        ADDRINT instruction_address = INS_Address(ins);
         xed_decoded_inst_t *xedd = INS_XedDec(ins);
-        xed_category_enum_t category_enum = xed_decoded_inst_get_category(xedd);
-        InstructionClass curr(INS_Address(ins), category_enum);
+        //xed_category_enum_t category_enum = xed_decoded_inst_get_category(xedd);
+        InstructionClass curr(instruction_address, xedd);
         instructionsVector.push_back(curr);
     }
 
-    for (const auto& i : instructionsVector) {
-        std::cout << i.addr << " " << i.category_enum << std::endl;
+    ADDRINT image_offset = IMG_LowAddress(IMG_FindByAddress(RTN_Address(rtn)));
+    std::cout << "BBL opening offsets: (Image offset is: " << image_offset << ")" << std::endl;
+    for (const auto& i : BBL_Opening_Addresses_set) {
+        std::vector<InstructionClass>::iterator it = std::find(
+            instructionsVector.begin(), instructionsVector.end(), i+image_offset);
+        if (it != instructionsVector.end()) {
+            std::cout << "BBL opens: ";
+        } else {
+            std::cout << "Address not found: ";
+        }
+        std::cout << i << std::endl;
     }
 
     RTN_Close(rtn);
@@ -649,7 +773,13 @@ void parseRoutineManually(RTN rtn) {
 VOID xedRoutine(RTN rtn, VOID *v) {
     RoutineClass rc(rtn);
     int routine_id = rc.getId();
-    if (!routineIsTopCandidate(routine_id, true, 1)) {
+    if (!routineIsTopCandidate(routine_id, false, 1)) {
+        /* TODO: Note that we invoke the call with mainImageOnly=false.
+        This is false, but it works, because the hottest routine is also
+        found in the main image.
+        Should the hottest routine will not found in the main image,
+        it will result with a failure down the line.
+        */
         return;
     }
 
@@ -682,7 +812,6 @@ VOID Routine(RTN rtn, VOID *v) {
         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)incrementRoutineICounter,\
             IARG_UINT32, routine_id, IARG_END);
 
-        // count the edges ((indirect)
         if (INS_IsDirectBranchOrCall(ins)) {
             int edge_index = routinesDict[routine_id].edges.size();
             routinesDict[routine_id].edges.push_back(\
@@ -690,6 +819,8 @@ VOID Routine(RTN rtn, VOID *v) {
                     INS_Address(ins) - rc.getImageAddress(),
                     INS_DirectBranchOrCallTargetAddress(ins) - rc.getImageAddress(),
                     INS_NextAddress(ins) - rc.getImageAddress(),
+                    INS_HasFallThrough(ins),
+                    INS_IsCall(ins),
                     rtn)
                 );
 
@@ -1808,5 +1939,3 @@ int main(int argc, char * argv[]) {
 
     return 0;
 }
-
-
