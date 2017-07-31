@@ -2,6 +2,7 @@
 //B
 
 #include <vector>
+#include <memory>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -50,21 +51,20 @@ std::ofstream mylog;
 std::vector<std::pair<int, bool> > routineCandidateIdsVector;
 
 bool routineIsTopCandidate(int, bool, unsigned);
+int hottestRoutineId = 0;
 
 
 /** More includes **/
 #include "xed_helper_code.h"
 #include "InstructionClass.h"
 #include "Routine.h"
-
-using namespace std;
-
-
-
-int hottestRoutineId = 0;
+#include "RankedBBL.h"
 
 std::map<int, RoutineClass> routinesDict;
 std::set<BBLClass> bblsSet;
+std::vector<RankedBBL> rankedBBLsVector;
+
+
 
 void incrementRoutineICounter(int i) {
     routinesDict[i].incInstructionCount();
@@ -209,14 +209,15 @@ void parsePorfileForCandidates() {
 std::set<ADDRINT> BBL_Opening_Addresses_set;
 std::vector<EDGEClass> edges_from_profile_vector;
 
-void addBBLOpeningAddressesToSetOfAddresses(std::set<ADDRINT>& addressesSet, const EDGEClass& edge) {
+void addBBLOpeningAddressesToSetOfAddresses(std::set<ADDRINT>& addressesSet,
+    const EDGEClass& edge) {
     if (edge.isCall()) {
         // Calls should not appear in the file
         return;
     }
 
     bool dest_found = false, next_inst_found = false;
-    for (auto& addr : BBL_Opening_Addresses_set) {
+    for (auto& addr : addressesSet) {
         if (addr == edge._dst_offset) {
             dest_found = true;
             if (!edge.isConditionalBranch() || next_inst_found) {
@@ -234,10 +235,41 @@ void addBBLOpeningAddressesToSetOfAddresses(std::set<ADDRINT>& addressesSet, con
     }
 
     if (!dest_found) {
-        BBL_Opening_Addresses_set.insert(edge._dst_offset);
+        addressesSet.insert(edge._dst_offset);
     }
     if (!next_inst_found) {
-        BBL_Opening_Addresses_set.insert(edge._next_ins_offset);
+        addressesSet.insert(edge._next_ins_offset);
+    }
+}
+
+void addRankedBBLToVector(std::vector<RankedBBL>& rbVector, const EDGEClass& edge) {
+    if (edge.isCall()) {
+        // Calls should not appear in the file
+        return;
+    }
+
+    HasSameSourceAddress predDest(edge._dst_offset);
+    std::vector<RankedBBL>::iterator find_iter = std::find_if(
+        rbVector.begin(), rbVector.end(), predDest);
+    int rank = edge.getTakenCount();
+    if (find_iter != rbVector.end()) {
+        RankedBBL rbbl(edge._dst_offset, (ADDRINT)(0), edge.getRoutineId(), rank);
+        rankedBBLsVector.push_back(rbbl);
+    } else {
+        find_iter->increaseRank(rank);
+    }
+
+    if (edge.isConditionalBranch()) {
+        HasSameSourceAddress predNext(edge._next_ins_offset);
+        find_iter = std::find_if(rbVector.begin(), rbVector.end(), predNext);
+        rank = edge.getFallThroughCount();
+        if (find_iter != rbVector.end()) {
+            RankedBBL rbbl(edge._next_ins_offset, (ADDRINT)(0),
+                edge.getRoutineId(), rank);;
+            rankedBBLsVector.push_back(rbbl);
+        } else {
+            find_iter->increaseRank(rank);
+        }
     }
 }
 
@@ -298,8 +330,10 @@ void parseForBBLReordering() {
 
 void set_up_data_structures_for_hottest_routine_optimization() {
     parseForBBLReordering();
+
     for (const auto& edge : edges_from_profile_vector) {
         addBBLOpeningAddressesToSetOfAddresses(BBL_Opening_Addresses_set, edge);
+        addRankedBBLToVector(rankedBBLsVector, edge);
     }
 }
 
@@ -355,6 +389,10 @@ void parseRoutineManually(RTN rtn) {
     }
 
     RTN_Close(rtn);
+
+    for (auto rbbl : rankedBBLsVector) {
+        std::cout << rbbl;
+    }
 }
 
 VOID xedRoutine(RTN rtn, VOID *v) {
