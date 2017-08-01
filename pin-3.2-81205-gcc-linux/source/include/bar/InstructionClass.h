@@ -12,11 +12,11 @@ public:
     ADDRINT address, previous_address = 0;
     bool hasNewTargAddr = 0;
     int index_in_routine = 0;
-    //char encoded_ins[XED_MAX_INSTRUCTION_BYTES] = {0};
     xed_decoded_inst_t xedd;
     bool open_bbl = false, close_bbl = false;
     USIZE size_in_bytes;
-    bool is_branch = false;
+    bool is_branch = false; // either direct or indirect
+    //char encoded_ins[XED_MAX_INSTRUCTION_BYTES] = {0};
 
     InstructionClass(ADDRINT addr, xed_decoded_inst_t *xedd_ptr = nullptr,
         int index = 0, USIZE size = 0, 

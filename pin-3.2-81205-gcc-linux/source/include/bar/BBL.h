@@ -3,6 +3,7 @@
 
 #include "pin.H"
 #include "Edge.h"
+#include "InstructionClass.h"
 
 class BBLClass {
 private:
@@ -19,7 +20,7 @@ public:
     ADDRINT _src_offset, _dst_offset;
 
     int first_instr_index = -1, last_instr_index = -1;
-    unsigned int rank;
+    unsigned int rank = 0;
 
     BBLClass(ADDRINT src, ADDRINT dst, const RTN& rtn): 
         _rtn_id(0), _src(src), _dst(dst),
@@ -36,6 +37,8 @@ public:
         _src_offset(0), _dst_offset(0),
         first_instr_index(first_instr_index),
         last_instr_index(last_instr_index) {}
+
+    virtual ~BBLClass() {}
 
     int getRoutineId() const {
         return this->_rtn_id;
@@ -60,11 +63,37 @@ public:
     }
 
     bool isEndingWithBranch() const {
+        if ((this->last_instr_index < 0) || \
+            (static_cast<unsigned>(this->last_instr_index) >= instructionsVector.size())) {
+            return false;
+        }
         return instructionsVector.at(this->last_instr_index).is_branch;
     }
 
-    unsigned int increaseRank(int x) {
+    bool hasBranchInIt() const {
+        if ((this->last_instr_index < 0) || \
+            (static_cast<unsigned>(this->last_instr_index) >= instructionsVector.size())) {
+            return false;
+        } else if ((this->first_instr_index < 0) || \
+            (this->first_instr_index > this->last_instr_index)) {
+            return false;
+        }
+
+        for (int i=this->first_instr_index; i <= this->last_instr_index; ++i) {
+            if (instructionsVector[i].is_branch) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    virtual unsigned int increaseRank(int x) {
         return this->rank += x;
+    }
+
+    unsigned getRank() const {
+        return this->rank;
     }
 
     /*
