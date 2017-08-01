@@ -51,6 +51,7 @@ std::ofstream mylog;
 std::vector<std::pair<int, bool> > routineCandidateIdsVector;
 
 bool routineIsTopCandidate(int, bool, unsigned);
+int printProfileFileNotFound();
 int hottestRoutineId = 0;
 
 
@@ -85,10 +86,10 @@ bool edgeWithZeroCalls(const EDGEClass& edge) {
     return edge.getInstructionCount() == 0;
 }
 
-void parseProfileMapIfFound() {
+int parseProfileMap_ex2() {
     std::ifstream inFile(profileFilename.c_str());
     if (!inFile.is_open()) {
-        return;
+        return (-1);
     }
 
     std::string strBuffer;
@@ -154,7 +155,8 @@ void parseProfileMapIfFound() {
         }
     }
 
-    inFile.close(); 
+    inFile.close();
+    return 0;
 }
 
 
@@ -170,10 +172,10 @@ VOID Trace(TRACE trace, VOID *v) {
      }
 }
 
-void parsePorfileForCandidates() {
+int parseProfileMap_ex3() {
     std::ifstream inFile(profileFilename.c_str());
     if (!inFile.is_open()) {
-        return;
+        return (-1);
     }
 
     std::string strBuffer;
@@ -184,10 +186,10 @@ void parsePorfileForCandidates() {
             // ignore comments
             continue;
         } else if (firstChar == 'e') {
-            // parse edge refernced the most recent routine
+            // ignore edges
             continue;
         } else if (firstChar == 'b') {
-            // parse bbl referenced the most recent routine
+            // ignore bbls
             continue;
         } else if (firstChar == 'r') {
             // append routine to result vector
@@ -204,6 +206,8 @@ void parsePorfileForCandidates() {
     } // end of while loop
 
     inFile.close();
+
+    return 0;
 }
 
 std::set<ADDRINT> BBL_Opening_Addresses_set;
@@ -273,10 +277,10 @@ void addRankedBBLToVector(std::vector<RankedBBL>& rbVector, const EDGEClass& edg
     }
 }
 
-void parseForBBLReordering() {
+int parseProfileMap_ex4() {
     std::ifstream inFile(profileFilename.c_str());
     if (!inFile.is_open()) {
-        return;
+        return (-1);
     }
 
     std::string strBuffer;
@@ -306,7 +310,6 @@ void parseForBBLReordering() {
                 src_ins, dst_ins, next_ins,
                 icount, cond_branch, is_call, tcount, first_rtn_id)); //,
         } else if (firstChar == 'b') {
-            // parse bbl referenced the most recent routine
             continue;
         } else if (firstChar == 'r') {
             // append routine to result vector
@@ -326,15 +329,20 @@ void parseForBBLReordering() {
     } // end of while loop
 
     inFile.close();
+    return 0;
 }
 
-void set_up_data_structures_for_hottest_routine_optimization() {
-    parseForBBLReordering();
+int set_up_data_structures_for_hottest_routine_optimization() {
+    if (parseProfileMap_ex4()) {
+        return (-1);
+    }
 
     for (const auto& edge : edges_from_profile_vector) {
         addBBLOpeningAddressesToSetOfAddresses(BBL_Opening_Addresses_set, edge);
         addRankedBBLToVector(rankedBBLsVector, edge);
     }
+
+    return 0;
 }
 
 /**
@@ -490,7 +498,11 @@ VOID Fini(INT32 code, VOID *v) {
         it->second.cleanEdgesThatExitRoutine();
     }
 
-    parseProfileMapIfFound();
+    if (parseProfileMap_ex2()) {
+        // error
+        printProfileFileNotFound();
+        return;
+    }
 
 
 /********************
@@ -532,25 +544,26 @@ VOID Fini(INT32 code, VOID *v) {
 }
 
 
-
-
-
-
 /* ===================================================================== */
 /* Print Help Message                                                    */
 /* ===================================================================== */
 
 INT32 Usage()
 {
-    cerr << "This Pintool counts the number of times a routine is executed" << endl;
-    cerr << "and the number of instructions executed in a routine" << endl;
-    cerr << endl << KNOB_BASE::StringKnobSummary() << endl;
+    std::cerr << "This Pintool counts the number of times a routine is executed" << endl;
+    std::cerr << "and the number of instructions executed in a routine" << endl;
+    std::cerr << endl << KNOB_BASE::StringKnobSummary() << endl;
     return -1;
 }
 
 int printIllegalFlags() {
     std::cerr << "Illegal flages entered. Please enter either -prof or -inst.\n";
-    return -1;    
+    return 0;    
+}
+
+int printProfileFileNotFound() {
+    std::cerr << "Profile was not found" << std::endl;
+    return 0;
 }
 
 /* ===================================================================== */
@@ -580,14 +593,20 @@ int main(int argc, char * argv[]) {
         // Start the program, never returns
         PIN_StartProgram(); 
     } else if (KnobOptimizeHottestTen) {
-        parsePorfileForCandidates();
+        if (parseProfileMap_ex3()) {
+            printProfileFileNotFound();
+            return 0;
+        }
         // Register ImageLoad
         IMG_AddInstrumentFunction(ImageLoad, 0);
 
         // Start the program, never returns
         PIN_StartProgramProbed();
     } else if (KnobReorderBBLsInHottestRoutine) {
-        set_up_data_structures_for_hottest_routine_optimization();
+        if (set_up_data_structures_for_hottest_routine_optimization()) {
+            printProfileFileNotFound();
+            return 0;
+        }
 
         RTN_AddInstrumentFunction(xedRoutine, 0);
 
