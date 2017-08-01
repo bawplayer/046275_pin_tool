@@ -17,9 +17,9 @@ private:
 public:
     ADDRINT _src, _dst;
     ADDRINT _src_offset, _dst_offset;
-/*    std::vector<InstructionClass> 
-    //int orig_index, opt_index;
-    unsigned int rank;*/
+
+    int first_instr_index = -1, last_instr_index = -1;
+    unsigned int rank;
 
     BBLClass(ADDRINT src, ADDRINT dst, const RTN& rtn): 
         _rtn_id(0), _src(src), _dst(dst),
@@ -28,9 +28,14 @@ public:
         _validateSourceAndDestination();
     }
 
-    BBLClass(ADDRINT src, ADDRINT dst, int rtn_id): _rtn_id(rtn_id),
+    BBLClass(ADDRINT src, ADDRINT dst, int rtn_id,
+        int first_instr_index = (-1),
+        int last_instr_index = (-1)):
+        _rtn_id(rtn_id),
         _src(src), _dst(dst),
-        _src_offset(0), _dst_offset(0) {}
+        _src_offset(0), _dst_offset(0),
+        first_instr_index(first_instr_index),
+        last_instr_index(last_instr_index) {}
 
     int getRoutineId() const {
         return this->_rtn_id;
@@ -52,6 +57,14 @@ public:
             this->_src = addr;
         }
         return this->_src;
+    }
+
+    bool isEndingWithBranch() const {
+        return instructionsVector.at(this->last_instr_index).is_branch;
+    }
+
+    unsigned int increaseRank(int x) {
+        return this->rank += x;
     }
 
     /*

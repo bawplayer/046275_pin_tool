@@ -15,7 +15,6 @@
 /* ===================================================================== */
 /* Commandline Switches */
 /* ===================================================================== */
-
 KNOB<BOOL>   KnobRunEx2(KNOB_MODE_WRITEONCE,   "pintool",
     "prof", "0", "print out edge profiling into the file output");
 KNOB<BOOL>   KnobOptimizeHottestTen(KNOB_MODE_WRITEONCE,   "pintool",
@@ -53,18 +52,17 @@ std::vector<std::pair<int, bool> > routineCandidateIdsVector;
 bool routineIsTopCandidate(int, bool, unsigned);
 int printProfileFileNotFound();
 int hottestRoutineId = 0;
-
+int HottestRoutineId = (-1);
 
 /** More includes **/
 #include "xed_helper_code.h"
 #include "InstructionClass.h"
+std::vector<InstructionClass> instructionsVector;
 #include "Routine.h"
-#include "RankedBBL.h"
 
 std::map<int, RoutineClass> routinesDict;
 std::set<BBLClass> bblsSet;
-std::vector<RankedBBL> rankedBBLsVector;
-
+std::vector<BBLClass> rankedBBLsVector;
 
 
 void incrementRoutineICounter(int i) {
@@ -245,7 +243,7 @@ void addBBLOpeningAddressesToSetOfAddresses(std::set<ADDRINT>& addressesSet,
         addressesSet.insert(edge._next_ins_offset);
     }
 }
-
+/*
 void addRankedBBLToVector(std::vector<RankedBBL>& rbVector, const EDGEClass& edge) {
     if (edge.isCall()) {
         // Calls should not appear in the file
@@ -260,6 +258,7 @@ void addRankedBBLToVector(std::vector<RankedBBL>& rbVector, const EDGEClass& edg
         RankedBBL rbbl(edge._dst_offset, (ADDRINT)(0), edge.getRoutineId(), rank);
         rankedBBLsVector.push_back(rbbl);
     } else {
+        return;
         find_iter->increaseRank(rank);
     }
 
@@ -276,6 +275,44 @@ void addRankedBBLToVector(std::vector<RankedBBL>& rbVector, const EDGEClass& edg
         }
     }
 }
+*/
+
+int parseRoutineManually_aux3(long image_offset) {
+    // ADDRINT opening_address = (-1), closing_address = (-1);
+    int opening_index = (-1), closing_index = (-1);
+    for (const auto& inst : instructionsVector) {
+        if (inst.open_bbl) {
+            if (opening_index != (-1)) {
+                std::cerr << "Woops: Open after Open" << std::endl;
+                return (-1);
+            }
+            opening_index = inst.index_in_routine;
+        }
+
+        if (inst.close_bbl) {
+            closing_index = inst.index_in_routine;
+            if (opening_index == (-1)) {
+                std::cerr << "Woops: Close before Open" << std::endl;
+                return (-2);
+            }
+
+            BBLClass bbl(
+                instructionsVector.at(opening_index).address,
+                instructionsVector.at(closing_index).address,
+                HottestRoutineId,
+                opening_index,
+                closing_index
+            );
+
+            rankedBBLsVector.push_back(bbl);
+
+            opening_index = (-1);
+            closing_index = (-1);
+        }
+    }
+
+    return 0;
+}
 
 int parseProfileMap_ex4() {
     std::ifstream inFile(profileFilename.c_str());
@@ -286,7 +323,6 @@ int parseProfileMap_ex4() {
     std::string strBuffer;
     int first_routine_entered = false; // TODO: Receive the top routine ID as an argument
     int second_routine_entered = false;
-    int first_rtn_id = (-1);
     while (std::getline(inFile, strBuffer)) {
         const char firstChar = strBuffer[0];
 
@@ -308,7 +344,7 @@ int parseProfileMap_ex4() {
 
             edges_from_profile_vector.push_back(EDGEClass(
                 src_ins, dst_ins, next_ins,
-                icount, cond_branch, is_call, tcount, first_rtn_id)); //,
+                icount, cond_branch, is_call, tcount, HottestRoutineId)); //,
         } else if (firstChar == 'b') {
             continue;
         } else if (firstChar == 'r') {
@@ -321,8 +357,8 @@ int parseProfileMap_ex4() {
             unsigned long long rtn_addr = 0, img_addr = 0;
             unsigned rtn_icnt = 0, rtn_rcnt = 0;
             sscanf(strBuffer.c_str(), routineProfString.c_str(),
-                &first_rtn_id, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt, &img_addr);
-            routineCandidateIdsVector.push_back(std::pair<int,bool>(first_rtn_id, false));
+                &HottestRoutineId, rtn_name, &rtn_addr, &rtn_icnt, &rtn_rcnt, &img_addr);
+            routineCandidateIdsVector.push_back(std::pair<int,bool>(HottestRoutineId, false));
         } else {
             std::cerr << "Could not compile line: " << strBuffer << endl;
         }
@@ -339,7 +375,7 @@ int set_up_data_structures_for_hottest_routine_optimization() {
 
     for (const auto& edge : edges_from_profile_vector) {
         addBBLOpeningAddressesToSetOfAddresses(BBL_Opening_Addresses_set, edge);
-        addRankedBBLToVector(rankedBBLsVector, edge);
+        //addRankedBBLToVector(rankedBBLsVector, edge);
     }
 
     return 0;
@@ -371,36 +407,119 @@ bool routineIsTopCandidate(int rtn_id, bool mainImgOnly=true, unsigned n = 0) {
     return false;
 }
 
-std::vector<InstructionClass> instructionsVector;
-void parseRoutineManually(RTN rtn) {
-    RTN_Open(rtn);
 
-    for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins)) {
-        ADDRINT instruction_address = INS_Address(ins);
-        xed_decoded_inst_t *xedd = INS_XedDec(ins);
-        //xed_category_enum_t category_enum = xed_decoded_inst_get_category(xedd);
-        InstructionClass curr(instruction_address, xedd);
-        instructionsVector.push_back(curr);
-    }
-
-    ADDRINT image_offset = IMG_LowAddress(IMG_FindByAddress(RTN_Address(rtn)));
+void parseRoutineManually_aux(long image_offset) {
+    // verify here that there's instruction where we expect it to be
     std::cout << "BBL opening offsets: (Image offset is: " << image_offset << ")" << std::endl;
-    for (const auto& i : BBL_Opening_Addresses_set) {
+    for (const auto& bbl_offset : BBL_Opening_Addresses_set) {
         std::vector<InstructionClass>::iterator it = std::find(
-            instructionsVector.begin(), instructionsVector.end(), i+image_offset);
+            instructionsVector.begin(), instructionsVector.end(), bbl_offset+image_offset);
         if (it != instructionsVector.end()) {
             std::cout << "BBL opens: ";
         } else {
             std::cout << "Address not found: ";
         }
-        std::cout << i << std::endl;
+        std::cout << bbl_offset << std::endl;
     }
+}
 
+void parseRoutineManually_aux2(long image_offset) {
+    for (const auto& edge : edges_from_profile_vector) {
+        std::vector<InstructionClass>::iterator it_src = std::find(
+            instructionsVector.begin(), instructionsVector.end(),
+            edge._src_offset+image_offset);
+        if (it_src != instructionsVector.end()) {
+            it_src->close_bbl = true;
+        } else {
+            std::cerr << "Woops: Couldn't find instruction where expected" <<\
+                edge._src_offset+image_offset << std::endl;
+        }
+
+        std::vector<InstructionClass>::iterator it_dest = std::find(
+            instructionsVector.begin(), instructionsVector.end(),
+            edge._dst_offset+image_offset);
+        if (it_dest != instructionsVector.end()) {
+            it_dest->open_bbl = true;
+            if (it_dest->index_in_routine > 0) {
+                std::vector<InstructionClass>::iterator it_prev = std::find(
+                instructionsVector.begin(), instructionsVector.end(),
+                it_dest->previous_address);
+                if (it_prev != instructionsVector.end()) {
+                    if (it_dest->address - it_prev->address != it_prev->size_in_bytes) {
+                        std::cerr << "Inferring bbl_close_instruction failed in addresses: " <<
+                        it_dest->address << " " << it_prev->address << std::endl;
+                    } else {
+                        it_prev->close_bbl = true;
+                    }
+                } else {
+                    std::cerr << "Woops: Couldn't find instruction where expected" <<\
+                        it_dest->previous_address << std::endl;
+                }
+            }
+        } else {
+            std::cerr << "Woops: Couldn't find instruction where expected" <<\
+                edge._dst_offset+image_offset << std::endl;
+        }
+
+        if (edge.isConditionalBranch()) {
+            std::vector<InstructionClass>::iterator it_next = std::find(
+                instructionsVector.begin(), instructionsVector.end(),
+                edge._next_ins_offset+image_offset);
+            if (it_next != instructionsVector.end()) {
+                it_next->open_bbl = true;
+            } else {
+                std::cerr << "Woops: Couldn't find instruction where expected" <<\
+                    edge._next_ins_offset+image_offset << std::endl;
+            }
+        }
+    }
+}
+
+int parseRoutineManually(RTN rtn) {
+    RTN_Open(rtn);
+
+    int i = 0;
+    ADDRINT prev_addr = 0;
+    for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins)) {
+        ADDRINT instruction_address = INS_Address(ins);
+        xed_decoded_inst_t *xedd = INS_XedDec(ins);
+        //xed_category_enum_t category_enum = xed_decoded_inst_get_category(xedd);
+        InstructionClass curr(instruction_address, xedd, i,
+            INS_Size(ins), prev_addr, INS_IsDirectBranch(ins));
+        if (i == 0) {
+            curr.open_bbl = true;
+        }
+
+        instructionsVector.push_back(curr);
+        prev_addr = instruction_address;
+        ++i;
+    }
+    // Last instruction closes a BBL implicitly
+    instructionsVector.at(instructionsVector.size() -1).close_bbl = true;
+
+    ADDRINT image_offset = IMG_LowAddress(IMG_FindByAddress(RTN_Address(rtn)));
+    
     RTN_Close(rtn);
-
-    for (auto rbbl : rankedBBLsVector) {
-        std::cout << rbbl;
+    
+    parseRoutineManually_aux(image_offset);
+    parseRoutineManually_aux2(image_offset);
+    int res = parseRoutineManually_aux3(image_offset);
+    if (res) {
+        return res;
     }
+/*
+    for (auto instruction : instructionsVector) {
+        std::cout << instruction;
+    }*/
+
+    i = 0;
+    for (auto bbl : rankedBBLsVector) {
+        std::cout << "BBL NO.: " << i++ << "\t";
+        std::cout << bbl.first_instr_index << " ";
+        std::cout << bbl.last_instr_index << std::endl;
+    }
+
+    return 0;
 }
 
 VOID xedRoutine(RTN rtn, VOID *v) {
