@@ -1,0 +1,128 @@
+Entered routine No. 142
+BBL opening offsets: (Image offset is: 4194304)
+Print sorted BBLs
+BBL NO.: 0	0 12	rank is: 1
+BBL NO.: 31	237 253	rank is: 30163
+BBL NO.: 33	256 278	rank is: 30163
+BBL NO.: 64	463 502	rank is: 15864
+BBL NO.: 32	254 255	rank is: 15682
+BBL NO.: 52	369 385	rank is: 8536
+BBL NO.: 53	386 389	rank is: 7480
+BBL NO.: 50	366 367	rank is: 7153
+BBL NO.: 39	291 307	rank is: 5817
+BBL NO.: 40	308 311	rank is: 4622
+BBL NO.: 77	536 540	rank is: 4431
+BBL NO.: 38	290 290	rank is: 4427
+BBL NO.: 7	41 43	rank is: 4310
+BBL NO.: 16	97 99	rank is: 4310
+BBL NO.: 79	560 562	rank is: 4310
+BBL NO.: 6	29 40	rank is: 4309
+BBL NO.: 15	73 96	rank is: 4309
+BBL NO.: 76	535 535	rank is: 4309
+BBL NO.: 78	541 559	rank is: 4309
+BBL NO.: 60	420 436	rank is: 3431
+BBL NO.: 59	419 419	rank is: 3104
+BBL NO.: 47	342 358	rank is: 1857
+BBL NO.: 46	341 341	rank is: 1662
+BBL NO.: 37	286 289	rank is: 1390
+BBL NO.: 41	312 328	rank is: 1390
+BBL NO.: 48	359 364	rank is: 1390
+BBL NO.: 36	285 285	rank is: 1383
+BBL NO.: 51	368 368	rank is: 1383
+BBL NO.: 54	390 406	rank is: 1383
+BBL NO.: 61	437 442	rank is: 1383
+BBL NO.: 62	443 445	rank is: 1383
+BBL NO.: 63	446 462	rank is: 1383
+BBL NO.: 65	503 505	rank is: 1383
+BBL NO.: 66	506 506	rank is: 1383
+BBL NO.: 44	331 339	rank is: 495
+BBL NO.: 57	409 417	rank is: 459
+BBL NO.: 55	407 407	rank is: 327
+BBL NO.: 58	418 418	rank is: 327
+BBL NO.: 43	330 330	rank is: 300
+BBL NO.: 4	25 26	rank is: 258
+BBL NO.: 3	21 24	rank is: 257
+BBL NO.: 10	53 54	rank is: 257
+BBL NO.: 13	69 70	rank is: 257
+BBL NO.: 22	150 151	rank is: 257
+BBL NO.: 9	46 52	rank is: 256
+BBL NO.: 12	57 68	rank is: 256
+BBL NO.: 21	121 149	rank is: 256
+BBL NO.: 42	329 329	rank is: 195
+BBL NO.: 45	340 340	rank is: 195
+BBL NO.: 19	116 118	rank is: 137
+BBL NO.: 18	109 115	rank is: 136
+BBL NO.: 56	408 408	rank is: 132
+BBL NO.: 75	533 534	rank is: 122
+BBL NO.: 25	221 222	rank is: 33
+BBL NO.: 24	154 220	rank is: 32
+BBL NO.: 28	226 227	rank is: 7
+BBL NO.: 30	234 236	rank is: 7
+BBL NO.: 34	279 281	rank is: 7
+BBL NO.: 35	282 284	rank is: 7
+BBL NO.: 49	365 365	rank is: 7
+BBL NO.: 68	508 509	rank is: 7
+BBL NO.: 70	516 519	rank is: 7
+BBL NO.: 71	520 521	rank is: 7
+BBL NO.: 27	225 225	rank is: 6
+BBL NO.: 2	19 20	rank is: 1
+BBL NO.: 5	27 28	rank is: 1
+BBL NO.: 8	44 45	rank is: 1
+BBL NO.: 11	55 56	rank is: 1
+BBL NO.: 14	71 72	rank is: 1
+BBL NO.: 17	100 108	rank is: 1
+BBL NO.: 20	119 120	rank is: 1
+BBL NO.: 23	152 153	rank is: 1
+BBL NO.: 26	223 224	rank is: 1
+BBL NO.: 72	522 523	rank is: 1
+BBL NO.: 74	530 532	rank is: 1
+BBL NO.: 80	563 564	rank is: 1
+BBL NO.: 82	567 570	rank is: 1
+BBL NO.: 1	13 18	rank is: 0
+BBL NO.: 29	228 233	rank is: 0
+BBL NO.: 67	507 507	rank is: 0
+BBL NO.: 69	510 515	rank is: 0
+BBL NO.: 73	524 529	rank is: 0
+BBL NO.: 81	565 566	rank is: 0
+after memory allocation
+after identifying candidate routines
+after calculate direct br targets
+after fix instructions displacements
+after write all new instructions to memory tc
+after commit translated routines
+after memory allocation
+after identifying candidate routines
+after calculate direct br targets
+after fix instructions displacements
+after write all new instructions to memory tc
+after commit translated routines
+after memory allocation
+after identifying candidate routines
+after calculate direct br targets
+after fix instructions displacements
+after write all new instructions to memory tc
+after commit translated routines
+after memory allocation
+after identifying candidate routines
+after calculate direct br targets
+after fix instructions displacements
+after write all new instructions to memory tc
+after commit translated routines
+after memory allocation
+after identifying candidate routines
+after calculate direct br targets
+after fix instructions displacements
+after write all new instructions to memory tc
+after commit translated routines
+after memory allocation
+after identifying candidate routines
+after calculate direct br targets
+after fix instructions displacements
+after write all new instructions to memory tc
+after commit translated routines
+after memory allocation
+after identifying candidate routines
+after calculate direct br targets
+after fix instructions displacements
+after write all new instructions to memory tc
+after commit translated routines

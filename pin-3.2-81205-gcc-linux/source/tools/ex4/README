@@ -7,3 +7,5 @@ not perfect, as they are determined only by direct branches.
 to rank the BBLs. For each BBL we hit, we accumulate the count
 to the BBL's rank, then we check whether it contains a branch,
 if it does not - we propogate the count to the next BBL(s).
+3. We assume the hottest routine is also valid for translation,
+i.e., it is found in the main image.

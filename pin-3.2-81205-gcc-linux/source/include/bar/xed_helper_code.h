@@ -260,7 +260,8 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
 
     unsigned int new_size = 0;
     
-    xed_error_enum_t xed_error = xed_encode (xedd, reinterpret_cast<UINT8*>(instr_map[num_of_instr_map_entries].encoded_ins), max_inst_len , &new_size);
+    xed_error_enum_t xed_error = xed_encode (xedd,
+        reinterpret_cast<UINT8*>(instr_map[num_of_instr_map_entries].encoded_ins), max_inst_len , &new_size);
     if (xed_error != XED_ERROR_NONE) {
         cerr << "ENCODE ERROR: " << xed_error_enum_t2str(xed_error) << endl;        
         return -1;
@@ -312,8 +313,9 @@ int chain_all_direct_br_and_call_target_entries()
 
         for (int j = 0; j < num_of_instr_map_entries; j++) {
 
-            if (j == i)
+            if (j == i) {
                continue;
+            }
     
             if (instr_map[j].orig_ins_addr == instr_map[i].orig_targ_addr) {
                 instr_map[i].hasNewTargAddr = true; 
@@ -670,6 +672,7 @@ int fix_instructions_displacements()
  }
 
 
+
 /*****************************************/
 /* find_candidate_rtns_for_translation() */
 /*****************************************/
@@ -686,12 +689,12 @@ int find_candidate_rtns_for_translation(IMG img)
             continue;
         }
 
-        for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn))
-        {
+        for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn)) {
             if (rtn == RTN_Invalid()) {
                 cerr << "Warning: invalid routine " << RTN_Name(rtn) << endl;
                 continue;
             }
+
             if (!routineIsTopCandidate(RTN_Id(rtn), true, NUMBER_OF_CANDIDATES)) {
                 continue;
             }
@@ -860,7 +863,8 @@ int allocate_and_init_memory(IMG img)
                 std::pair<int, bool> rtn_pair(RTN_Id(rtn), false);
                 std::vector<pair<int, bool> >::iterator it = std::find(
                     routineCandidateIdsVector.begin(),
-                    routineCandidateIdsVector.end(), rtn_pair);
+                    routineCandidateIdsVector.end(),
+                    rtn_pair);
                 it->second = true;
             }
         }
@@ -978,7 +982,6 @@ VOID ImageLoad(IMG img, VOID *v)
     commit_translated_routines();   
 
     cout << "after commit translated routines" << endl;
-   
 }
 
 

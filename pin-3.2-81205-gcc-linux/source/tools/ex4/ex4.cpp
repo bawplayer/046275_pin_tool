@@ -35,6 +35,7 @@ KNOB<BOOL>   KnobReorderBBLsInHottestRoutine(KNOB_MODE_WRITEONCE,    "pintool",
 /* ===================================================================== */
 
 const int NUMBER_OF_CANDIDATES = 10;
+const int NUMBER_OF_REORDERED_ROUTINES = 1;
 const std::string profileFilename = "_profile.map";
 const std::string edgeString = "\t\tEdge%d: BB%d -> BB%d %u\n";
 const std::string edgeProfString = "e\t\tEdge%d: (%llu, %llu, %llu) (taken: %u out of %u calls) (conditional=%d) (call=%d)\n";
@@ -511,9 +512,10 @@ void buildInstructionObjectUsingPinTool(RTN rtn,
     ADDRINT prev_addr = 0;
     for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins)) {
         ADDRINT instruction_address = INS_Address(ins);
-        INS *ins_ptr = &ins;
-        InstructionClass curr(instruction_address, ins_ptr, i,
-            INS_Size(ins), prev_addr, INS_IsBranch(ins));
+        // INS *ins_ptr = &ins;
+        InstructionClass curr(instruction_address,
+            // ins_ptr,
+            i, INS_Size(ins), prev_addr, INS_IsBranch(ins));
         if (i == 0) {
             curr.open_bbl = true;
         }
@@ -558,7 +560,7 @@ int parseRoutineManually(RTN rtn) {
     return 0;
 }
 
-VOID xedRoutine(RTN rtn, VOID *v) {
+VOID xedRoutine(RTN rtn) {
     RoutineClass rc(rtn);
     int routine_id = rc.getId();
     if (!routineIsTopCandidate(routine_id, false, 1)) {
@@ -580,6 +582,237 @@ VOID xedRoutine(RTN rtn, VOID *v) {
     for (auto bbl : rankedBBLsVector) {
         std::cout << bbl;
     }
+}
+
+void callerOfXedRoutine(IMG img) {
+    if (!IMG_IsMainExecutable(img)) {
+        return;
+    }
+
+    for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec)) {
+        for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn)) {
+            if (routineIsTopCandidate(RTN_Id(rtn), false, 1)) {
+                xedRoutine(rtn);
+                break;
+            }
+        }
+    }
+}
+
+
+int add_new_jump_entry(ADDRINT target_address, ADDRINT orig_ins_addr)
+{
+	// create a direct uncond jump.. copied from gadi's code
+	unsigned int new_size = 0;
+	xed_int32_t disp = target_address;
+	xed_encoder_instruction_t  enc_instr;
+	xed_inst1(&enc_instr, dstate, XED_ICLASS_JMP, 64, xed_relbr(disp, 32));
+
+	xed_encoder_request_t enc_req;
+	xed_encoder_request_zero_set_mode(&enc_req, &dstate);
+	xed_bool_t convert_ok = xed_convert_to_encoder_request(&enc_req, &enc_instr);
+	if (!convert_ok) {
+		cerr << "conversion to encode request failed" << endl;
+		return -1;
+	}
+
+	xed_error_enum_t xed_error = xed_encode(&enc_req, reinterpret_cast<UINT8*>(instr_map[num_of_instr_map_entries].encoded_ins), max_inst_len, &new_size);
+	if (xed_error != XED_ERROR_NONE) {
+		cerr << "ENCODE ERROR: " << xed_error_enum_t2str(xed_error) << endl;				
+		return -1;
+		;
+	}	
+
+	// add a new entry in the instr_map:
+	instr_map[num_of_instr_map_entries].orig_ins_addr = orig_ins_addr; //we dont want here zero or a positive number that may collide with address
+	instr_map[num_of_instr_map_entries].new_ins_addr = (ADDRINT)&tc[tc_cursor];  // set an initial estimated addr in tc
+	instr_map[num_of_instr_map_entries].orig_targ_addr = target_address; 
+	instr_map[num_of_instr_map_entries].hasNewTargAddr = false;
+	instr_map[num_of_instr_map_entries].new_targ_entry = -1;
+	instr_map[num_of_instr_map_entries].size = new_size;	
+	//instr_map[num_of_instr_map_entries].category_enum = xed_decoded_inst_get_category(&enc_req);
+	instr_map[num_of_instr_map_entries].category_enum = XED_CATEGORY_UNCOND_BR;
+
+	num_of_instr_map_entries++;
+
+	// update expected size of tc:
+	tc_cursor += new_size;    	     
+
+	if (num_of_instr_map_entries >= max_ins_count) {
+		cerr << "out of memory for map_instr" << endl;
+		return -1;
+	}
+
+	// debug print new encoded instr:
+	if (KnobVerbose) {
+		cerr << "    new instr:";
+		dump_instr_from_mem((ADDRINT *)instr_map[num_of_instr_map_entries-1].encoded_ins, instr_map[num_of_instr_map_entries-1].new_ins_addr);
+	}
+	return new_size;
+}
+
+
+
+int reorderPlaceInstructionInMapArray(IMG img) {
+    int rc;
+    const int original_tranlated_rtn_num = translated_rtn_num;
+
+    // go over routines and check if they are candidates for translation and mark them for translation:
+    for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec)) {   
+        if (!SEC_IsExecutable(sec) || SEC_IsWriteable(sec) || !SEC_Address(sec)) {
+            continue;
+        }
+
+        for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn)) {
+            if (rtn == RTN_Invalid()) {
+                cerr << "Warning: invalid routine " << RTN_Name(rtn) << endl;
+                continue;
+            }
+
+            int routine_id = RTN_Id(rtn);
+            if (routine_id != HottestRoutineId) {
+                continue;
+            }
+
+            translated_rtn[translated_rtn_num].rtn_addr = RTN_Address(rtn);         
+            translated_rtn[translated_rtn_num].rtn_size = RTN_Size(rtn);
+            translated_rtn[translated_rtn_num].instr_map_entry = num_of_instr_map_entries;
+            translated_rtn[translated_rtn_num].isSafeForReplacedProbe = true;   
+
+            // Open the RTN.
+            RTN_Open( rtn );
+
+            for (BBLClass& bbl : rankedBBLsVector) {
+                for (int i = bbl.first_instr_index; i <= bbl.last_instr_index; ++i) {
+                    //debug print of orig instruction:   
+
+                    InstructionClass& inst = instructionsVector[i];
+                    ADDRINT addr = inst.address;
+                                
+                    xed_decoded_inst_t xedd;
+                    xed_error_enum_t xed_code;                          
+                    
+                    xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
+
+                    xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(addr), max_inst_len);
+                    if (xed_code != XED_ERROR_NONE) {
+                        cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << addr << endl;
+                        translated_rtn[translated_rtn_num].instr_map_entry = -1;
+                        break;
+                    }
+
+                    // Add instr into instr map:
+                    rc = add_new_instr_entry(&xedd,
+                        inst.address,
+                        inst.size_in_bytes);
+                    if (rc < 0) {
+                        cerr << "ERROR: failed during instructon translation." << endl;
+                        translated_rtn[translated_rtn_num].instr_map_entry = -1;
+                        break;
+                    }
+                }
+
+
+                // TODO: Insert jump if needed. Next BBL is not consecutive.
+                // Only after conditional branch.
+                // TODO(okaikov): what about CALL?
+
+                if (instructionsVector[bbl.last_instr_index].close_bbl &&
+                    instructionsVector[bbl.last_instr_index].isConditionalBranch()) {
+					rc=add_new_jump_entry(instructionsVector[bbl.last_instr_index].address + instructionsVector[bbl.last_instr_index].size_in_bytes, -1);
+					if (rc < 0){
+						cerr << "ERROR: failed during instructon translation." << endl;
+						break;
+					}
+
+                }
+
+
+            } // end for BBL...
+
+
+            // debug print of routine name:
+            if (KnobVerbose) {
+                cerr <<   "rtn name: " << RTN_Name(rtn) << " : " << dec << translated_rtn_num << endl;
+            }           
+
+            // Close the RTN.
+            RTN_Close( rtn );
+
+            return ++translated_rtn_num;
+         } // end for RTN..
+    } // end for SEC...
+
+    return translated_rtn_num - original_tranlated_rtn_num;
+}
+
+VOID ex4ImageLoad(IMG img, VOID *v) {
+    callerOfXedRoutine(img);
+    
+
+    // debug print of all images' instructions
+    //dump_all_image_instrs(img);
+    int rc = 0;
+
+    // step 1: Check size of executable sections and allocate required memory:
+    if (IMG_IsMainExecutable(img)) {
+        rc = allocate_and_init_memory(img);
+    } else if (!allocate_and_init_memory_has_been_called || (rc < 0)) {
+        std::cerr << "allocate_memory() did not execute as expected." << std::endl;
+        return;
+    }
+
+    std::cout << "after memory allocation" << endl;
+
+    
+    // Step 2: go over all routines and identify candidate routines and copy their code into the instr map IR:
+    // MUTEX HERE
+    rc = reorderPlaceInstructionInMapArray(img);
+    if ((rc < 0) || (translated_rtn_num < NUMBER_OF_REORDERED_ROUTINES)) {
+        return;
+    }
+
+    cout << "after identifying candidate routines" << endl;  
+    
+    // Step 3: Chaining - calculate direct branch and call
+    // instructions to point to corresponding target instr entries:
+    rc = chain_all_direct_br_and_call_target_entries();
+    if (rc < 0) {
+        return;
+    }
+    
+    cout << "after calculate direct br targets" << endl;
+
+    // Step 4: fix rip-based, direct branch and direct call displacements:
+    rc = fix_instructions_displacements();
+    if (rc < 0) {
+        return;
+    }
+    
+    cout << "after fix instructions displacements" << endl;
+
+    // Step 5: write translated routines to new tc:
+    rc = copy_instrs_to_tc();
+    if (rc < 0) {
+        return;
+    }
+
+    cout << "after write all new instructions to memory tc" << endl;
+
+   if (KnobDumpTranslatedCode) {
+       cerr << "Translation Cache dump:" << endl;
+       dump_tc();  // dump the entire tc
+
+       cerr << endl << "instructions map dump:" << endl;
+       dump_entire_instr_map();     // dump all translated instructions in map_instr
+   }
+
+
+    // Step 6: Commit the translated routines:
+    //Go over the candidate functions and replace the original ones by their new successfully translated ones:
+    commit_translated_routines();   
+
+    cout << "after commit translated routines" << endl;
 }
 
 // Pin calls this function every time a new rtn is executed
@@ -730,7 +963,6 @@ int printProfileFileNotFound() {
 /* ===================================================================== */
 /* Main                                                                  */
 /* ===================================================================== */
-
 int main(int argc, char * argv[]) {
     // Initialize symbol table code, needed for rtn instrumentation
     PIN_InitSymbols();
@@ -769,7 +1001,7 @@ int main(int argc, char * argv[]) {
             return 0;
         }
 
-        RTN_AddInstrumentFunction(xedRoutine, 0);
+        IMG_AddInstrumentFunction(ex4ImageLoad, 0);
 
         PIN_StartProgramProbed();
     } else {
