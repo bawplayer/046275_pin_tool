@@ -51,9 +51,8 @@ typedef struct {
     char encoded_ins[XED_MAX_INSTRUCTION_BYTES];
     xed_category_enum_t category_enum;
     unsigned int size;
-    int new_targ_entry;
+    int new_targ_entry; // index of target instruction 
 } instr_map_t;
-
 
 
 instr_map_t *instr_map = NULL;

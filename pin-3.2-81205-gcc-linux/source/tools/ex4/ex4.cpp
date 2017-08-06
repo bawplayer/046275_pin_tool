@@ -208,7 +208,7 @@ int parseProfileMap_ex3() {
 
     return 0;
 }
-
+/*
 void addBBLOpeningAddressesToSetOfAddresses(std::set<ADDRINT>& addressesSet,
     const EDGEClass& edge) {
     if (edge.isCall()) {
@@ -241,7 +241,7 @@ void addBBLOpeningAddressesToSetOfAddresses(std::set<ADDRINT>& addressesSet,
         addressesSet.insert(edge._next_ins_offset);
     }
 }
-
+*/
 void rankBBLs_aux(
     std::vector<BBLClass>& bbls,
     ADDRINT edgeTargetAddress,
@@ -384,12 +384,7 @@ int set_up_data_structures_for_hottest_routine_optimization() {
     if (parseProfileMap_ex4()) {
         return (-1);
     }
-/*
-    for (const auto& edge : edges_from_profile_vector) {
-        addBBLOpeningAddressesToSetOfAddresses(BBL_Opening_Addresses_set, edge);
-        addRankedBBLToVector(rankedBBLsVector, edge);
-    }
-*/
+
     return 0;
 }
 
@@ -444,6 +439,10 @@ void markInstructionsAsBBLStartOrEnd(std::vector<InstructionClass>& instructionV
     const std::vector<EDGEClass>& directBranchesVector,
     long image_offset) {
     for (const auto& edge : directBranchesVector) {
+        if (edge.isCall()) {
+            continue;
+        }
+        
         std::vector<InstructionClass>::iterator it_src = std::find(
             instructionVec.begin(), instructionVec.end(),
             edge._src_offset+image_offset);
