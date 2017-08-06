@@ -12,18 +12,20 @@ public:
     ADDRINT address, previous_address = 0;
     bool hasNewTargAddr = 0;
     int index_in_routine = 0;
-    xed_decoded_inst_t xedd;
+    INS *ins_ptr = nullptr;
     bool open_bbl = false, close_bbl = false;
     USIZE size_in_bytes;
     bool is_branch = false; // either direct or indirect
-    //char encoded_ins[XED_MAX_INSTRUCTION_BYTES] = {0};
+    bool is_uncond_branch = false;
 
-    InstructionClass(ADDRINT addr, xed_decoded_inst_t *xedd_ptr = nullptr,
+    int target_instruction_index = (-1);
+
+    InstructionClass(ADDRINT addr, INS *ins_p = nullptr,
         int index = 0, USIZE size = 0, 
         ADDRINT prev_address = 0,
         bool is_branch = false):
         address(addr), previous_address(prev_address),
-        index_in_routine(index), xedd(*xedd_ptr),
+        index_in_routine(index), ins_ptr(ins_p),
         size_in_bytes(size),
         is_branch(is_branch)  {}
 

@@ -19,6 +19,7 @@ public:
     ADDRINT _src, _dst;
     ADDRINT _src_offset, _dst_offset;
 
+    int orig_index_in_routine = (-1);
     int first_instr_index = -1, last_instr_index = -1;
     unsigned int rank = 0;
 
@@ -30,11 +31,13 @@ public:
     }
 
     BBLClass(ADDRINT src, ADDRINT dst, int rtn_id,
+        int orig_index_in_routine = (-1),
         int first_instr_index = (-1),
         int last_instr_index = (-1)):
         _rtn_id(rtn_id),
         _src(src), _dst(dst),
         _src_offset(0), _dst_offset(0),
+        orig_index_in_routine(orig_index_in_routine),
         first_instr_index(first_instr_index),
         last_instr_index(last_instr_index) {}
 
@@ -107,6 +110,32 @@ public:
         return (ba._rtn_id == bb._rtn_id) && \
             !((ba < bb) || (bb < ba));
     }
+
+    friend std::ostream& operator<<(std::ostream& os, const BBLClass& self) {
+        os << "BBL NO.: " << self.orig_index_in_routine << "\t";
+        os << self.first_instr_index << " ";
+        os << self.last_instr_index << "\t"; 
+        os << "rank is: " << self.rank << std::endl;
+        return os;
+    }
+    
 }; // end of BBLClass
+
+// class compareBBLsByRank {
+struct {
+    bool operator()(const BBLClass& a, const BBLClass& b) const {
+        if (a.orig_index_in_routine == 0) {
+            return false;
+        } else if (b.orig_index_in_routine == 0) {
+            return true;
+        }
+
+        if (a.rank != b.rank) {
+            return a.rank < b.rank;
+        } else {
+            return a._dst_offset > b._dst_offset;
+        }
+    }
+} cmpBBLs;
 
 #endif

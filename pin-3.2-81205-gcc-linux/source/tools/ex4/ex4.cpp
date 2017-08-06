@@ -306,6 +306,7 @@ int buildBBLsFromInstructions(
                 instructionVec.at(opening_index).address,
                 instructionVec.at(closing_index).address,
                 HottestRoutineId,
+                bblVec.size(), // original index
                 opening_index,
                 closing_index
             );
@@ -479,6 +480,8 @@ void markInstructionsAsBBLStartOrEnd(std::vector<InstructionClass>& instructionV
                 edge._dst_offset+image_offset << std::endl;
         }
 
+        it_src->target_instruction_index = it_dest->index_in_routine;
+
         if (edge.isConditionalBranch()) {
             std::vector<InstructionClass>::iterator it_next = std::find(
                 instructionVec.begin(), instructionVec.end(),
@@ -489,6 +492,8 @@ void markInstructionsAsBBLStartOrEnd(std::vector<InstructionClass>& instructionV
                 std::cerr << "Woops: Couldn't find instruction where expected" <<\
                     edge._next_ins_offset+image_offset << std::endl;
             }
+        } else {
+            it_src->is_uncond_branch = true;
         }
     }
 
@@ -506,8 +511,8 @@ void buildInstructionObjectUsingPinTool(RTN rtn,
     ADDRINT prev_addr = 0;
     for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins)) {
         ADDRINT instruction_address = INS_Address(ins);
-        xed_decoded_inst_t *xedd = INS_XedDec(ins);
-        InstructionClass curr(instruction_address, xedd, i,
+        INS *ins_ptr = &ins;
+        InstructionClass curr(instruction_address, ins_ptr, i,
             INS_Size(ins), prev_addr, INS_IsBranch(ins));
         if (i == 0) {
             curr.open_bbl = true;
@@ -546,13 +551,9 @@ int parseRoutineManually(RTN rtn) {
 
     rankBBLs(rankedBBLsVector, edges_from_profile_vector);
 
-    int i = 0;
-    for (auto bbl : rankedBBLsVector) {
-        std::cout << "BBL NO.: " << i++ << "\t";
-        std::cout << bbl.first_instr_index << " ";
-        std::cout << bbl.last_instr_index << "\t"; 
-        std::cout << "rank is: " << bbl.rank << std::endl;
-    }
+/*    for (auto bbl : rankedBBLsVector) {
+        std::cout << bbl;
+    }*/
 
     return 0;
 }
@@ -573,6 +574,12 @@ VOID xedRoutine(RTN rtn, VOID *v) {
     std::cout << "Entered routine No. " << routine_id << std::endl;
 
     parseRoutineManually(rtn);
+
+    std::cout << "Print sorted BBLs" << std::endl;
+    std::sort(rankedBBLsVector.rbegin(), rankedBBLsVector.rend(), cmpBBLs);
+    for (auto bbl : rankedBBLsVector) {
+        std::cout << bbl;
+    }
 }
 
 // Pin calls this function every time a new rtn is executed
