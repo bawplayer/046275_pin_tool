@@ -578,6 +578,7 @@ VOID xedRoutine(RTN rtn) {
     parseRoutineManually(rtn);
 
     std::cout << "Print sorted BBLs" << std::endl;
+    //vector<BBLClass> sorted_bbls = rankedBBLsVector;
     std::sort(rankedBBLsVector.rbegin(), rankedBBLsVector.rend(), cmpBBLs);
     for (auto bbl : rankedBBLsVector) {
         std::cout << bbl;
@@ -600,7 +601,7 @@ void callerOfXedRoutine(IMG img) {
 }
 
 
-int add_new_jump_entry(ADDRINT target_address, ADDRINT orig_ins_addr)
+int add_new_jump_entry(ADDRINT target_address)
 {
 	// create a direct uncond jump.. copied from gadi's code
 	unsigned int new_size = 0;
@@ -624,13 +625,12 @@ int add_new_jump_entry(ADDRINT target_address, ADDRINT orig_ins_addr)
 	}	
 
 	// add a new entry in the instr_map:
-	instr_map[num_of_instr_map_entries].orig_ins_addr = orig_ins_addr; //we dont want here zero or a positive number that may collide with address
+	instr_map[num_of_instr_map_entries].orig_ins_addr = -1; //we dont want here zero or a positive number that may collide with address
 	instr_map[num_of_instr_map_entries].new_ins_addr = (ADDRINT)&tc[tc_cursor];  // set an initial estimated addr in tc
 	instr_map[num_of_instr_map_entries].orig_targ_addr = target_address; 
 	instr_map[num_of_instr_map_entries].hasNewTargAddr = false;
 	instr_map[num_of_instr_map_entries].new_targ_entry = -1;
 	instr_map[num_of_instr_map_entries].size = new_size;	
-	//instr_map[num_of_instr_map_entries].category_enum = xed_decoded_inst_get_category(&enc_req);
 	instr_map[num_of_instr_map_entries].category_enum = XED_CATEGORY_UNCOND_BR;
 
 	num_of_instr_map_entries++;
@@ -712,14 +712,9 @@ int reorderPlaceInstructionInMapArray(IMG img) {
                     }
                 }
 
-
-                // TODO: Insert jump if needed. Next BBL is not consecutive.
-                // Only after conditional branch.
-                // TODO(okaikov): what about CALL?
-
-                if (instructionsVector[bbl.last_instr_index].close_bbl &&
-                    instructionsVector[bbl.last_instr_index].isConditionalBranch()) {
-					rc=add_new_jump_entry(instructionsVector[bbl.last_instr_index].address + instructionsVector[bbl.last_instr_index].size_in_bytes, -1);
+                // add uncond branch at the end of each BBL.
+                if (instructionsVector[bbl.last_instr_index].close_bbl) {
+					rc=add_new_jump_entry(instructionsVector[bbl.last_instr_index].address + instructionsVector[bbl.last_instr_index].size_in_bytes);
 					if (rc < 0){
 						cerr << "ERROR: failed during instructon translation." << endl;
 						break;
@@ -761,6 +756,12 @@ VOID ex4ImageLoad(IMG img, VOID *v) {
         std::cerr << "allocate_memory() did not execute as expected." << std::endl;
         return;
     }
+
+    if (!IMG_IsMainExecutable(img)) {
+    	return;
+    }
+
+
 
     std::cout << "after memory allocation" << endl;
 
