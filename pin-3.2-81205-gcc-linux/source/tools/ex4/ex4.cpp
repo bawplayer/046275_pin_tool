@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <string>
 #include <set>
+#include <sstream>
 #include "pin.H"
 
 /*********************************************************************************/
@@ -42,7 +43,6 @@ const std::string edgeProfString = "e\t\tEdge%d: (%llu, %llu, %llu) (taken: %u o
 const std::string bblString = "\tBB%d: 0x%llx - 0x%llx\n";
 const std::string bblProfString = "b\tBB%d: 0x%llx - 0x%llx\n";
 const std::string routineProfString = "r%d %s at: 0x%llx\ticount: %u\trcount: %u\tImage address: %llx\n";
-std::ofstream mylog;
 
 /**
     routine ids of routines that are found in the main image are
@@ -63,9 +63,10 @@ std::vector<InstructionClass> instructionsVector;
 
 std::map<int, RoutineClass> routinesDict;
 std::set<BBLClass> bblsSet;
-std::vector<BBLClass> rankedBBLsVector;
+std::vector<BBLClass> origBBLsVector, rankedBBLsVector;
 std::set<ADDRINT> BBL_Opening_Addresses_set;
 std::vector<EDGEClass> edges_from_profile_vector;
+std::stringstream ss_output;
 
 void incrementRoutineICounter(int i) {
     routinesDict[i].incInstructionCount();
@@ -159,6 +160,26 @@ int parseProfileMap_ex2() {
     return 0;
 }
 
+int ex4PrintBBLsLog() {
+    std::ofstream outFile("fallbackSort-output.txt");
+    
+    outFile << "Original order of basic blocks in fallbackSort():" << std::endl;
+    int i = 0;
+    for (auto& bbl : origBBLsVector) {
+        outFile << "BB" << i++ << ": " << bbl._src << " - " << bbl._dst << " " << bbl.getRank() << std::endl;
+    }
+
+    outFile << "New order of basic blocks in fallbackSort():" << std::endl;
+    i = 0;
+    for (auto& bbl : rankedBBLsVector) {
+/*        unsigned long bbl_dest = instructionsVector[bbl.last_instr_index].address +
+            instructionsVector[bbl.last_instr_index].size_in_bytes;*/
+        outFile << "BB" << i++ << ": " << bbl._src << " - " << bbl._dst << " " << std::endl;
+    }
+
+    return 0;
+}
+
 
 VOID Trace(TRACE trace, VOID *v) {
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
@@ -209,40 +230,7 @@ int parseProfileMap_ex3() {
 
     return 0;
 }
-/*
-void addBBLOpeningAddressesToSetOfAddresses(std::set<ADDRINT>& addressesSet,
-    const EDGEClass& edge) {
-    if (edge.isCall()) {
-        // Calls should not appear in the file
-        return;
-    }
 
-    bool dest_found = false, next_inst_found = false;
-    for (auto& addr : addressesSet) {
-        if (addr == edge._dst_offset) {
-            dest_found = true;
-            if (!edge.isConditionalBranch() || next_inst_found) {
-                break;
-            }
-        }
-        if (edge.isConditionalBranch()) {
-            if (addr == edge._next_ins_offset) {
-                next_inst_found = true;
-                if (dest_found) {
-                    break;
-                }
-            }
-        }
-    }
-
-    if (!dest_found) {
-        addressesSet.insert(edge._dst_offset);
-    }
-    if (!next_inst_found) {
-        addressesSet.insert(edge._next_ins_offset);
-    }
-}
-*/
 void rankBBLs_aux(
     std::vector<BBLClass>& bbls,
     ADDRINT edgeTargetAddress,
@@ -323,7 +311,7 @@ int buildBBLsFromInstructions(
     return 0;
 }
 
-int parseProfileMap_ex4() {
+int ex4ParseProfileMap() {
     std::ifstream inFile(profileFilename.c_str());
     if (!inFile.is_open()) {
         return (-1);
@@ -379,14 +367,6 @@ int parseProfileMap_ex4() {
     } // end of while loop
 
     inFile.close();
-    return 0;
-}
-
-int set_up_data_structures_for_hottest_routine_optimization() {
-    if (parseProfileMap_ex4()) {
-        return (-1);
-    }
-
     return 0;
 }
 
@@ -577,12 +557,8 @@ VOID xedRoutine(RTN rtn) {
 
     parseRoutineManually(rtn);
 
-    std::cout << "Print sorted BBLs" << std::endl;
-    //vector<BBLClass> sorted_bbls = rankedBBLsVector;
+    origBBLsVector = rankedBBLsVector;
     std::sort(rankedBBLsVector.rbegin(), rankedBBLsVector.rend(), cmpBBLs);
-    for (auto bbl : rankedBBLsVector) {
-        std::cout << bbl;
-    }
 }
 
 void callerOfXedRoutine(IMG img) {
@@ -814,6 +790,8 @@ VOID ex4ImageLoad(IMG img, VOID *v) {
     commit_translated_routines();   
 
     cout << "after commit translated routines" << endl;
+
+    ex4PrintBBLsLog();
 }
 
 // Pin calls this function every time a new rtn is executed
@@ -891,12 +869,6 @@ VOID Fini(INT32 code, VOID *v) {
     for (std::map<int, RoutineClass>::iterator it = routinesDict.begin();
         it != routinesDict.end(); ++it) {
         it->second.cleanEdgesThatExitRoutine();
-    }
-
-    if (parseProfileMap_ex2()) {
-        // error
-        printProfileFileNotFound();
-        return;
     }
 
 
@@ -997,7 +969,7 @@ int main(int argc, char * argv[]) {
         // Start the program, never returns
         PIN_StartProgramProbed();
     } else if (KnobReorderBBLsInHottestRoutine) {
-        if (set_up_data_structures_for_hottest_routine_optimization()) {
+        if (ex4ParseProfileMap()) {
             printProfileFileNotFound();
             return 0;
         }
