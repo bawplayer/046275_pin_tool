@@ -1,0 +1,32 @@
+B E *******
+O K ******* 
+
+To solve the assignment we re-defined BBLs using the edges' targets
+(extracted from profile.map) as our data.
+After we ranked the BBLs as detailed below, we have sorted them,
+and appended an unconditional jump at the end of each BBL, so fallthrough
+will be handled correctly, though not efficiently. If performance was
+to be a goal, we could have tried to mitigate the number of jumps we've added.
+
+A few notes and assumptions:
+1. Defining BBLs - We used the edges from the profile file in order
+to mark off the basic blocks.
+2. Ranking BBLs - We traverse over the edges' targets in order
+to rank the BBLs. For each BBL we hit, we accumulate the count
+to the BBL's rank, then we check whether it contains a branch,
+if it does not - we propogate the count to the next BBL(s).
+3. We assume the hottest routine is also valid for translation,
+i.e., it is found in the main image.
+4. Performance increase is not our goal.
+
+Technical instructions:
+Since we splitted the source code into several files and had used
+C++14 standard in our code, compilation and linkage should be handled
+with care.
+Should there be any issues with compiling the code, it is
+recommended to fall back to GitHub:
+copy/clone the codebase from https://github.com/bawplayer/046275_pin_tool.git
+then, enter /pin.../source/tools/ex4, and execute the following:
+make ex4.test
+../../../pin -xyzzy -ifeellucky -t obj-intel64/ex4.so -prof -- ./bzip2 -k -f input.txt
+../../../pin -xyzzy -ifeellucky -t obj-intel64/ex4.so -opt -- ./bzip2 -k -f input.txt
