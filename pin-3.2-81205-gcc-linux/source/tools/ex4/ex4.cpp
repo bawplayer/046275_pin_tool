@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <string>
 #include <set>
-#include <sstream>
 #include "pin.H"
 
 /*********************************************************************************/
@@ -64,9 +63,7 @@ std::vector<InstructionClass> instructionsVector;
 std::map<int, RoutineClass> routinesDict;
 std::set<BBLClass> bblsSet;
 std::vector<BBLClass> origBBLsVector, rankedBBLsVector;
-std::set<ADDRINT> BBL_Opening_Addresses_set;
-std::vector<EDGEClass> edges_from_profile_vector;
-std::stringstream ss_output;
+std::vector<EDGEClass> edgesFromProfileVector;
 
 void incrementRoutineICounter(int i) {
     routinesDict[i].incInstructionCount();
@@ -87,7 +84,7 @@ bool edgeWithZeroCalls(const EDGEClass& edge) {
     return edge.getInstructionCount() == 0;
 }
 
-int parseProfileMap_ex2() {
+int ex2ParseProfileMap() {
     std::ifstream inFile(profileFilename.c_str());
     if (!inFile.is_open()) {
         return (-1);
@@ -172,8 +169,6 @@ int ex4PrintBBLsLog() {
     outFile << "New order of basic blocks in fallbackSort():" << std::endl;
     i = 0;
     for (auto& bbl : rankedBBLsVector) {
-/*        unsigned long bbl_dest = instructionsVector[bbl.last_instr_index].address +
-            instructionsVector[bbl.last_instr_index].size_in_bytes;*/
         outFile << "BB" << i++ << ": " << bbl._src << " - " << bbl._dst << " " << std::endl;
     }
 
@@ -339,7 +334,7 @@ int ex4ParseProfileMap() {
                 &src_ins, &dst_ins, &next_ins, &tcount, &icount,
                 &cond_branch, &is_call);
 
-            edges_from_profile_vector.push_back(EDGEClass(
+            edgesFromProfileVector.push_back(EDGEClass(
                 src_ins, dst_ins, next_ins,
                 icount, cond_branch, is_call, tcount, HottestRoutineId));
         } else if (firstChar == 'b') {
@@ -394,22 +389,6 @@ bool routineIsTopCandidate(int rtn_id, bool mainImgOnly=true, unsigned n = 0) {
     }
 
     return false;
-}
-
-
-void printBBLOpeningOffset(long image_offset) {
-    // verify here that there's instruction where we expect it to be
-    std::cout << "BBL opening offsets: (Image offset is: " << image_offset << ")" << std::endl;
-    for (const auto& bbl_offset : BBL_Opening_Addresses_set) {
-        std::vector<InstructionClass>::iterator it = std::find(
-            instructionsVector.begin(), instructionsVector.end(), bbl_offset+image_offset);
-        if (it != instructionsVector.end()) {
-            std::cout << "BBL opens: ";
-        } else {
-            std::cout << "Address not found: ";
-        }
-        std::cout << bbl_offset << std::endl;
-    }
 }
 
 /**
@@ -518,9 +497,8 @@ int parseRoutineManually(RTN rtn) {
     
     RTN_Close(rtn);
     
-    printBBLOpeningOffset(image_offset);
     markInstructionsAsBBLStartOrEnd(instructionsVector,
-        edges_from_profile_vector,
+        edgesFromProfileVector,
         image_offset);
     int res = buildBBLsFromInstructions(instructionsVector, rankedBBLsVector,
         image_offset);
@@ -531,11 +509,7 @@ int parseRoutineManually(RTN rtn) {
         return res;
     }
 
-    rankBBLs(rankedBBLsVector, edges_from_profile_vector);
-
-/*    for (auto bbl : rankedBBLsVector) {
-        std::cout << bbl;
-    }*/
+    rankBBLs(rankedBBLsVector, edgesFromProfileVector);
 
     return 0;
 }
@@ -544,7 +518,7 @@ VOID xedRoutine(RTN rtn) {
     RoutineClass rc(rtn);
     int routine_id = rc.getId();
     if (!routineIsTopCandidate(routine_id, false, 1)) {
-        /* TODO: Note that we invoke the call with mainImageOnly=false.
+        /* NOTE: that we invoke the call with mainImageOnly=false.
         This is false, but it works, because the hottest routine is also
         found in the main image.
         Should the hottest routine will not found in the main image,
@@ -577,8 +551,7 @@ void callerOfXedRoutine(IMG img) {
 }
 
 
-int add_new_jump_entry(ADDRINT target_address)
-{
+int addNewJumpEntry(ADDRINT target_address) {
 	// create a direct uncond jump.. copied from gadi's code
 	unsigned int new_size = 0;
 	xed_int32_t disp = target_address;
@@ -601,11 +574,11 @@ int add_new_jump_entry(ADDRINT target_address)
 	}	
 
 	// add a new entry in the instr_map:
-	instr_map[num_of_instr_map_entries].orig_ins_addr = -1; //we dont want here zero or a positive number that may collide with address
+	instr_map[num_of_instr_map_entries].orig_ins_addr = (-1); //we dont want here zero or a positive number that may collide with address
 	instr_map[num_of_instr_map_entries].new_ins_addr = (ADDRINT)&tc[tc_cursor];  // set an initial estimated addr in tc
 	instr_map[num_of_instr_map_entries].orig_targ_addr = target_address; 
 	instr_map[num_of_instr_map_entries].hasNewTargAddr = false;
-	instr_map[num_of_instr_map_entries].new_targ_entry = -1;
+	instr_map[num_of_instr_map_entries].new_targ_entry = (-1);
 	instr_map[num_of_instr_map_entries].size = new_size;	
 	instr_map[num_of_instr_map_entries].category_enum = XED_CATEGORY_UNCOND_BR;
 
@@ -624,6 +597,7 @@ int add_new_jump_entry(ADDRINT target_address)
 		cerr << "    new instr:";
 		dump_instr_from_mem((ADDRINT *)instr_map[num_of_instr_map_entries-1].encoded_ins, instr_map[num_of_instr_map_entries-1].new_ins_addr);
 	}
+
 	return new_size;
 }
 
@@ -690,15 +664,14 @@ int reorderPlaceInstructionInMapArray(IMG img) {
 
                 // add uncond branch at the end of each BBL.
                 if (instructionsVector[bbl.last_instr_index].close_bbl) {
-					rc=add_new_jump_entry(instructionsVector[bbl.last_instr_index].address + instructionsVector[bbl.last_instr_index].size_in_bytes);
+					rc = addNewJumpEntry(
+                        instructionsVector[bbl.last_instr_index].address + instructionsVector[bbl.last_instr_index].size_in_bytes);
 					if (rc < 0){
 						cerr << "ERROR: failed during instructon translation." << endl;
 						break;
 					}
 
                 }
-
-
             } // end for BBL...
 
 
@@ -736,8 +709,6 @@ VOID ex4ImageLoad(IMG img, VOID *v) {
     if (!IMG_IsMainExecutable(img)) {
     	return;
     }
-
-
 
     std::cout << "after memory allocation" << endl;
 
@@ -943,9 +914,7 @@ int main(int argc, char * argv[]) {
     // Initialize pin
     if (PIN_Init(argc, argv)) {
         return Usage();
-    } /*else if (!(KnobRunEx2 ^ KnobOptimizeHottestTen)) {
-        printIllegalFlags(); // return from here would thwart compilation
-    }*/
+    }
 
     if (KnobRunEx2) {
         // Register Routine to be called to instrument rtn
