@@ -163,13 +163,13 @@ int ex4PrintBBLsLog() {
     outFile << "Original order of basic blocks in fallbackSort():" << std::endl;
     int i = 0;
     for (auto& bbl : origBBLsVector) {
-        outFile << "BB" << i++ << ": " << bbl._src << " - " << bbl._dst << " " << bbl.getRank() << std::endl;
+        outFile << "BB" << i++ << ": " << "0x" << hex << bbl._src << " - 0x" << bbl._dst << " " << dec << bbl.getRank() << std::endl;
     }
 
     outFile << "New order of basic blocks in fallbackSort():" << std::endl;
     i = 0;
     for (auto& bbl : rankedBBLsVector) {
-        outFile << "BB" << i++ << ": " << bbl._src << " - " << bbl._dst << " " << std::endl;
+        outFile << "BB" << i++ << ": " << "0x" << hex << bbl._src << " - 0x" << bbl._dst << " " << dec << std::endl;
     }
 
     return 0;
