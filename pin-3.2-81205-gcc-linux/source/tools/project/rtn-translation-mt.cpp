@@ -869,23 +869,38 @@ int safe_code_update(ADDRINT addr, char *bytes, unsigned int size, int is_code_w
 			perror ("mprotect");
 			return -1;
 		}
+		
+		// check if the instr crosses a page:
+		if (((addr + size) & 0x00000000000F000) != (addr & 0x00000000000F000)) {
+			//cerr << "found page crossing at 0x:" << hex << addr << endl;
+			char *buffer = (char *)((addr + size)& (0xFFFFFFFFFFFFF000));
+			int rc = mprotect ((void *)buffer, pagesize, PROT_READ | PROT_WRITE | PROT_EXEC);
+			if (rc < 0) {
+				perror ("mprotect");
+				return -1;
+			}
+		}
 	}
 
 	if (size <= 8)  { // update can be done with a single atomic store instr:
 		memcpy((char *)addr, (char *)bytes, size);
+		asm volatile("mfence");	
 		return 0;
 	}
 
 	//1st stage: insert jmp to itself.
-	*(ADDRINT *)addr = JMP_TO_ITSELF_OFFFSET_OPCODE;	
+	*(ADDRINT *)addr = JMP_TO_ITSELF_OFFFSET_OPCODE;
+	asm volatile("mfence");	
 
 	//2nd stage: restore the rest of the bytes after the 1st 8 bytes:
     memcpy((char *)(addr + SIZE_OF_JMP_TO_ITSELF_OPCODE),   
 		   (char *)(bytes + SIZE_OF_JMP_TO_ITSELF_OPCODE), 
 		   size - SIZE_OF_JMP_TO_ITSELF_OPCODE);
+	asm volatile("mfence");	
 
 	//3rd stage: restore the 1st 8 bytes from original code from the probing code:
     memcpy((char *)addr, (char *)bytes, SIZE_OF_JMP_TO_ITSELF_OPCODE);
+	asm volatile("mfence");	
 
 	return 0;
 }		
@@ -1093,6 +1108,8 @@ void commit_translated_routines()
 void commit_uncommit_translated_routines(void *v) 
 {
     while (!enable_commit_uncommit_flag);
+	asm volatile("mfence");	
+	sleep(1);
 
 	while (true) {
 		cerr << "before commit translated routines" << endl;
@@ -1178,11 +1195,26 @@ int allocate_and_init_memory(IMG img)
     tclen = 2 * text_size + pagesize * 4;   // TODO: need a better size estimate
 
 	// Allocate the needed tc with RW+EXEC permissions and is not located in an address that is more than 32bits afar:		
+	//
 	char * tc_addr = (char *) mmap(NULL, tclen, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 	if ((ADDRINT) tc_addr == 0xffffffffffffffff) {
 	   cerr << "failed to allocate a translation cache" << endl;
        return -1;
 	}
+	
+    //ADDRINT highest_limit = (ADDRINT) (lowest_sec_addr + MAXINT);
+    //ADDRINT init_hi_addr = (ADDRINT) (highest_sec_addr + 0x100000) & 0xfffffffffff00000;
+    //char * tc_addr = NULL;
+    //for (ADDRINT addr = init_hi_addr; addr < highest_limit; addr += 0x100000) {
+    //    tc_addr = (char *) mmap((void *)addr, tclen, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+    //    if ((ADDRINT) tc_addr != 0xffffffffffffffff)
+    //            break;
+    //}
+	//if ((ADDRINT) tc_addr == 0xffffffffffffffff) {
+	//   cerr << "failed to allocate a translation cache" << endl;
+    //   return -1;
+	//}
+
 
 	cerr << "tc addr: " << hex << (ADDRINT)tc_addr << endl; 
 
@@ -1253,6 +1285,7 @@ VOID ImageLoad(IMG img, VOID *v)
 
 	// Step 6: Enable the Commit-Uncommit thread to start 
     //         applyng the commit-uncommit routines alternatingly:
+    asm volatile("mfence");	
     enable_commit_uncommit_flag = true;
 	asm volatile("mfence");
 }
@@ -1307,4 +1340,3 @@ int main(int argc, char * argv[])
 /* ===================================================================== */
 /* eof */
 /* ===================================================================== */
-
