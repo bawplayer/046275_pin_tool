@@ -1,0 +1,39 @@
+
+Instructions on how to compile and run the 2 pintools and the test porgram:
+===========================================================================
+
+Create a sub-directory under <pindir>/source/tools and place all files there.
+
+Compiling test program test_app:
+-------------------------------
+g++ -o test_app test_app.cpp
+
+Running test_app:
+---------------
+./test_app
+
+Compiling pintool obj-intel64/rtn-translation-mt.so:
+----------------------------------------------------
+make rtn-translation-mt.test
+(ignore the Error message).
+
+Running rtn-translation-mt pintool on test_app:
+-----------------------------------------------
+../../../pin -t obj-intel64/rtn-translation-mt.so -- ./test_app
+
+
+Compiling obj-intel64/my_malloc_trace.so pintool:
+------------------------------------------------
+make my_malloc_trace.test
+
+running my_malloc_trace pintool on test_app:
+-------------------------------------------
+../../../pin -t obj-intel64/my_malloc_trace.so -- ./test_app
+Memory write overflow at address: 0x400cd4
+Memory write overflow at address: 0x400cd4
+Memory write overflow at address: 0x400cd4
+Memory write overflow at address: 0x400cd4
+Memory write overflow at address: 0x400cd4
+Memory write overflow at address: 0x400cd4
+Memory write overflow at address: 0x400cd4
+
