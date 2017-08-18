@@ -971,9 +971,7 @@ int insert_probe_jump(ADDRINT from_addr, ADDRINT to_addr, int is_code_write_prot
 /***************************************/
 /* void uncommit_translated_routines() */
 /***************************************/
-void uncommit_translated_routines() 
-{
-
+void uncommit_translated_routines() {
    // Uncommit all committed translated functions: 
 
 	for (int i=0; i < translated_rtn_num; i++) {
@@ -1023,9 +1021,7 @@ void uncommit_translated_routines()
 /*************************************/
 /* void commit_translated_routines() */
 /*************************************/
-void commit_translated_routines() 
-{
-
+void commit_translated_routines() {
    // Commit the translated functions: 
    // Go over the candidate functions and replace the original 
    // ones by their new successfully translated ones:
@@ -1286,7 +1282,8 @@ VOID ImageLoad(IMG img, VOID *v)
 	// Step 6: Enable the Commit-Uncommit thread to start 
     //         applyng the commit-uncommit routines alternatingly:
     asm volatile("mfence");	
-    enable_commit_uncommit_flag = true;
+    // enable_commit_uncommit_flag = true;
+    commit_translated_routines();
 	asm volatile("mfence");
 }
 

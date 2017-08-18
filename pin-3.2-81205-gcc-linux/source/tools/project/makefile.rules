@@ -176,7 +176,7 @@ follow_child_tool.test: $(OBJDIR)follow_child_tool$(PINTOOL_SUFFIX) $(OBJDIR)fol
 
 ###### Special applications' build rules ######
 
-TOOL_CXXFLAGS := $(TOOL_CXXFLAGS) -std=c++11
+TOOL_CXXFLAGS := $(TOOL_CXXFLAGS) -std=c++14
 $(OBJDIR)divide_by_zero$(EXE_SUFFIX): divide_by_zero_$(OS_TYPE).c
 	$(APP_CC) $(APP_CXXFLAGS_NOOPT) $(COMP_EXE)$@ $< $(APP_LDFLAGS_NOOPT) $(APP_LIBS)
 
@@ -184,7 +184,7 @@ $(OBJDIR)thread_app$(EXE_SUFFIX): thread_$(OS_TYPE).c
 	$(APP_CC) $(APP_CXXFLAGS) $(COMP_EXE)$@ $< $(APP_LDFLAGS) $(APP_LIBS)
 	
 # Build the intermediate object file.
-$(OBJDIR)my_malloc_trace$(OBJ_SUFFIX): my_malloc_trace.cpp
+$(OBJDIR)project$(OBJ_SUFFIX): project.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 # Build the intermediate object file.
@@ -196,5 +196,5 @@ $(OBJDIR)AllocData$(OBJ_SUFFIX): AllocData.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 # Build the tool as a dll (shared object).
-$(OBJDIR)my_malloc_trace$(PINTOOL_SUFFIX): $(OBJDIR)my_malloc_trace$(OBJ_SUFFIX) $(OBJDIR)Tracer$(OBJ_SUFFIX) $(OBJDIR)AllocData$(OBJ_SUFFIX)
+$(OBJDIR)project$(PINTOOL_SUFFIX): $(OBJDIR)project$(OBJ_SUFFIX) $(OBJDIR)Tracer$(OBJ_SUFFIX) $(OBJDIR)AllocData$(OBJ_SUFFIX)
 	$(LINKER) $(TOOL_LDFLAGS_NOOPT) $(LINK_EXE)$@ $(^:%.h=) $(TOOL_LPATHS) $(TOOL_LIBS)
