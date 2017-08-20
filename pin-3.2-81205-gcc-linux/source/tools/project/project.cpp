@@ -207,41 +207,43 @@ VOID mallocImage(IMG img)
     //  Find the malloc() function.
     RTN mallocRtn = RTN_FindByName(img, MALLOC);
     if (RTN_Valid(mallocRtn)) {
-        // RTN_Open(mallocRtn);
-
         RTN_InsertCallProbed(mallocRtn, IPOINT_BEFORE, (AFUNPTR)Arg1Before,
                        IARG_ADDRINT, MALLOC,
                        IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                        IARG_END);
+
+        PROTO proto_malloc = PROTO_Allocate( PIN_PARG(void *), CALLINGSTD_DEFAULT,
+            MALLOC, PIN_PARG(int), PIN_PARG_END() );
                        
-/*        RTN_InsertCallProbed(mallocRtn, IPOINT_AFTER, (AFUNPTR)MallocAfter,
-                       IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
-*/
-        // RTN_Close(mallocRtn);
+        RTN_InsertCallProbed(mallocRtn, IPOINT_AFTER,
+        	(AFUNPTR)MallocAfter,
+        	IARG_PROTOTYPE, proto_malloc, 
+        	IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
     }
+
     // Find the free() function.
-/*    RTN freeRtn = RTN_FindByName(img, FREE);
-    if (RTN_Valid(freeRtn))
-    {
-        RTN_Open(freeRtn);
+    RTN freeRtn = RTN_FindByName(img, FREE);
+    if (RTN_Valid(freeRtn)) {
+    	PROTO proto_free = PROTO_Allocate( PIN_PARG(void), CALLINGSTD_DEFAULT,
+            FREE, PIN_PARG(void*), PIN_PARG_END() );
         // Instrument free()
         RTN_InsertCallProbed(freeRtn, IPOINT_AFTER, (AFUNPTR)AfterFree,
-                       IARG_ADDRINT, FREE,
-                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                       IARG_END);
-        RTN_Close(freeRtn);
-    }*/
+        	IARG_PROTOTYPE, proto_free,
+            IARG_ADDRINT, FREE,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+            IARG_END);
+    }
     
     RTN mainRtn = RTN_FindByName(img, MAIN);
-	if (RTN_Valid(mainRtn))
-	{
-		// RTN_Open(mainRtn);
-		
+	if (RTN_Valid(mainRtn)) {
 		RTN_InsertCallProbed(mainRtn, IPOINT_BEFORE, (AFUNPTR)mainBefore, IARG_END);
 		
-		// RTN_InsertCallProbed(mainRtn, IPOINT_AFTER, (AFUNPTR)mainAfter, IARG_END);
+		PROTO proto_main = PROTO_Allocate( PIN_PARG(int), CALLINGSTD_DEFAULT,
+            FREE, PIN_PARG(int), PIN_PARG(char*), PIN_PARG_END() );
 		
-		// RTN_Close(mainRtn);
+		RTN_InsertCallProbed(mainRtn, IPOINT_AFTER, (AFUNPTR)mainAfter,
+			IARG_PROTOTYPE, proto_main,
+			IARG_END);
 	}
 }
 
