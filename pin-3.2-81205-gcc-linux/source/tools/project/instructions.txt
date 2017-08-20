@@ -1,0 +1,19 @@
+// instructions
+
+0. Temporarly disable multithreading by calling translate_routine() explicitly.
+We enable that only when the project is working using a single thread.
+
+1. Manipulate malloc() and free() in probe mode.
+
+2. Temporarly add NOPs to the code
+
+3. Add Ofir's code into the orig
+
+4. Adding a 5th routine - a dummy, void foo(void). Verify it is called properly with a print. Make sure the assembly code of foo() contains only asm(ret).
+
+5. Add the code to jump to the dummy with an argument, using an indirect jump.
+
+
+** Something about mprotect
+
+** To configure the ratio between the time we run in the TC versus original code
