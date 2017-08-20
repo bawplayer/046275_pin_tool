@@ -48,6 +48,7 @@ extern "C" {
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <vector>
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -62,6 +63,9 @@ extern "C" {
 #include <values.h>
 
 
+std::vector<ADDRINT> ofir_instrumentations_addresses;
+
+
 /*======================================================================*/
 /* commandline switches                                                 */
 /*======================================================================*/
@@ -74,7 +78,183 @@ KNOB<BOOL>   KnobDumpTranslatedCode(KNOB_MODE_WRITEONCE,    "pintool",
 KNOB<BOOL>   KnobDoNotCommitTranslatedCode(KNOB_MODE_WRITEONCE,    "pintool",
     "no_tc_commit", "0", "Do not commit translated code");
 
+/* ===================================================================== */
 
+#include <set>
+#include "Tracer.h"
+
+using std::set;
+
+/* ===================================================================== */
+/* Names of malloc and free */
+/* ===================================================================== */
+#define MALLOC "malloc"
+#define FREE "free"
+#define MAIN "main"
+
+/* ===================================================================== */
+/* Global Variables */
+/* ===================================================================== */
+
+std::ostream& TraceFile = std::cout;
+bool mainInit = false;
+bool mainFinished = false;
+ADDRINT lastMallocSize;
+Tracer mallocTracer = Tracer::GetInstance();
+set<ADDRINT> suspiciousAddresses;
+int asmFileSize;
+
+
+/* ===================================================================== */
+
+bool IsCalledAfterMain()
+{
+	// Don't run instumentation code unless main has started
+	if (!mainInit || mainFinished)
+		return false;
+	
+	return true;
+}
+
+/* ===================================================================== */
+/* Analysis routines                                                     */
+/* ===================================================================== */
+ 
+VOID Arg1Before(CHAR * name, ADDRINT size)
+{
+	if (!IsCalledAfterMain())
+		return;
+
+	lastMallocSize = size;
+}
+
+VOID AfterFree(CHAR * name, ADDRINT addr)
+{
+	if (!IsCalledAfterMain())
+		return;
+
+	mallocTracer.DeleteAddress(addr);
+}
+
+VOID MallocAfter(ADDRINT ret)
+{
+	if (!IsCalledAfterMain())
+		return;
+	
+	mallocTracer.AddNewAddress(ret, lastMallocSize);
+}
+
+VOID mainBefore()
+{
+	mainInit = true;
+}
+
+VOID mainAfter()
+{
+	mainFinished =  true;
+}
+
+// Print a memory read record
+VOID RecordMemRead(VOID * ip, ADDRINT addr)
+{
+	if (!IsCalledAfterMain())
+		return;
+	
+	if (suspiciousAddresses.count((ADDRINT)ip) !=0)
+		cout << "Memory read overflow at address: 0x" << hex << (ADDRINT)ip << dec << endl;
+}
+
+// Print a memory write record
+VOID RecordMemWrite(VOID* ip, ADDRINT addr)
+{
+	if (!IsCalledAfterMain())
+		return;
+	
+	if (suspiciousAddresses.count((ADDRINT)ip) !=0)
+		cout << "Memory write overflow at address: 0x" << hex << (ADDRINT)ip << dec << endl;
+}
+
+VOID CheckAddIns(ADDRINT regVal, UINT64 immediate, VOID* ip, UINT64 insSize)
+{
+	if (!mallocTracer.IsAllocatedAddress(regVal))
+		return;
+
+	if (mallocTracer.GetStartAddress(regVal + immediate) != mallocTracer.GetStartAddress(regVal))
+		suspiciousAddresses.insert(ADDRINT(ip) + insSize);
+}
+
+bool INS_IsAdd(INS ins)
+{
+	string insDisassembly = INS_Disassemble(ins);
+	if (insDisassembly.substr(0, 3) == "add")
+		return true;
+	
+	return false;
+}
+
+VOID CheckAddInsIndexReg(ADDRINT regVal, ADDRINT indexRegVal, VOID* ip, UINT64 insSize)
+{
+	if (!mallocTracer.IsAllocatedAddress(regVal))
+		return;
+		
+	if (mallocTracer.GetStartAddress(regVal + indexRegVal) != mallocTracer.GetStartAddress(regVal))
+		suspiciousAddresses.insert(ADDRINT(ip) + insSize);
+}
+
+/* ===================================================================== */
+/* Instrumentation routines                                              */
+/* ===================================================================== */
+   
+VOID mallocImage(IMG img)
+{
+    // Instrument the malloc() and free() functions.  Print the input argument
+    // of each malloc() or free(), and the return value of malloc().
+    
+    //  Find the malloc() function.
+    RTN mallocRtn = RTN_FindByName(img, MALLOC);
+    if (RTN_Valid(mallocRtn)) {
+        RTN_InsertCallProbed(mallocRtn, IPOINT_BEFORE, (AFUNPTR)Arg1Before,
+                       IARG_ADDRINT, MALLOC,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_END);
+
+        PROTO proto_malloc = PROTO_Allocate( PIN_PARG(void *), CALLINGSTD_DEFAULT,
+            MALLOC, PIN_PARG(int), PIN_PARG_END() );
+                       
+        RTN_InsertCallProbed(mallocRtn, IPOINT_AFTER,
+        	(AFUNPTR)MallocAfter,
+        	IARG_PROTOTYPE, proto_malloc, 
+        	IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
+    }
+
+    // Find the free() function.
+    RTN freeRtn = RTN_FindByName(img, FREE);
+    if (RTN_Valid(freeRtn)) {
+    	PROTO proto_free = PROTO_Allocate( PIN_PARG(void), CALLINGSTD_DEFAULT,
+            FREE, PIN_PARG(void*), PIN_PARG_END() );
+        // Instrument free()
+        RTN_InsertCallProbed(freeRtn, IPOINT_AFTER, (AFUNPTR)AfterFree,
+        	IARG_PROTOTYPE, proto_free,
+            IARG_ADDRINT, FREE,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+            IARG_END);
+    }
+    
+    RTN mainRtn = RTN_FindByName(img, MAIN);
+	if (RTN_Valid(mainRtn)) {
+		RTN_InsertCallProbed(mainRtn, IPOINT_BEFORE, (AFUNPTR)mainBefore, IARG_END);
+		
+		PROTO proto_main = PROTO_Allocate( PIN_PARG(int), CALLINGSTD_DEFAULT,
+            FREE, PIN_PARG(int), PIN_PARG(char*), PIN_PARG_END() );
+		
+		RTN_InsertCallProbed(mainRtn, IPOINT_AFTER, (AFUNPTR)mainAfter,
+			IARG_PROTOTYPE, proto_main,
+			IARG_END);
+	}
+}
+
+
+/* ======================================================================= */
 
 /* ===================================================================== */
 /* Global Variables */
@@ -150,6 +330,81 @@ volatile bool enable_commit_uncommit_flag = false;
 /* ============================================================= */
 /* Service dump routines                                         */
 /* ============================================================= */
+
+int add_stub(ADDRINT);
+
+// Pin calls this function every time a new rtn is executed
+VOID addAssemblyCode(INS ins) {
+	if (INS_IsAdd(ins)) {
+		UINT32 opNum = INS_OperandCount(ins);
+//		UINT64 immediate = 0;
+		REG operandReg = REG_INVALID();
+		REG indexReg = REG_INVALID();
+		bool foundReg = false;
+		bool foundIndexReg = false;
+		bool foundImm = false;
+
+		for (UINT32 i = 0; i < opNum; ++i) {
+			if (!foundImm && INS_OperandIsImmediate(ins, i)) {
+//				immediate = INS_OperandImmediate(ins, i);
+				foundImm = true;
+			} else if (!foundReg && INS_OperandIsReg(ins, i) && INS_OperandWritten(ins, i)) {
+				operandReg = INS_OperandReg(ins, i);
+				if (REG_INVALID() != operandReg )
+					foundReg = true;
+			} else if (!foundIndexReg && INS_OperandIsReg(ins, i) && INS_OperandReadOnly(ins, i)) {
+				indexReg = INS_OperandReg(ins, i);
+				if (REG_INVALID() != indexReg)
+					foundIndexReg = true;
+			}
+
+			if (foundReg && foundImm && REG_valid_for_iarg_reg_value(operandReg)) {
+					add_stub(ofir_instrumentations_addresses[0]);
+
+
+/*					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddIns, 
+					IARG_REG_VALUE, operandReg, IARG_UINT64, immediate,
+					IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
+*/
+				break;
+			} else if (foundIndexReg && foundReg && REG_valid_for_iarg_reg_value(operandReg) && REG_valid_for_iarg_reg_value(indexReg)) {
+/*					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddInsIndexReg, 
+					IARG_REG_VALUE, operandReg, IARG_REG_VALUE, indexReg,
+					IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
+*/				break;
+			}
+		}
+	}
+	 else { // not ADD instruction
+		UINT32 memOperands = INS_MemoryOperandCount(ins);
+
+		// Iterate over each memory operand of the instruction.
+		for (UINT32 memOp = 0; memOp < memOperands; memOp++)
+		{
+			if (INS_MemoryOperandIsRead(ins, memOp))
+			{
+/*					 INS_InsertCall(
+					ins, IPOINT_BEFORE, (AFUNPTR)RecordMemRead,
+					IARG_INST_PTR,
+					IARG_MEMORYOP_EA, memOp,
+					IARG_END);
+*/			}
+			// Note that in some architectures a single memory operand can be 
+			// both read and written (for instance incl (%eax) on IA-32)
+			// In that case we instrument it once for read and once for write.
+			if (INS_MemoryOperandIsWritten(ins, memOp))
+			{
+
+/*					 INS_InsertCall(
+					ins, IPOINT_BEFORE, (AFUNPTR)RecordMemWrite,
+					IARG_INST_PTR,
+					IARG_MEMORYOP_EA, memOp,
+					IARG_UINT64, INS_Size(ins),
+					IARG_END);
+*/			}
+		}
+	}
+}
 
 /*************************/
 /* dump_all_image_instrs */
@@ -362,6 +617,36 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
 	}
 
 	return new_size;
+}
+
+int add_stub(ADDRINT mmap_addr) {
+//	const int NUMBER_OF_INSTRUCTION_IN_MMAP = 2; //29;
+	int size = 0;
+
+	for(ADDRINT tempAddr=mmap_addr; (signed)(tempAddr-mmap_addr)<asmFileSize; tempAddr+=size) {
+
+		dump_instr_from_mem ( (ADDRINT *)tempAddr, tempAddr);
+
+		xed_decoded_inst_t xedd;
+		xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
+
+		xed_error_enum_t xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(tempAddr), max_inst_len);
+		if (xed_code != XED_ERROR_NONE) {
+			cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << tempAddr << endl;
+			return 1;
+		}
+
+		size = xed_decoded_inst_get_length (&xedd);
+
+		int rc = add_new_instr_entry(&xedd, -1, size);
+		if (rc < 0) {
+			cerr << "ERROR: failed during instructon translation." << endl;
+			return 1;
+		}
+
+	}
+
+	return 0;
 }
 
 
@@ -735,7 +1020,7 @@ int fix_instructions_displacements()
 	} while (size_diff != 0);
 
    return 0;
- }
+}
 
 
 /*****************************************/
@@ -794,6 +1079,8 @@ int find_candidate_rtns_for_translation(IMG img)
 					}
 				}			
 
+				addAssemblyCode(ins);
+
 			    xed_decoded_inst_t xedd;
 			    xed_error_enum_t xed_code;							
 	            
@@ -805,6 +1092,7 @@ int find_candidate_rtns_for_translation(IMG img)
 					RTN_Close( rtn );
 					return 1;
 				}
+
 
 				// Add instr into instr map:
 				rc = add_new_instr_entry(&xedd, INS_Address(ins), INS_Size(ins));
@@ -1219,7 +1507,6 @@ int allocate_and_init_memory(IMG img)
 	return 0;
 }
 
-
 /* ============================================ */
 /* Main translation routine                     */
 /* ============================================ */
@@ -1228,9 +1515,12 @@ VOID ImageLoad(IMG img, VOID *v)
 	// debug print of all images' instructions
 	//dump_all_image_instrs(img);
 
+	mallocImage(img);
+
     // Step 0: Check that the image is of the main executable file:
-	if (!IMG_IsMainExecutable(img))
+	if (!IMG_IsMainExecutable(img)) {
 		return;
+	}
 
 	int rc = 0;
 
@@ -1287,6 +1577,57 @@ VOID ImageLoad(IMG img, VOID *v)
 	asm volatile("mfence");
 }
 
+void stub(void){
+//	printf("stub\n");
+}
+
+void setOfirRoutineAddresses(std::vector<ADDRINT>& addresses) {
+	addresses.push_back((ADDRINT)(&stub));
+
+	addresses.push_back((ADDRINT)(&CheckAddIns));
+	addresses.push_back((ADDRINT)(&CheckAddInsIndexReg));
+	
+	addresses.push_back((ADDRINT)(&RecordMemRead));
+	addresses.push_back((ADDRINT)(&RecordMemWrite));
+}
+
+int get_file_size(std::string filename) // path to file
+{
+    FILE *p_file = NULL;
+    p_file = fopen(filename.c_str(),"rb");
+    fseek(p_file,0,SEEK_END);
+    int size = ftell(p_file);
+    fclose(p_file);
+    return size;
+}
+
+
+int allocate_asm_to_mem(const std::string& filename) {
+	asmFileSize = get_file_size(filename.c_str());
+
+	int fd = open(filename.c_str(), O_RDONLY);
+	if (fd < 0) {
+		std::cerr << "Failed to open file" << std::endl;
+		return 1;
+	}
+
+	char * addr = (char*) mmap(NULL, asmFileSize,
+		PROT_READ, MAP_PRIVATE,
+		fd, 0);
+	
+	if (((long long)addr == (-1))) {
+		std::cerr << "Failed to allocate asm code" << std::endl;
+	} else {
+		std::cerr << "mmap allocated at : 0x" << hex <<(long long)addr << " size " << asmFileSize << std::endl;
+	}
+
+	close(fd);
+
+	ofir_instrumentations_addresses.push_back((ADDRINT)addr);
+
+	return 0;
+}
+
 
 /* ===================================================================== */
 /* Print Help Message                                                    */
@@ -1307,6 +1648,8 @@ INT32 Usage()
 
 int main(int argc, char * argv[])
 {
+	allocate_asm_to_mem("inline_inst.bin");
+	setOfirRoutineAddresses(ofir_instrumentations_addresses);
 
     // Initialize pin & symbol manager
     //out = new std::ofstream("xed-print.out");
@@ -1315,7 +1658,6 @@ int main(int argc, char * argv[])
         return Usage();
 
     PIN_InitSymbols();	
-
 	// Register ImageLoad
 	IMG_AddInstrumentFunction(ImageLoad, 0);
 
