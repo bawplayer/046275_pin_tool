@@ -48,6 +48,7 @@ extern "C" {
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <vector>
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -60,6 +61,9 @@ extern "C" {
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <values.h>
+
+
+std::vector<ADDRINT> ofir_instrumentations_addresses;
 
 
 /*======================================================================*/
@@ -264,48 +268,33 @@ VOID Routine(RTN rtn, VOID *v)
 			bool foundIndexReg = false;
 			bool foundImm = false;
 
-			for (UINT32 i = 0; i < opNum; ++i)
-			{
-				if (!foundImm && INS_OperandIsImmediate(ins, i))
-				{
+			for (UINT32 i = 0; i < opNum; ++i) {
+				if (!foundImm && INS_OperandIsImmediate(ins, i)) {
 					immediate = INS_OperandImmediate(ins, i);
 					foundImm = true;
-				}
-				
-				else if (!foundReg && INS_OperandIsReg(ins, i) && INS_OperandWritten(ins, i))
-				{
+				} else if (!foundReg && INS_OperandIsReg(ins, i) && INS_OperandWritten(ins, i)) {
 					operandReg = INS_OperandReg(ins, i);
 					if (REG_INVALID() != operandReg )
 						foundReg = true;
-				}
-				
-				else if (!foundIndexReg && INS_OperandIsReg(ins, i) && INS_OperandReadOnly(ins, i))
-				{
+				} else if (!foundIndexReg && INS_OperandIsReg(ins, i) && INS_OperandReadOnly(ins, i)) {
 					indexReg = INS_OperandReg(ins, i);
 					if (REG_INVALID() != indexReg)
 						foundIndexReg = true;
 				}
 
-				if (foundReg && foundImm && REG_valid_for_iarg_reg_value(operandReg))
-				{
+				if (foundReg && foundImm && REG_valid_for_iarg_reg_value(operandReg)) {
 					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddIns, 
 						IARG_REG_VALUE, operandReg, IARG_UINT64, immediate,
 						IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
 					break;
-				}
-				
-				else if (foundIndexReg && foundReg && REG_valid_for_iarg_reg_value(operandReg)
-					&& REG_valid_for_iarg_reg_value(indexReg))
-				{
+				} else if (foundIndexReg && foundReg && REG_valid_for_iarg_reg_value(operandReg) && REG_valid_for_iarg_reg_value(indexReg)) {
 					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddInsIndexReg, 
 						IARG_REG_VALUE, operandReg, IARG_REG_VALUE, indexReg,
 						IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
 					break;
 				}
 			}
-		} 
-		else 
-		{
+		} else {
 			UINT32 memOperands = INS_MemoryOperandCount(ins);
 
 			// Iterate over each memory operand of the instruction.
@@ -1553,6 +1542,51 @@ VOID ImageLoad(IMG img, VOID *v)
 	asm volatile("mfence");
 }
 
+void stub(void){
+	printf("stub\n");
+}
+
+void setOfirRoutineAddresses(void) {
+	ofir_instrumentations_addresses.push_back((ADDRINT)(&CheckAddIns));
+	ofir_instrumentations_addresses.push_back((ADDRINT)(&CheckAddInsIndexReg));
+	
+	ofir_instrumentations_addresses.push_back((ADDRINT)(&RecordMemRead));
+	ofir_instrumentations_addresses.push_back((ADDRINT)(&RecordMemWrite));
+
+	ofir_instrumentations_addresses.push_back((ADDRINT)(&stub));
+}
+
+
+int allocate_asm_to_mem(const std::string& filename) {
+	int fd = open(filename.c_str(), O_RDONLY);
+	if (fd < 0) {
+		std::cerr << "Failed to open file" << std::endl;
+		return 1;
+	}
+
+	struct stat st;
+	st.st_size = 5;
+	std::cout << "size is : " << st.st_size << std::endl;
+	/*
+	if (fstat(fd, &st) < 0) {
+		printf("fstat failed\n");
+	}
+	*/
+	char * addr = (char*) mmap(NULL, 5, // st.st_size,
+		PROT_READ, MAP_PRIVATE,
+		fd, 0);
+	
+	if (((long long)addr == (-1))) {
+		std::cerr << "Failed to allocate asm code" << std::endl;
+	} else {
+		std::cerr << "mmap allocated at : " << (long long)addr << " size " << 5 << std::endl;
+	}
+
+	close(fd);
+
+	return 0;
+}
+
 
 /* ===================================================================== */
 /* Print Help Message                                                    */
@@ -1573,6 +1607,7 @@ INT32 Usage()
 
 int main(int argc, char * argv[])
 {
+	allocate_asm_to_mem("inline_inst.bin");
 
     // Initialize pin & symbol manager
     //out = new std::ofstream("xed-print.out");
@@ -1581,7 +1616,7 @@ int main(int argc, char * argv[])
         return Usage();
 
     PIN_InitSymbols();	
-
+    setOfirRoutineAddresses();
 	// Register ImageLoad
 	IMG_AddInstrumentFunction(ImageLoad, 0);
 

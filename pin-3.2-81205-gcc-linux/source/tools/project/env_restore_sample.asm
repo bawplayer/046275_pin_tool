@@ -1,3 +1,8 @@
+# Commands:
+# as SOURCE.asm -o DEST.o
+# objcopy -O binary DEST.o DEST.bin
+# objdump -D -Mintel,x86-64 -b binary -m i386 DEST.bin
+
 	lea    -128(%rsp), %rsp
 	pushf	# push FLAGS register
 
