@@ -140,6 +140,7 @@ VOID Image(IMG img, VOID *v)
     RTN mallocRtn = RTN_FindByName(img, MALLOC);
     if (RTN_Valid(mallocRtn))
     {
+    	std::cout << "malloc is valid routine" << std::endl;
         RTN_Open(mallocRtn);
 
         RTN_InsertCall(mallocRtn, IPOINT_BEFORE, (AFUNPTR)Arg1Before,

@@ -251,81 +251,6 @@ VOID mallocImage(IMG img)
 	}
 }
 
-// Pin calls this function every time a new rtn is executed
-VOID Routine(RTN rtn, VOID *v)
-{
-    RTN_Open(rtn);
-    // For each instruction of the routine
-    for (INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins))
-    {
-		if (INS_IsAdd(ins))
-		{
-			UINT32 opNum = INS_OperandCount(ins);
-			UINT64 immediate = 0;
-			REG operandReg = REG_INVALID();
-			REG indexReg = REG_INVALID();
-			bool foundReg = false;
-			bool foundIndexReg = false;
-			bool foundImm = false;
-
-			for (UINT32 i = 0; i < opNum; ++i) {
-				if (!foundImm && INS_OperandIsImmediate(ins, i)) {
-					immediate = INS_OperandImmediate(ins, i);
-					foundImm = true;
-				} else if (!foundReg && INS_OperandIsReg(ins, i) && INS_OperandWritten(ins, i)) {
-					operandReg = INS_OperandReg(ins, i);
-					if (REG_INVALID() != operandReg )
-						foundReg = true;
-				} else if (!foundIndexReg && INS_OperandIsReg(ins, i) && INS_OperandReadOnly(ins, i)) {
-					indexReg = INS_OperandReg(ins, i);
-					if (REG_INVALID() != indexReg)
-						foundIndexReg = true;
-				}
-
-				if (foundReg && foundImm && REG_valid_for_iarg_reg_value(operandReg)) {
-					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddIns, 
-						IARG_REG_VALUE, operandReg, IARG_UINT64, immediate,
-						IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
-					break;
-				} else if (foundIndexReg && foundReg && REG_valid_for_iarg_reg_value(operandReg) && REG_valid_for_iarg_reg_value(indexReg)) {
-					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddInsIndexReg, 
-						IARG_REG_VALUE, operandReg, IARG_REG_VALUE, indexReg,
-						IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
-					break;
-				}
-			}
-		} else {
-			UINT32 memOperands = INS_MemoryOperandCount(ins);
-
-			// Iterate over each memory operand of the instruction.
-			for (UINT32 memOp = 0; memOp < memOperands; memOp++)
-			{
-				if (INS_MemoryOperandIsRead(ins, memOp))
-				{
-					 INS_InsertCall(
-						ins, IPOINT_BEFORE, (AFUNPTR)RecordMemRead,
-						IARG_INST_PTR,
-						IARG_MEMORYOP_EA, memOp,
-						IARG_END);
-				}
-				// Note that in some architectures a single memory operand can be 
-				// both read and written (for instance incl (%eax) on IA-32)
-				// In that case we instrument it once for read and once for write.
-				if (INS_MemoryOperandIsWritten(ins, memOp))
-				{
-
-					 INS_InsertCall(
-						ins, IPOINT_BEFORE, (AFUNPTR)RecordMemWrite,
-						IARG_INST_PTR,
-						IARG_MEMORYOP_EA, memOp,
-						IARG_UINT64, INS_Size(ins),
-						IARG_END);
-				}
-			}
-		}
-    }
-    RTN_Close(rtn);
-}
 
 /* ======================================================================= */
 
@@ -403,6 +328,81 @@ volatile bool enable_commit_uncommit_flag = false;
 /* ============================================================= */
 /* Service dump routines                                         */
 /* ============================================================= */
+
+int add_stub(ADDRINT);
+
+// Pin calls this function every time a new rtn is executed
+VOID addAssemblyCode(INS ins) {
+    add_stub(ofir_instrumentations_addresses[0]);
+
+    return;
+/*
+	if (INS_IsAdd(ins)) {
+		UINT32 opNum = INS_OperandCount(ins);
+		UINT64 immediate = 0;
+		REG operandReg = REG_INVALID();
+		REG indexReg = REG_INVALID();
+		bool foundReg = false;
+		bool foundIndexReg = false;
+		bool foundImm = false;
+
+		for (UINT32 i = 0; i < opNum; ++i) {
+			if (!foundImm && INS_OperandIsImmediate(ins, i)) {
+				immediate = INS_OperandImmediate(ins, i);
+				foundImm = true;
+			} else if (!foundReg && INS_OperandIsReg(ins, i) && INS_OperandWritten(ins, i)) {
+				operandReg = INS_OperandReg(ins, i);
+				if (REG_INVALID() != operandReg )
+					foundReg = true;
+			} else if (!foundIndexReg && INS_OperandIsReg(ins, i) && INS_OperandReadOnly(ins, i)) {
+				indexReg = INS_OperandReg(ins, i);
+				if (REG_INVALID() != indexReg)
+					foundIndexReg = true;
+			}
+
+			if (foundReg && foundImm && REG_valid_for_iarg_reg_value(operandReg)) {
+
+					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddIns, 
+					IARG_REG_VALUE, operandReg, IARG_UINT64, immediate,
+					IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
+				break;
+			} else if (foundIndexReg && foundReg && REG_valid_for_iarg_reg_value(operandReg) && REG_valid_for_iarg_reg_value(indexReg)) {
+					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddInsIndexReg, 
+					IARG_REG_VALUE, operandReg, IARG_REG_VALUE, indexReg,
+					IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
+				break;
+			}
+		}
+	} else { // not ADD instruction
+		UINT32 memOperands = INS_MemoryOperandCount(ins);
+
+		// Iterate over each memory operand of the instruction.
+		for (UINT32 memOp = 0; memOp < memOperands; memOp++)
+		{
+			if (INS_MemoryOperandIsRead(ins, memOp))
+			{
+					 INS_InsertCall(
+					ins, IPOINT_BEFORE, (AFUNPTR)RecordMemRead,
+					IARG_INST_PTR,
+					IARG_MEMORYOP_EA, memOp,
+					IARG_END);
+			}
+			// Note that in some architectures a single memory operand can be 
+			// both read and written (for instance incl (%eax) on IA-32)
+			// In that case we instrument it once for read and once for write.
+			if (INS_MemoryOperandIsWritten(ins, memOp))
+			{
+
+					 INS_InsertCall(
+					ins, IPOINT_BEFORE, (AFUNPTR)RecordMemWrite,
+					IARG_INST_PTR,
+					IARG_MEMORYOP_EA, memOp,
+					IARG_UINT64, INS_Size(ins),
+					IARG_END);
+			}
+		}
+	}*/
+}
 
 /*************************/
 /* dump_all_image_instrs */
@@ -615,6 +615,32 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
 	}
 
 	return new_size;
+}
+
+int add_stub(ADDRINT mmap_addr) {
+	const int NUMBER_OF_INSTRUCTION_IN_MMAP = 1;
+
+	for(int i=0; i<NUMBER_OF_INSTRUCTION_IN_MMAP; i++) {
+		xed_decoded_inst_t xedd;
+		xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
+
+		xed_error_enum_t xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(mmap_addr), max_inst_len);
+		if (xed_code != XED_ERROR_NONE) {
+			cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << mmap_addr << endl;
+			return 1;
+		}
+
+		int size = xed_decoded_inst_get_length (&xedd);
+
+		int rc = add_new_instr_entry(&xedd, mmap_addr, size);
+		if (rc < 0) {
+			cerr << "ERROR: failed during instructon translation." << endl;
+			return 1;
+		}
+
+	}
+
+	return 0;
 }
 
 
@@ -988,7 +1014,7 @@ int fix_instructions_displacements()
 	} while (size_diff != 0);
 
    return 0;
- }
+}
 
 
 /*****************************************/
@@ -1047,6 +1073,8 @@ int find_candidate_rtns_for_translation(IMG img)
 					}
 				}			
 
+				addAssemblyCode(ins);
+
 			    xed_decoded_inst_t xedd;
 			    xed_error_enum_t xed_code;							
 	            
@@ -1058,6 +1086,7 @@ int find_candidate_rtns_for_translation(IMG img)
 					RTN_Close( rtn );
 					return 1;
 				}
+
 
 				// Add instr into instr map:
 				rc = add_new_instr_entry(&xedd, INS_Address(ins), INS_Size(ins));
@@ -1546,14 +1575,14 @@ void stub(void){
 	printf("stub\n");
 }
 
-void setOfirRoutineAddresses(void) {
-	ofir_instrumentations_addresses.push_back((ADDRINT)(&CheckAddIns));
-	ofir_instrumentations_addresses.push_back((ADDRINT)(&CheckAddInsIndexReg));
-	
-	ofir_instrumentations_addresses.push_back((ADDRINT)(&RecordMemRead));
-	ofir_instrumentations_addresses.push_back((ADDRINT)(&RecordMemWrite));
+void setOfirRoutineAddresses(std::vector<ADDRINT>& addresses) {
+	addresses.push_back((ADDRINT)(&stub));
 
-	ofir_instrumentations_addresses.push_back((ADDRINT)(&stub));
+	addresses.push_back((ADDRINT)(&CheckAddIns));
+	addresses.push_back((ADDRINT)(&CheckAddInsIndexReg));
+	
+	addresses.push_back((ADDRINT)(&RecordMemRead));
+	addresses.push_back((ADDRINT)(&RecordMemWrite));
 }
 
 
@@ -1584,6 +1613,8 @@ int allocate_asm_to_mem(const std::string& filename) {
 
 	close(fd);
 
+	ofir_instrumentations_addresses.push_back((ADDRINT)addr);
+
 	return 0;
 }
 
@@ -1608,6 +1639,7 @@ INT32 Usage()
 int main(int argc, char * argv[])
 {
 	allocate_asm_to_mem("inline_inst.bin");
+	setOfirRoutineAddresses(ofir_instrumentations_addresses);
 
     // Initialize pin & symbol manager
     //out = new std::ofstream("xed-print.out");
@@ -1616,7 +1648,6 @@ int main(int argc, char * argv[])
         return Usage();
 
     PIN_InitSymbols();	
-    setOfirRoutineAddresses();
 	// Register ImageLoad
 	IMG_AddInstrumentFunction(ImageLoad, 0);
 
