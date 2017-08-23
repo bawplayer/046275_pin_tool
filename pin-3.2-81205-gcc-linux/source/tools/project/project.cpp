@@ -102,6 +102,8 @@ bool mainFinished = false;
 ADDRINT lastMallocSize;
 Tracer mallocTracer = Tracer::GetInstance();
 set<ADDRINT> suspiciousAddresses;
+int asmFileSize;
+
 
 /* ===================================================================== */
 
@@ -618,21 +620,19 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
 }
 
 int add_stub(ADDRINT mmap_addr) {
-	const int NUMBER_OF_INSTRUCTION_IN_MMAP = 2;
+//	const int NUMBER_OF_INSTRUCTION_IN_MMAP = 2; //29;
 	int size = 0;
 
+	for(ADDRINT tempAddr=mmap_addr; (signed)(tempAddr-mmap_addr)<asmFileSize; tempAddr+=size) {
 
-	for(int i=0; i<NUMBER_OF_INSTRUCTION_IN_MMAP; i++) {
-		mmap_addr += size;
-
-		//dump_instr_from_mem ( (ADDRINT *)mmap_addr, mmap_addr);
+		dump_instr_from_mem ( (ADDRINT *)tempAddr, tempAddr);
 
 		xed_decoded_inst_t xedd;
 		xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
 
-		xed_error_enum_t xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(mmap_addr), max_inst_len);
+		xed_error_enum_t xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(tempAddr), max_inst_len);
 		if (xed_code != XED_ERROR_NONE) {
-			cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << mmap_addr << endl;
+			cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << tempAddr << endl;
 			return 1;
 		}
 
@@ -1603,7 +1603,7 @@ int get_file_size(std::string filename) // path to file
 
 
 int allocate_asm_to_mem(const std::string& filename) {
-	int size = get_file_size(filename.c_str());
+	asmFileSize = get_file_size(filename.c_str());
 
 	int fd = open(filename.c_str(), O_RDONLY);
 	if (fd < 0) {
@@ -1611,14 +1611,14 @@ int allocate_asm_to_mem(const std::string& filename) {
 		return 1;
 	}
 
-	char * addr = (char*) mmap(NULL, size,
+	char * addr = (char*) mmap(NULL, asmFileSize,
 		PROT_READ, MAP_PRIVATE,
 		fd, 0);
 	
 	if (((long long)addr == (-1))) {
 		std::cerr << "Failed to allocate asm code" << std::endl;
 	} else {
-		std::cerr << "mmap allocated at : 0x" << hex <<(long long)addr << " size " << size << std::endl;
+		std::cerr << "mmap allocated at : 0x" << hex <<(long long)addr << " size " << asmFileSize << std::endl;
 	}
 
 	close(fd);
