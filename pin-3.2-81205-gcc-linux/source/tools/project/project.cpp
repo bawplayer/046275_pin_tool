@@ -333,13 +333,9 @@ int add_stub(ADDRINT);
 
 // Pin calls this function every time a new rtn is executed
 VOID addAssemblyCode(INS ins) {
-    add_stub(ofir_instrumentations_addresses[0]);
-
-    return;
-/*
 	if (INS_IsAdd(ins)) {
 		UINT32 opNum = INS_OperandCount(ins);
-		UINT64 immediate = 0;
+//		UINT64 immediate = 0;
 		REG operandReg = REG_INVALID();
 		REG indexReg = REG_INVALID();
 		bool foundReg = false;
@@ -348,7 +344,7 @@ VOID addAssemblyCode(INS ins) {
 
 		for (UINT32 i = 0; i < opNum; ++i) {
 			if (!foundImm && INS_OperandIsImmediate(ins, i)) {
-				immediate = INS_OperandImmediate(ins, i);
+//				immediate = INS_OperandImmediate(ins, i);
 				foundImm = true;
 			} else if (!foundReg && INS_OperandIsReg(ins, i) && INS_OperandWritten(ins, i)) {
 				operandReg = INS_OperandReg(ins, i);
@@ -361,19 +357,23 @@ VOID addAssemblyCode(INS ins) {
 			}
 
 			if (foundReg && foundImm && REG_valid_for_iarg_reg_value(operandReg)) {
+					add_stub(ofir_instrumentations_addresses[0]);
 
-					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddIns, 
+
+/*					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddIns, 
 					IARG_REG_VALUE, operandReg, IARG_UINT64, immediate,
 					IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
+*/
 				break;
 			} else if (foundIndexReg && foundReg && REG_valid_for_iarg_reg_value(operandReg) && REG_valid_for_iarg_reg_value(indexReg)) {
-					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddInsIndexReg, 
+/*					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddInsIndexReg, 
 					IARG_REG_VALUE, operandReg, IARG_REG_VALUE, indexReg,
 					IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
-				break;
+*/				break;
 			}
 		}
-	} else { // not ADD instruction
+	}
+	 else { // not ADD instruction
 		UINT32 memOperands = INS_MemoryOperandCount(ins);
 
 		// Iterate over each memory operand of the instruction.
@@ -381,27 +381,27 @@ VOID addAssemblyCode(INS ins) {
 		{
 			if (INS_MemoryOperandIsRead(ins, memOp))
 			{
-					 INS_InsertCall(
+/*					 INS_InsertCall(
 					ins, IPOINT_BEFORE, (AFUNPTR)RecordMemRead,
 					IARG_INST_PTR,
 					IARG_MEMORYOP_EA, memOp,
 					IARG_END);
-			}
+*/			}
 			// Note that in some architectures a single memory operand can be 
 			// both read and written (for instance incl (%eax) on IA-32)
 			// In that case we instrument it once for read and once for write.
 			if (INS_MemoryOperandIsWritten(ins, memOp))
 			{
 
-					 INS_InsertCall(
+/*					 INS_InsertCall(
 					ins, IPOINT_BEFORE, (AFUNPTR)RecordMemWrite,
 					IARG_INST_PTR,
 					IARG_MEMORYOP_EA, memOp,
 					IARG_UINT64, INS_Size(ins),
 					IARG_END);
-			}
+*/			}
 		}
-	}*/
+	}
 }
 
 /*************************/
@@ -618,9 +618,15 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
 }
 
 int add_stub(ADDRINT mmap_addr) {
-	const int NUMBER_OF_INSTRUCTION_IN_MMAP = 1;
+	const int NUMBER_OF_INSTRUCTION_IN_MMAP = 2;
+	int size = 0;
+
 
 	for(int i=0; i<NUMBER_OF_INSTRUCTION_IN_MMAP; i++) {
+		mmap_addr += size;
+
+		//dump_instr_from_mem ( (ADDRINT *)mmap_addr, mmap_addr);
+
 		xed_decoded_inst_t xedd;
 		xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
 
@@ -630,9 +636,9 @@ int add_stub(ADDRINT mmap_addr) {
 			return 1;
 		}
 
-		int size = xed_decoded_inst_get_length (&xedd);
+		size = xed_decoded_inst_get_length (&xedd);
 
-		int rc = add_new_instr_entry(&xedd, mmap_addr, size);
+		int rc = add_new_instr_entry(&xedd, -1, size);
 		if (rc < 0) {
 			cerr << "ERROR: failed during instructon translation." << endl;
 			return 1;
@@ -1572,7 +1578,7 @@ VOID ImageLoad(IMG img, VOID *v)
 }
 
 void stub(void){
-	printf("stub\n");
+//	printf("stub\n");
 }
 
 void setOfirRoutineAddresses(std::vector<ADDRINT>& addresses) {
@@ -1585,30 +1591,34 @@ void setOfirRoutineAddresses(std::vector<ADDRINT>& addresses) {
 	addresses.push_back((ADDRINT)(&RecordMemWrite));
 }
 
+int get_file_size(std::string filename) // path to file
+{
+    FILE *p_file = NULL;
+    p_file = fopen(filename.c_str(),"rb");
+    fseek(p_file,0,SEEK_END);
+    int size = ftell(p_file);
+    fclose(p_file);
+    return size;
+}
+
 
 int allocate_asm_to_mem(const std::string& filename) {
+	int size = get_file_size(filename.c_str());
+
 	int fd = open(filename.c_str(), O_RDONLY);
 	if (fd < 0) {
 		std::cerr << "Failed to open file" << std::endl;
 		return 1;
 	}
 
-	struct stat st;
-	st.st_size = 5;
-	std::cout << "size is : " << st.st_size << std::endl;
-	/*
-	if (fstat(fd, &st) < 0) {
-		printf("fstat failed\n");
-	}
-	*/
-	char * addr = (char*) mmap(NULL, 5, // st.st_size,
+	char * addr = (char*) mmap(NULL, size,
 		PROT_READ, MAP_PRIVATE,
 		fd, 0);
 	
 	if (((long long)addr == (-1))) {
 		std::cerr << "Failed to allocate asm code" << std::endl;
 	} else {
-		std::cerr << "mmap allocated at : " << (long long)addr << " size " << 5 << std::endl;
+		std::cerr << "mmap allocated at : 0x" << hex <<(long long)addr << " size " << size << std::endl;
 	}
 
 	close(fd);
