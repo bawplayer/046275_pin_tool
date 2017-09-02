@@ -1781,8 +1781,8 @@ VOID ImageLoad(IMG img, VOID *v) {
 	// Step 6: Enable the Commit-Uncommit thread to start 
     //         applyng the commit-uncommit routines alternatingly:
     asm volatile("mfence");	
-    enable_commit_uncommit_flag = true;
-    // commit_translated_routines();
+    // enable_commit_uncommit_flag = true;
+    commit_translated_routines();
 	asm volatile("mfence");
 }
 
