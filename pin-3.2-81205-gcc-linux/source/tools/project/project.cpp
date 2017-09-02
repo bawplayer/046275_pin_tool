@@ -302,7 +302,6 @@ typedef struct {
 	unsigned int size;
 	int new_targ_entry;
 	bool call_imm;
-	bool correction_required_ptr, correction_required_op_ea;
 } instr_map_t;
 
 
@@ -425,24 +424,16 @@ int addAssemblyCode(INS ins) {
 				// continue;
 			}*/
 
-			xed_uint64_t ea = 0;
-			xed_decoded_inst_t *xedd_ptr = INS_XedDec(ins);
-			if ((xed_agen(xedd_ptr, memOp, NULL, &ea) == XED_ERROR_NONE)) {
-				return -1;
-			}
-
-			// std::cerr << "EA is: " << ea << std::endl;
-
 			if (readFlag) {
 				if (addBinaryCodeToTC(ofir_instrumentations_addresses[0], asmFileSize,
-					3, instructionAddr, ea, 0, 0)) {
+					3, instructionAddr, memOp, 0, 0)) {
 					return (-1);
 				}
 				++instrumentationAdded;
 			}
 			if (writeFlag) {
 				if (addBinaryCodeToTC(ofir_instrumentations_addresses[0], asmFileSize,
-					4, instructionAddr, ea, instructionSize, 0)) {
+					4, instructionAddr, memOp, instructionSize, 0)) {
 					return (-1);
 				}
 				++instrumentationAdded;
@@ -687,9 +678,6 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size,
     instr_map[num_of_instr_map_entries].category_enum = xed_decoded_inst_get_category(xedd);
     instr_map[num_of_instr_map_entries].call_imm = false;
 
-    instr_map[num_of_instr_map_entries].correction_required_ptr = (corr_required % 2);
-    instr_map[num_of_instr_map_entries].correction_required_op_ea = (corr_required >= 2);
-
 	num_of_instr_map_entries++;
 
 	// update expected size of tc:
@@ -839,25 +827,6 @@ int addBinaryCodeToTC(ADDRINT mmap_addr, int codeSize, int funcIndex, UINT64 val
 			std::cerr << "ERROR: failed during instructon translation in addBinaryCodeToTC()." << endl;
 			std::cerr << "Instruction index during error: 0x" << hex << num_of_instr_map_entries << std::endl;
 			return 1;
-		}
-	}
-
-	return 0;
-}
-
-int correctAssemblyCodeOfPreInstrumentations() {
-	return 0;
-	const int numberOfInstructionsToScan = 50*2;
-	//ADDRINT instructionAddress = instr_map[num_of_instr_map_entries-1].new_ins_addr;
-	for (int i = num_of_instr_map_entries-2;
-		(i > 0) && (i + numberOfInstructionsToScan > num_of_instr_map_entries-1);
-		--i) {
-		if (instr_map[i].correction_required_ptr) {
-			// TODO: fix imm
-			instr_map[i].correction_required_ptr = false;
-		} else if (instr_map[i].correction_required_op_ea) {
-			// TODO: fix op_ea
-			instr_map[i].correction_required_op_ea = false;
 		}
 	}
 
@@ -1740,7 +1709,7 @@ int allocate_and_init_memory(IMG img)
 	//}
 
 
-	cerr << "tc addr: " << hex << (ADDRINT)tc_addr << endl; 
+	// cerr << "tc addr: " << hex << (ADDRINT)tc_addr << endl; 
 
 	tc = (char *)tc_addr;
 
@@ -1812,8 +1781,8 @@ VOID ImageLoad(IMG img, VOID *v) {
 	// Step 6: Enable the Commit-Uncommit thread to start 
     //         applyng the commit-uncommit routines alternatingly:
     asm volatile("mfence");	
-    // enable_commit_uncommit_flag = true;
-    commit_translated_routines();
+    enable_commit_uncommit_flag = true;
+    // commit_translated_routines();
 	asm volatile("mfence");
 }
 
@@ -1828,8 +1797,8 @@ void setOfirRoutineAddresses(std::vector<ADDRINT>& addresses) {
 	addresses.push_back((ADDRINT)(&RecordMemRead));
 	addresses.push_back((ADDRINT)(&RecordMemWrite));
 
-	addresses.push_back((ADDRINT)(&stub)); // 2nd element
-	std::cout << "Stub() address is: 0x" << hex << (ADDRINT)(stub) << std::endl;
+	addresses.push_back((ADDRINT)(&stub)); // 5th element
+	// std::cout << "Stub() address is: 0x" << hex << (ADDRINT)(stub) << std::endl;
 }
 
 int get_file_size(std::string filename) // path to file
@@ -1858,9 +1827,9 @@ int allocate_asm_to_mem(const std::string& filename) {
 	
 	if (((long long)addr == (-1))) {
 		std::cerr << "Failed to allocate asm code" << std::endl;
-	} else {
+	}/* else {
 		std::cerr << "mmap allocated at : 0x" << hex <<(long long)addr << " size " << asmFileSize << std::endl;
-	}
+	}*/
 
 	close(fd);
 
