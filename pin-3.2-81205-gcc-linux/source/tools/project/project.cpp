@@ -156,7 +156,7 @@ VOID mainAfter()
 
 // Print a memory read record
 VOID RecordMemRead(VOID * ip, ADDRINT addr) {
-	std::cerr << "RecordMemRead(" << ip << ", " << addr << ")" << std::endl;
+	// std::cerr << "RecordMemRead(" << ip << ", " << addr << ")" << std::endl;
 	if (!IsCalledAfterMain()) {
 		return;
 	}
@@ -167,7 +167,7 @@ VOID RecordMemRead(VOID * ip, ADDRINT addr) {
 
 // Print a memory write record
 VOID RecordMemWrite(VOID* ip, ADDRINT addr) {
-	std::cerr << "RecordMemWrite(" << ip << ", " << addr << ")" << std::endl;
+	// std::cerr << "RecordMemWrite(" << ip << ", " << addr << ")" << std::endl;
 	if (!IsCalledAfterMain()) {
 		return;
 	}
@@ -302,6 +302,7 @@ typedef struct {
 	unsigned int size;
 	int new_targ_entry;
 	bool call_imm;
+	bool correction_required_ptr, correction_required_op_ea;
 } instr_map_t;
 
 
@@ -335,10 +336,15 @@ volatile bool enable_commit_uncommit_flag = false;
 /* Service dump routines                                         */
 /* ============================================================= */
 
-int addBinaryCodeToTC(ADDRINT, int, ADDRINT, UINT64);
+int addBinaryCodeToTC(ADDRINT mmap_addr, int codeSize, int funcIndex, UINT64 val1, UINT64 val2, UINT64 val3, UINT64 val4);
 
 // Pin calls this function every time a new rtn is executed
-VOID addAssemblyCode(INS ins) {
+int addAssemblyCode(INS ins) {
+	int instrumentationAdded = 0;
+	ADDRINT instructionAddr = INS_Address(ins);
+	// cerr << "addAssembly() called with instruction address: " << instructionAddr << std::endl;
+	int instructionSize = INS_Size(ins);
+
 	if (INS_IsAdd(ins)) {
 		UINT32 opNum = INS_OperandCount(ins);
 		UINT64 immediate = 0;
@@ -363,8 +369,11 @@ VOID addAssemblyCode(INS ins) {
 			}
 
 			if (foundReg && foundImm && REG_valid_for_iarg_reg_value(operandReg)) {
-					addBinaryCodeToTC(ofir_instrumentations_addresses[0], asmFileSize, (ADDRINT)(ofir_instrumentations_addresses[1]), immediate);
-					// addBinaryCodeToTC(ofir_instrumentations_addresses[0], (ADDRINT)((ofir_instrumentations_addresses[2])));
+					if (addBinaryCodeToTC(ofir_instrumentations_addresses[0], asmFileSize,
+						1, operandReg, immediate, instructionAddr, INS_Size(ins))) {
+						return (-1);
+					}
+					++instrumentationAdded;
 
 /*					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddIns, 
 					IARG_REG_VALUE, operandReg, IARG_UINT64, immediate,
@@ -372,7 +381,12 @@ VOID addAssemblyCode(INS ins) {
 */
 				break;
 			} else if (foundIndexReg && foundReg && REG_valid_for_iarg_reg_value(operandReg) && REG_valid_for_iarg_reg_value(indexReg)) {
-					// addBinaryCodeToTC(ofir_instrumentations_addresses[0], (ADDRINT)((ofir_instrumentations_addresses[3])));
+					if(addBinaryCodeToTC(ofir_instrumentations_addresses[0], asmFileSize,
+						2, operandReg, indexReg, instructionAddr, INS_Size(ins))) {
+						return (-1);
+					}
+
+					++instrumentationAdded;
 /*					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddInsIndexReg, 
 					IARG_REG_VALUE, operandReg, IARG_REG_VALUE, indexReg,
 					IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
@@ -385,8 +399,9 @@ VOID addAssemblyCode(INS ins) {
 
 		// Iterate over each memory operand of the instruction.
 		for (UINT32 memOp = 0; memOp < memOperands; memOp++) {
+			bool readFlag = false, writeFlag = false;
 			if (INS_MemoryOperandIsRead(ins, memOp)) {
-				// addBinaryCodeToTC(ofir_instrumentations_addresses[0], (ADDRINT)((ofir_instrumentations_addresses[4])));
+				readFlag = true;
 /*					 INS_InsertCall(
 					ins, IPOINT_BEFORE, (AFUNPTR)RecordMemRead,
 					IARG_INST_PTR,
@@ -397,7 +412,7 @@ VOID addAssemblyCode(INS ins) {
 			// both read and written (for instance incl (%eax) on IA-32)
 			// In that case we instrument it once for read and once for write.
 			if (INS_MemoryOperandIsWritten(ins, memOp))	{
-				// addBinaryCodeToTC(ofir_instrumentations_addresses[0], (ADDRINT)((ofir_instrumentations_addresses[5])));
+				writeFlag = true;
 /*					 INS_InsertCall(
 					ins, IPOINT_BEFORE, (AFUNPTR)RecordMemWrite,
 					IARG_INST_PTR,
@@ -405,8 +420,36 @@ VOID addAssemblyCode(INS ins) {
 					IARG_UINT64, INS_Size(ins),
 					IARG_END);
 */			}
+
+/*			if (readFlag && writeFlag) { // optimization
+				// continue;
+			}*/
+
+			xed_uint64_t ea = 0;
+			xed_decoded_inst_t *xedd_ptr = INS_XedDec(ins);
+			if ((xed_agen(xedd_ptr, memOp, NULL, &ea) == XED_ERROR_NONE)) {
+				return -1;
+			}
+
+			// std::cerr << "EA is: " << ea << std::endl;
+
+			if (readFlag) {
+				if (addBinaryCodeToTC(ofir_instrumentations_addresses[0], asmFileSize,
+					3, instructionAddr, ea, 0, 0)) {
+					return (-1);
+				}
+				++instrumentationAdded;
+			}
+			if (writeFlag) {
+				if (addBinaryCodeToTC(ofir_instrumentations_addresses[0], asmFileSize,
+					4, instructionAddr, ea, instructionSize, 0)) {
+					return (-1);
+				}
+				++instrumentationAdded;
+			}
 		}
 	}
+	return instrumentationAdded;
 }
 
 /*************************/
@@ -605,7 +648,7 @@ int add_new_call_entry(xed_decoded_inst_t *xedd, unsigned int size, ADDRINT func
 /*************************/
 /* add_new_instr_entry() */
 /*************************/
-int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size) {
+int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size, int corr_required = false) {
 	// copy orig instr to instr map:
     ADDRINT orig_targ_addr = 0;
 
@@ -644,6 +687,9 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
     instr_map[num_of_instr_map_entries].category_enum = xed_decoded_inst_get_category(xedd);
     instr_map[num_of_instr_map_entries].call_imm = false;
 
+    instr_map[num_of_instr_map_entries].correction_required_ptr = (corr_required % 2);
+    instr_map[num_of_instr_map_entries].correction_required_op_ea = (corr_required >= 2);
+
 	num_of_instr_map_entries++;
 
 	// update expected size of tc:
@@ -664,7 +710,7 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
 	return new_size;
 }
 
-int encodeMovInstruction(UINT8* encoded_bytes, int arg_index, UINT64 imm) {
+int encodeBinaryMovInstructionAux(UINT8* encoded_bytes, int arg_index, UINT64 imm, bool use_rax = false) {
 	xed_decoded_inst_t xedd;
 	xed_decoded_inst_zero_set_mode(&xedd, &dstate);
 
@@ -674,14 +720,18 @@ int encodeMovInstruction(UINT8* encoded_bytes, int arg_index, UINT64 imm) {
 
 	xed_encoder_operand_t xed_e_oper;
 	switch(arg_index) {
-		case 0: xed_e_oper = xed_reg(XED_REG_RDI); break;
-		case 1: xed_e_oper = xed_reg(XED_REG_RSI); break;
-		case 2: xed_e_oper = xed_reg(XED_REG_RDX); break;
-		case 3: xed_e_oper = xed_reg(XED_REG_RCX); break;
+		case 1: xed_e_oper = xed_reg(XED_REG_RDI); break;
+		case 2: xed_e_oper = xed_reg(XED_REG_RSI); break;
+		case 3: xed_e_oper = xed_reg(XED_REG_RDX); break;
+		case 4: xed_e_oper = xed_reg(XED_REG_RCX); break;
 		default: xed_e_oper = xed_reg(XED_REG_RAX);
 	}
 
-	xed_inst2(&enc_instr, dstate, XED_ICLASS_MOV, 64, xed_e_oper, xed_imm0(imm, 64));
+	if (!use_rax) {
+		xed_inst2(&enc_instr, dstate, XED_ICLASS_MOV, 64, xed_e_oper, xed_imm0(imm, 64));
+	} else {
+		xed_inst2(&enc_instr, dstate, XED_ICLASS_MOV, 64, xed_e_oper, xed_reg(XED_REG_RAX));
+	}
 
 	xed_encoder_request_t enc_req;
 	xed_encoder_request_zero_set_mode(&enc_req, &dstate);
@@ -696,15 +746,32 @@ int encodeMovInstruction(UINT8* encoded_bytes, int arg_index, UINT64 imm) {
 		cerr << "ENCODE ERROR: " << xed_error_enum_t2str(xed_error) << endl;		
 		return -1;;
 	}
-
+/*
 	std::cout << "**Encoded MOV: " << std::endl;
 	dump_instr_from_mem((ADDRINT*)encoded_bytes, 0);
-
+*/
 	return 0;
 }
 
-int addBinaryCodeToTC(ADDRINT mmap_addr, int codeSize, ADDRINT funcAddress, UINT64 imm) {
+int encodeBinaryMovInstruction(int arg_index, UINT64 imm, int correctionFlag = 0) {
+	char encoded[XED_MAX_INSTRUCTION_BYTES];
+	encodeBinaryMovInstructionAux((UINT8*)encoded, arg_index, imm, (correctionFlag == 2));
+
+	xed_decoded_inst_t xedd;
+	xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
+
+	if (xed_decode(&xedd, reinterpret_cast<UINT8*>(encoded), max_inst_len) != XED_ERROR_NONE) {
+		cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << encoded << endl;
+		return 1;
+	}
+
+	int size = xed_decoded_inst_get_length (&xedd);
+	return (add_new_instr_entry(&xedd, -1, size, correctionFlag) < 0) ? 1:0;
+}
+
+int addBinaryCodeToTC(ADDRINT mmap_addr, int codeSize, int funcIndex, UINT64 val1, UINT64 val2, UINT64 val3, UINT64 val4) {
 	int size = 0;
+	ADDRINT funcAddress = (ADDRINT)(ofir_instrumentations_addresses[funcIndex]);
 
 	for(ADDRINT currentAddress=mmap_addr; (signed)(currentAddress-mmap_addr)<codeSize; currentAddress+=size) {
 		int rc = 0;
@@ -719,22 +786,36 @@ int addBinaryCodeToTC(ADDRINT mmap_addr, int codeSize, ADDRINT funcAddress, UINT
 		}
 
 		if ((xed_decoded_inst_get_iclass(&xedd) == XED_ICLASS_CALL_NEAR) && (xed_decoded_inst_get_branch_displacement(&xedd) == (-5))) {
-			char encoded[XED_MAX_INSTRUCTION_BYTES];
-			imm = 0x49;
-			encodeMovInstruction((UINT8*)encoded, 1, imm);
-
-			xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
-
-			xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(encoded), max_inst_len);
-			if (xed_code != XED_ERROR_NONE) {
-				cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << encoded << endl;
-				return 1;
+			switch(funcIndex) {
+				case 1:
+				case 2:
+					rc = encodeBinaryMovInstruction(1, val1);
+					if (rc != 0) {return rc;}
+					rc = encodeBinaryMovInstruction(2, val2);
+					if (rc != 0) {return rc;}
+					rc = encodeBinaryMovInstruction(3, val3); // instruction ptr
+					if (rc != 0) {return rc;}
+					rc = encodeBinaryMovInstruction(4, val4);
+					if (rc != 0) {return rc;}
+					break;
+				case 3:
+				case 4:
+					rc = encodeBinaryMovInstruction(1, val1); // instruction ptr
+					if (rc != 0) {return rc;}
+					rc = encodeBinaryMovInstruction(2, val2, 2); // instruction memop ea
+					if (rc != 0) {return rc;}
+					rc = encodeBinaryMovInstruction(3, val3);
+					if (rc != 0) {return rc;}
+					break;
 			}
+		}
 
-			size = xed_decoded_inst_get_length (&xedd);
-			if (add_new_instr_entry(&xedd, -1, size) < 0) {
-				return 1;
-			}
+		xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
+
+		xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(currentAddress), max_inst_len);
+		if (xed_code != XED_ERROR_NONE) {
+			cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << currentAddress << endl;
+			return 1;
 		}
 
 		xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
@@ -764,6 +845,24 @@ int addBinaryCodeToTC(ADDRINT mmap_addr, int codeSize, ADDRINT funcAddress, UINT
 	return 0;
 }
 
+int correctAssemblyCodeOfPreInstrumentations() {
+	return 0;
+	const int numberOfInstructionsToScan = 50*2;
+	//ADDRINT instructionAddress = instr_map[num_of_instr_map_entries-1].new_ins_addr;
+	for (int i = num_of_instr_map_entries-2;
+		(i > 0) && (i + numberOfInstructionsToScan > num_of_instr_map_entries-1);
+		--i) {
+		if (instr_map[i].correction_required_ptr) {
+			// TODO: fix imm
+			instr_map[i].correction_required_ptr = false;
+		} else if (instr_map[i].correction_required_op_ea) {
+			// TODO: fix op_ea
+			instr_map[i].correction_required_op_ea = false;
+		}
+	}
+
+	return 0;
+}
 
 /*************************************************/
 /* chain_all_direct_br_and_call_target_entries() */
@@ -1160,6 +1259,7 @@ int fix_instructions_displacements()
 }
 
 
+
 /*****************************************/
 /* find_candidate_rtns_for_translation() */
 /*****************************************/
@@ -1216,7 +1316,9 @@ int find_candidate_rtns_for_translation(IMG img)
 					}
 				}			
 
-				addAssemblyCode(ins);
+				if (addAssemblyCode(ins) < 0) {
+					return 1;
+				}
 
 			    xed_decoded_inst_t xedd;
 			    xed_error_enum_t xed_code;							
@@ -1720,14 +1822,14 @@ void stub(UINT64 x, UINT64 y) {
 }
 
 void setOfirRoutineAddresses(std::vector<ADDRINT>& addresses) {
-	addresses.push_back((ADDRINT)(&stub)); // 2nd element
-	std::cout << "Stub() address is: 0x" << hex << (ADDRINT)(stub) << std::endl;
-
 	addresses.push_back((ADDRINT)(&CheckAddIns));
 	addresses.push_back((ADDRINT)(&CheckAddInsIndexReg));
 	
 	addresses.push_back((ADDRINT)(&RecordMemRead));
 	addresses.push_back((ADDRINT)(&RecordMemWrite));
+
+	addresses.push_back((ADDRINT)(&stub)); // 2nd element
+	std::cout << "Stub() address is: 0x" << hex << (ADDRINT)(stub) << std::endl;
 }
 
 int get_file_size(std::string filename) // path to file
