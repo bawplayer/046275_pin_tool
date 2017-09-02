@@ -335,7 +335,7 @@ volatile bool enable_commit_uncommit_flag = false;
 /* Service dump routines                                         */
 /* ============================================================= */
 
-int addBinaryCodeToTC(ADDRINT, int, ADDRINT, UINT64);
+int addBinaryCodeToTC(ADDRINT, int, int, UINT64);
 
 // Pin calls this function every time a new rtn is executed
 VOID addAssemblyCode(INS ins) {
@@ -363,7 +363,8 @@ VOID addAssemblyCode(INS ins) {
 			}
 
 			if (foundReg && foundImm && REG_valid_for_iarg_reg_value(operandReg)) {
-					addBinaryCodeToTC(ofir_instrumentations_addresses[0], asmFileSize, (ADDRINT)(ofir_instrumentations_addresses[1]), immediate);
+					immediate = 0x49;
+					addBinaryCodeToTC(ofir_instrumentations_addresses[0], asmFileSize, 5, immediate);
 					// addBinaryCodeToTC(ofir_instrumentations_addresses[0], (ADDRINT)((ofir_instrumentations_addresses[2])));
 
 /*					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddIns, 
@@ -664,7 +665,7 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
 	return new_size;
 }
 
-int encodeMovInstruction(UINT8* encoded_bytes, int arg_index, UINT64 imm) {
+int encodeBinaryMovInstructionAux(UINT8* encoded_bytes, int arg_index, UINT64 imm) {
 	xed_decoded_inst_t xedd;
 	xed_decoded_inst_zero_set_mode(&xedd, &dstate);
 
@@ -703,8 +704,25 @@ int encodeMovInstruction(UINT8* encoded_bytes, int arg_index, UINT64 imm) {
 	return 0;
 }
 
-int addBinaryCodeToTC(ADDRINT mmap_addr, int codeSize, ADDRINT funcAddress, UINT64 imm) {
+int encodeBinaryMovInstruction(int arg_index, UINT64 imm) {
+	char encoded[XED_MAX_INSTRUCTION_BYTES];
+	encodeBinaryMovInstructionAux((UINT8*)encoded, arg_index, imm);
+
+	xed_decoded_inst_t xedd;
+	xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
+
+	if (xed_decode(&xedd, reinterpret_cast<UINT8*>(encoded), max_inst_len) != XED_ERROR_NONE) {
+		cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << encoded << endl;
+		return 1;
+	}
+
+	int size = xed_decoded_inst_get_length (&xedd);
+	return (add_new_instr_entry(&xedd, -1, size) < 0) ? 1:0;
+}
+
+int addBinaryCodeToTC(ADDRINT mmap_addr, int codeSize, int funcIndex, UINT64 imm) {
 	int size = 0;
+	ADDRINT funcAddress = (ADDRINT)(ofir_instrumentations_addresses[funcIndex]);
 
 	for(ADDRINT currentAddress=mmap_addr; (signed)(currentAddress-mmap_addr)<codeSize; currentAddress+=size) {
 		int rc = 0;
@@ -719,21 +737,9 @@ int addBinaryCodeToTC(ADDRINT mmap_addr, int codeSize, ADDRINT funcAddress, UINT
 		}
 
 		if ((xed_decoded_inst_get_iclass(&xedd) == XED_ICLASS_CALL_NEAR) && (xed_decoded_inst_get_branch_displacement(&xedd) == (-5))) {
-			char encoded[XED_MAX_INSTRUCTION_BYTES];
-			imm = 0x49;
-			encodeMovInstruction((UINT8*)encoded, 1, imm);
-
-			xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
-
-			xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(encoded), max_inst_len);
-			if (xed_code != XED_ERROR_NONE) {
-				cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << encoded << endl;
-				return 1;
-			}
-
-			size = xed_decoded_inst_get_length (&xedd);
-			if (add_new_instr_entry(&xedd, -1, size) < 0) {
-				return 1;
+			rc = encodeBinaryMovInstruction(1, imm);
+			if (rc != 0) {
+				return rc;
 			}
 		}
 
@@ -1720,14 +1726,14 @@ void stub(UINT64 x, UINT64 y) {
 }
 
 void setOfirRoutineAddresses(std::vector<ADDRINT>& addresses) {
-	addresses.push_back((ADDRINT)(&stub)); // 2nd element
-	std::cout << "Stub() address is: 0x" << hex << (ADDRINT)(stub) << std::endl;
-
 	addresses.push_back((ADDRINT)(&CheckAddIns));
 	addresses.push_back((ADDRINT)(&CheckAddInsIndexReg));
 	
 	addresses.push_back((ADDRINT)(&RecordMemRead));
 	addresses.push_back((ADDRINT)(&RecordMemWrite));
+
+	addresses.push_back((ADDRINT)(&stub)); // 2nd element
+	std::cout << "Stub() address is: 0x" << hex << (ADDRINT)(stub) << std::endl;
 }
 
 int get_file_size(std::string filename) // path to file
