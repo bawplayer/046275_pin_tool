@@ -103,6 +103,7 @@ ADDRINT lastMallocSize;
 Tracer mallocTracer = Tracer::GetInstance();
 set<ADDRINT> suspiciousAddresses;
 int asmFileSize;
+std::string binaryFilename = "env_r_s.bin";
 
 
 /* ===================================================================== */
@@ -298,6 +299,7 @@ typedef struct {
 	xed_category_enum_t category_enum;
 	unsigned int size;
 	int new_targ_entry;
+	bool call_imm;
 } instr_map_t;
 
 
@@ -331,7 +333,7 @@ volatile bool enable_commit_uncommit_flag = false;
 /* Service dump routines                                         */
 /* ============================================================= */
 
-int add_stub(ADDRINT);
+int addBinaryCodeToTC(ADDRINT, ADDRINT);
 
 // Pin calls this function every time a new rtn is executed
 VOID addAssemblyCode(INS ins) {
@@ -359,8 +361,9 @@ VOID addAssemblyCode(INS ins) {
 			}
 
 			if (foundReg && foundImm && REG_valid_for_iarg_reg_value(operandReg)) {
-					add_stub(ofir_instrumentations_addresses[0]);
-
+					std::cout << "Stub() address is: 0x" << hex << (ADDRINT)(ofir_instrumentations_addresses[1]) << std::endl;
+					std::cout << "Stub() address' address is: 0x" << hex << (ADDRINT)(&(ofir_instrumentations_addresses[1])) << std::endl;
+					addBinaryCodeToTC(ofir_instrumentations_addresses[0], (ADDRINT)((ofir_instrumentations_addresses[1])));
 
 /*					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddIns, 
 					IARG_REG_VALUE, operandReg, IARG_UINT64, immediate,
@@ -394,7 +397,6 @@ VOID addAssemblyCode(INS ins) {
 			// In that case we instrument it once for read and once for write.
 			if (INS_MemoryOperandIsWritten(ins, memOp))
 			{
-
 /*					 INS_InsertCall(
 					ins, IPOINT_BEFORE, (AFUNPTR)RecordMemWrite,
 					IARG_INST_PTR,
@@ -555,12 +557,57 @@ void dump_tc()
 /* ============================================================= */
 
 
+int add_new_call_entry(xed_decoded_inst_t *xedd, unsigned int size, ADDRINT funcAddress) {
+	ADDRINT orig_targ_addr = funcAddress;
+
+	// Converts the decoder request to a valid encoder request:
+	xed_encoder_request_init_from_decode (xedd);
+
+    unsigned int new_size = 0;
+	
+	xed_error_enum_t xed_error = xed_encode (xedd, reinterpret_cast<UINT8*>(instr_map[num_of_instr_map_entries].encoded_ins), max_inst_len , &new_size);
+	if (xed_error != XED_ERROR_NONE) {
+		cerr << "ENCODE ERROR: " << xed_error_enum_t2str(xed_error) << endl;		
+		return -1;
+	}	
+	
+	// add a new entry in the instr_map:
+	
+	instr_map[num_of_instr_map_entries].orig_ins_addr = (-1);
+	instr_map[num_of_instr_map_entries].new_ins_addr = (ADDRINT)&tc[tc_cursor];  // set an initial estimated addr in tc
+	instr_map[num_of_instr_map_entries].orig_targ_addr = orig_targ_addr; 
+    instr_map[num_of_instr_map_entries].hasNewTargAddr = false;
+	instr_map[num_of_instr_map_entries].new_targ_entry = -1;
+	instr_map[num_of_instr_map_entries].size = new_size;	
+    instr_map[num_of_instr_map_entries].category_enum = xed_decoded_inst_get_category(xedd);
+    instr_map[num_of_instr_map_entries].call_imm = true;
+
+
+	num_of_instr_map_entries++;
+
+	// update expected size of tc:
+	tc_cursor += new_size;    	     
+
+	if (num_of_instr_map_entries >= max_ins_count) {
+		cerr << "out of memory for map_instr" << endl;
+		return -1;
+	}
+	
+
+    // debug print new encoded instr:
+	if (KnobVerbose) {
+		cerr << "    new instr:";
+		dump_instr_from_mem((ADDRINT *)instr_map[num_of_instr_map_entries-1].encoded_ins, instr_map[num_of_instr_map_entries-1].new_ins_addr);
+	}
+
+	return new_size;
+
+}
+
 /*************************/
 /* add_new_instr_entry() */
 /*************************/
-int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
-{
-
+int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size) {
 	// copy orig instr to instr map:
     ADDRINT orig_targ_addr = 0;
 
@@ -598,6 +645,7 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
 	instr_map[num_of_instr_map_entries].new_targ_entry = -1;
 	instr_map[num_of_instr_map_entries].size = new_size;	
     instr_map[num_of_instr_map_entries].category_enum = xed_decoded_inst_get_category(xedd);
+    instr_map[num_of_instr_map_entries].call_imm = false;
 
 	num_of_instr_map_entries++;
 
@@ -619,31 +667,34 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
 	return new_size;
 }
 
-int add_stub(ADDRINT mmap_addr) {
-//	const int NUMBER_OF_INSTRUCTION_IN_MMAP = 2; //29;
+int addBinaryCodeToTC(ADDRINT mmap_addr, ADDRINT funcAddress) {
 	int size = 0;
 
-	for(ADDRINT tempAddr=mmap_addr; (signed)(tempAddr-mmap_addr)<asmFileSize; tempAddr+=size) {
-
-		dump_instr_from_mem ( (ADDRINT *)tempAddr, tempAddr);
+	for(ADDRINT currentAddress=mmap_addr; (signed)(currentAddress-mmap_addr)<asmFileSize; currentAddress+=size) {
+		int rc = 0;
 
 		xed_decoded_inst_t xedd;
 		xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
 
-		xed_error_enum_t xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(tempAddr), max_inst_len);
+		xed_error_enum_t xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(currentAddress), max_inst_len);
 		if (xed_code != XED_ERROR_NONE) {
-			cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << tempAddr << endl;
+			cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << currentAddress << endl;
 			return 1;
 		}
 
 		size = xed_decoded_inst_get_length (&xedd);
 
-		int rc = add_new_instr_entry(&xedd, -1, size);
+		if ((xed_decoded_inst_get_iclass(&xedd) == XED_ICLASS_CALL_NEAR) && (xed_decoded_inst_get_branch_displacement(&xedd) == (-5))) {
+			rc = add_new_call_entry(&xedd, size, funcAddress);
+		} else if ((xed_decoded_inst_get_iclass(&xedd) == XED_ICLASS_CALL_NEAR) && (xed_decoded_inst_get_branch_displacement(&xedd) == 0)) {
+			rc = add_new_call_entry(&xedd, size, 0);
+		} else {
+			rc = add_new_instr_entry(&xedd, -1, size);
+		}
 		if (rc < 0) {
 			cerr << "ERROR: failed during instructon translation." << endl;
 			return 1;
 		}
-
 	}
 
 	return 0;
@@ -797,15 +848,30 @@ int fix_direct_br_call_to_orig_addr(int instr_map_entry)
 		                   (xed_int64_t)instr_map[instr_map_entry].new_ins_addr - 
 					       xed_decoded_inst_get_length (&xedd);
 
-	if (category_enum == XED_CATEGORY_CALL)
+	if (category_enum == XED_CATEGORY_CALL) {
+		if (instr_map[instr_map_entry].call_imm) {
+			// TODO:
+			if (instr_map[instr_map_entry].orig_targ_addr == 0) {
+				xed_inst1(&enc_instr, dstate, 
+				XED_ICLASS_CALL_NEAR, 64,
+				xed_mem_bd (XED_REG_RIP, xed_disp(0, 32), 64));
+			} else {
+				xed_inst1(&enc_instr, dstate, XED_ICLASS_CALL_NEAR, 64, xed_relbr(new_disp, 32));
+			}
+			// std::cerr << "Call IMM's displacement: " << new_disp << std::endl;
+			// dump_instr_map_entry(instr_map_entry);
+		} else {
 			xed_inst1(&enc_instr, dstate, 
 			XED_ICLASS_CALL_NEAR, 64,
 			xed_mem_bd (XED_REG_RIP, xed_disp(new_disp, 32), 64));
+		}
+	}
 
-	if (category_enum == XED_CATEGORY_UNCOND_BR)
+	if (category_enum == XED_CATEGORY_UNCOND_BR) {
 			xed_inst1(&enc_instr, dstate, 
 			XED_ICLASS_JMP, 64,
 			xed_mem_bd (XED_REG_RIP, xed_disp(new_disp, 32), 64));
+	}
 
 
 	xed_encoder_request_t enc_req;
@@ -826,15 +892,25 @@ int fix_direct_br_call_to_orig_addr(int instr_map_entry)
     }
 
 	// handle the case where the original instr size is different from new encoded instr:
-	if (olen != xed_decoded_inst_get_length (&xedd)) {
-		
+	if (olen != xed_decoded_inst_get_length (&xedd)) {		
 		new_disp = (xed_int64_t)instr_map[instr_map_entry].orig_targ_addr - 
 	               (xed_int64_t)instr_map[instr_map_entry].new_ins_addr - olen;
 
-		if (category_enum == XED_CATEGORY_CALL)
-			xed_inst1(&enc_instr, dstate, 
-			XED_ICLASS_CALL_NEAR, 64,
-			xed_mem_bd (XED_REG_RIP, xed_disp(new_disp, 32), 64));
+		if (category_enum == XED_CATEGORY_CALL) {
+			if (instr_map[instr_map_entry].call_imm) {
+				if (instr_map[instr_map_entry].orig_targ_addr == 0) {
+					xed_inst1(&enc_instr, dstate, 
+					XED_ICLASS_CALL_NEAR, 64,
+					xed_mem_bd (XED_REG_RIP, xed_disp(0, 32), 64));
+				} else {
+					xed_inst1(&enc_instr, dstate, XED_ICLASS_CALL_NEAR, 64, xed_relbr(new_disp, 32));
+				}
+			} else {
+				xed_inst1(&enc_instr, dstate, 
+				XED_ICLASS_CALL_NEAR, 64,
+				xed_mem_bd (XED_REG_RIP, xed_disp(new_disp, 32), 64));
+			}
+		}
 
 		if (category_enum == XED_CATEGORY_UNCOND_BR)
 			xed_inst1(&enc_instr, dstate, 
@@ -871,9 +947,7 @@ int fix_direct_br_call_to_orig_addr(int instr_map_entry)
 /***********************************/
 /* fix_direct_br_call_displacement */
 /***********************************/
-int fix_direct_br_call_displacement(int instr_map_entry) 
-{					
-
+int fix_direct_br_call_displacement(int instr_map_entry) {
 	xed_decoded_inst_t xedd;
 	xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
 				   
@@ -886,7 +960,6 @@ int fix_direct_br_call_displacement(int instr_map_entry)
 	xed_int32_t  new_disp = 0;	
 	unsigned int size = XED_MAX_INSTRUCTION_BYTES;
 	unsigned int new_size = 0;
-
 
 	xed_category_enum_t category_enum = xed_decoded_inst_get_category(&xedd);
 	
@@ -943,7 +1016,7 @@ int fix_direct_br_call_displacement(int instr_map_entry)
 	new_disp = new_targ_addr - (instr_map[instr_map_entry].new_ins_addr + new_size);  // this is the correct displacemnet.
 
 	//Set the branch displacement:
-	xed_encoder_request_set_branch_displacement (&xedd, new_disp, new_disp_byts);
+	xed_encoder_request_set_branch_displacement(&xedd, new_disp, new_disp_byts);
 	
 	xed_error = xed_encode (&xedd, reinterpret_cast<UINT8*>(instr_map[instr_map_entry].encoded_ins), size , &new_size); // &instr_map[i].size
 	if (xed_error != XED_ERROR_NONE) {
@@ -1510,8 +1583,7 @@ int allocate_and_init_memory(IMG img)
 /* ============================================ */
 /* Main translation routine                     */
 /* ============================================ */
-VOID ImageLoad(IMG img, VOID *v)
-{
+VOID ImageLoad(IMG img, VOID *v) {
 	// debug print of all images' instructions
 	//dump_all_image_instrs(img);
 
@@ -1526,8 +1598,9 @@ VOID ImageLoad(IMG img, VOID *v)
 
 	// step 1: Check size of executable sections and allocate required memory:	
 	rc = allocate_and_init_memory(img);
-	if (rc < 0)
+	if (rc < 0) {
 		return;
+	}
 
 	cout << "after memory allocation" << endl;
 
@@ -1561,7 +1634,7 @@ VOID ImageLoad(IMG img, VOID *v)
 
 	cout << "after write all new instructions to memory tc" << endl;
 
-   if (KnobDumpTranslatedCode) {
+   if (KnobDumpTranslatedCode || true) {
 	   cerr << "Translation Cache dump:" << endl;
        dump_tc();  // dump the entire tc
 
@@ -1578,11 +1651,12 @@ VOID ImageLoad(IMG img, VOID *v)
 }
 
 void stub(void){
-//	printf("stub\n");
+	std::cout << "*****stub() is called()********\n";
 }
 
 void setOfirRoutineAddresses(std::vector<ADDRINT>& addresses) {
-	addresses.push_back((ADDRINT)(&stub));
+	addresses.push_back((ADDRINT)(&stub)); // 2nd element
+	std::cout << "Stub() address is: 0x" << hex << (ADDRINT)(stub) << std::endl;
 
 	addresses.push_back((ADDRINT)(&CheckAddIns));
 	addresses.push_back((ADDRINT)(&CheckAddInsIndexReg));
@@ -1648,7 +1722,7 @@ INT32 Usage()
 
 int main(int argc, char * argv[])
 {
-	allocate_asm_to_mem("inline_inst.bin");
+	allocate_asm_to_mem(binaryFilename);
 	setOfirRoutineAddresses(ofir_instrumentations_addresses);
 
     // Initialize pin & symbol manager
