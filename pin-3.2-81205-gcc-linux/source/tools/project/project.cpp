@@ -65,7 +65,6 @@ extern "C" {
 
 std::vector<ADDRINT> ofir_instrumentations_addresses;
 
-
 /*======================================================================*/
 /* commandline switches                                                 */
 /*======================================================================*/
@@ -156,20 +155,22 @@ VOID mainAfter()
 }
 
 // Print a memory read record
-VOID RecordMemRead(VOID * ip, ADDRINT addr)
-{
-	if (!IsCalledAfterMain())
+VOID RecordMemRead(VOID * ip, ADDRINT addr) {
+	std::cerr << "RecordMemRead(" << ip << ", " << addr << ")" << std::endl;
+	if (!IsCalledAfterMain()) {
 		return;
+	}
 	
 	if (suspiciousAddresses.count((ADDRINT)ip) !=0)
 		cout << "Memory read overflow at address: 0x" << hex << (ADDRINT)ip << dec << endl;
 }
 
 // Print a memory write record
-VOID RecordMemWrite(VOID* ip, ADDRINT addr)
-{
-	if (!IsCalledAfterMain())
+VOID RecordMemWrite(VOID* ip, ADDRINT addr) {
+	std::cerr << "RecordMemWrite(" << ip << ", " << addr << ")" << std::endl;
+	if (!IsCalledAfterMain()) {
 		return;
+	}
 	
 	if (suspiciousAddresses.count((ADDRINT)ip) !=0)
 		cout << "Memory write overflow at address: 0x" << hex << (ADDRINT)ip << dec << endl;
@@ -177,6 +178,7 @@ VOID RecordMemWrite(VOID* ip, ADDRINT addr)
 
 VOID CheckAddIns(ADDRINT regVal, UINT64 immediate, VOID* ip, UINT64 insSize)
 {
+	// std::cerr << "CheckAddIns(" << regVal << ", "<< immediate << ", "<< ip << ", "<< insSize <<") is called" << std::endl;
 	if (!mallocTracer.IsAllocatedAddress(regVal))
 		return;
 
@@ -187,7 +189,7 @@ VOID CheckAddIns(ADDRINT regVal, UINT64 immediate, VOID* ip, UINT64 insSize)
 bool INS_IsAdd(INS ins)
 {
 	string insDisassembly = INS_Disassemble(ins);
-	if (insDisassembly.substr(0, 3) == "add")
+	if (insDisassembly.substr(0, 3) == "add")	
 		return true;
 	
 	return false;
@@ -195,6 +197,7 @@ bool INS_IsAdd(INS ins)
 
 VOID CheckAddInsIndexReg(ADDRINT regVal, ADDRINT indexRegVal, VOID* ip, UINT64 insSize)
 {
+	// std::cerr << "CheckAddInsIndexReg(" << regVal << ", " << indexRegVal << ", " << ip << ", "<< insSize << ") is called" << std::endl;
 	if (!mallocTracer.IsAllocatedAddress(regVal))
 		return;
 		
@@ -206,8 +209,7 @@ VOID CheckAddInsIndexReg(ADDRINT regVal, ADDRINT indexRegVal, VOID* ip, UINT64 i
 /* Instrumentation routines                                              */
 /* ===================================================================== */
    
-VOID mallocImage(IMG img)
-{
+VOID mallocImage(IMG img) {
     // Instrument the malloc() and free() functions.  Print the input argument
     // of each malloc() or free(), and the return value of malloc().
     
@@ -333,13 +335,13 @@ volatile bool enable_commit_uncommit_flag = false;
 /* Service dump routines                                         */
 /* ============================================================= */
 
-int addBinaryCodeToTC(ADDRINT, ADDRINT);
+int addBinaryCodeToTC(ADDRINT, int, ADDRINT, UINT64);
 
 // Pin calls this function every time a new rtn is executed
 VOID addAssemblyCode(INS ins) {
 	if (INS_IsAdd(ins)) {
 		UINT32 opNum = INS_OperandCount(ins);
-//		UINT64 immediate = 0;
+		UINT64 immediate = 0;
 		REG operandReg = REG_INVALID();
 		REG indexReg = REG_INVALID();
 		bool foundReg = false;
@@ -348,7 +350,7 @@ VOID addAssemblyCode(INS ins) {
 
 		for (UINT32 i = 0; i < opNum; ++i) {
 			if (!foundImm && INS_OperandIsImmediate(ins, i)) {
-//				immediate = INS_OperandImmediate(ins, i);
+				immediate = INS_OperandImmediate(ins, i);
 				foundImm = true;
 			} else if (!foundReg && INS_OperandIsReg(ins, i) && INS_OperandWritten(ins, i)) {
 				operandReg = INS_OperandReg(ins, i);
@@ -361,9 +363,8 @@ VOID addAssemblyCode(INS ins) {
 			}
 
 			if (foundReg && foundImm && REG_valid_for_iarg_reg_value(operandReg)) {
-					std::cout << "Stub() address is: 0x" << hex << (ADDRINT)(ofir_instrumentations_addresses[1]) << std::endl;
-					std::cout << "Stub() address' address is: 0x" << hex << (ADDRINT)(&(ofir_instrumentations_addresses[1])) << std::endl;
-					addBinaryCodeToTC(ofir_instrumentations_addresses[0], (ADDRINT)((ofir_instrumentations_addresses[1])));
+					addBinaryCodeToTC(ofir_instrumentations_addresses[0], asmFileSize, (ADDRINT)(ofir_instrumentations_addresses[1]), immediate);
+					// addBinaryCodeToTC(ofir_instrumentations_addresses[0], (ADDRINT)((ofir_instrumentations_addresses[2])));
 
 /*					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddIns, 
 					IARG_REG_VALUE, operandReg, IARG_UINT64, immediate,
@@ -371,6 +372,7 @@ VOID addAssemblyCode(INS ins) {
 */
 				break;
 			} else if (foundIndexReg && foundReg && REG_valid_for_iarg_reg_value(operandReg) && REG_valid_for_iarg_reg_value(indexReg)) {
+					// addBinaryCodeToTC(ofir_instrumentations_addresses[0], (ADDRINT)((ofir_instrumentations_addresses[3])));
 /*					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)CheckAddInsIndexReg, 
 					IARG_REG_VALUE, operandReg, IARG_REG_VALUE, indexReg,
 					IARG_INST_PTR, IARG_UINT64, INS_Size(ins), IARG_END);
@@ -382,10 +384,9 @@ VOID addAssemblyCode(INS ins) {
 		UINT32 memOperands = INS_MemoryOperandCount(ins);
 
 		// Iterate over each memory operand of the instruction.
-		for (UINT32 memOp = 0; memOp < memOperands; memOp++)
-		{
-			if (INS_MemoryOperandIsRead(ins, memOp))
-			{
+		for (UINT32 memOp = 0; memOp < memOperands; memOp++) {
+			if (INS_MemoryOperandIsRead(ins, memOp)) {
+				// addBinaryCodeToTC(ofir_instrumentations_addresses[0], (ADDRINT)((ofir_instrumentations_addresses[4])));
 /*					 INS_InsertCall(
 					ins, IPOINT_BEFORE, (AFUNPTR)RecordMemRead,
 					IARG_INST_PTR,
@@ -395,8 +396,8 @@ VOID addAssemblyCode(INS ins) {
 			// Note that in some architectures a single memory operand can be 
 			// both read and written (for instance incl (%eax) on IA-32)
 			// In that case we instrument it once for read and once for write.
-			if (INS_MemoryOperandIsWritten(ins, memOp))
-			{
+			if (INS_MemoryOperandIsWritten(ins, memOp))	{
+				// addBinaryCodeToTC(ofir_instrumentations_addresses[0], (ADDRINT)((ofir_instrumentations_addresses[5])));
 /*					 INS_InsertCall(
 					ins, IPOINT_BEFORE, (AFUNPTR)RecordMemWrite,
 					IARG_INST_PTR,
@@ -556,7 +557,6 @@ void dump_tc()
 /* Translation routines                                         */
 /* ============================================================= */
 
-
 int add_new_call_entry(xed_decoded_inst_t *xedd, unsigned int size, ADDRINT funcAddress) {
 	ADDRINT orig_targ_addr = funcAddress;
 
@@ -582,7 +582,6 @@ int add_new_call_entry(xed_decoded_inst_t *xedd, unsigned int size, ADDRINT func
     instr_map[num_of_instr_map_entries].category_enum = xed_decoded_inst_get_category(xedd);
     instr_map[num_of_instr_map_entries].call_imm = true;
 
-
 	num_of_instr_map_entries++;
 
 	// update expected size of tc:
@@ -601,7 +600,6 @@ int add_new_call_entry(xed_decoded_inst_t *xedd, unsigned int size, ADDRINT func
 	}
 
 	return new_size;
-
 }
 
 /*************************/
@@ -637,7 +635,6 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
 	}	
 	
 	// add a new entry in the instr_map:
-	
 	instr_map[num_of_instr_map_entries].orig_ins_addr = pc;
 	instr_map[num_of_instr_map_entries].new_ins_addr = (ADDRINT)&tc[tc_cursor];  // set an initial estimated addr in tc
 	instr_map[num_of_instr_map_entries].orig_targ_addr = orig_targ_addr; 
@@ -667,16 +664,82 @@ int add_new_instr_entry(xed_decoded_inst_t *xedd, ADDRINT pc, unsigned int size)
 	return new_size;
 }
 
-int addBinaryCodeToTC(ADDRINT mmap_addr, ADDRINT funcAddress) {
+int encodeMovInstruction(UINT8* encoded_bytes, int arg_index, UINT64 imm) {
+	xed_decoded_inst_t xedd;
+	xed_decoded_inst_zero_set_mode(&xedd, &dstate);
+
+	xed_encoder_instruction_t  enc_instr;
+	unsigned olen = 0;
+	const unsigned ilen = XED_MAX_INSTRUCTION_BYTES;
+
+	xed_encoder_operand_t xed_e_oper;
+	switch(arg_index) {
+		case 0: xed_e_oper = xed_reg(XED_REG_RDI); break;
+		case 1: xed_e_oper = xed_reg(XED_REG_RSI); break;
+		case 2: xed_e_oper = xed_reg(XED_REG_RDX); break;
+		case 3: xed_e_oper = xed_reg(XED_REG_RCX); break;
+		default: xed_e_oper = xed_reg(XED_REG_RAX);
+	}
+
+	xed_inst2(&enc_instr, dstate, XED_ICLASS_MOV, 64, xed_e_oper, xed_imm0(imm, 64));
+
+	xed_encoder_request_t enc_req;
+	xed_encoder_request_zero_set_mode(&enc_req, &dstate);
+	xed_bool_t convert_ok = xed_convert_to_encoder_request(&enc_req, &enc_instr);
+	if (!convert_ok) {
+		cerr << "conversion to encode request failed" << endl;
+		return -1;
+	}
+
+	xed_error_enum_t xed_error = xed_encode(&enc_req, reinterpret_cast<UINT8*>(encoded_bytes), ilen, &olen);
+	if (xed_error != XED_ERROR_NONE) {
+		cerr << "ENCODE ERROR: " << xed_error_enum_t2str(xed_error) << endl;		
+		return -1;;
+	}
+
+	std::cout << "**Encoded MOV: " << std::endl;
+	dump_instr_from_mem((ADDRINT*)encoded_bytes, 0);
+
+	return 0;
+}
+
+int addBinaryCodeToTC(ADDRINT mmap_addr, int codeSize, ADDRINT funcAddress, UINT64 imm) {
 	int size = 0;
 
-	for(ADDRINT currentAddress=mmap_addr; (signed)(currentAddress-mmap_addr)<asmFileSize; currentAddress+=size) {
+	for(ADDRINT currentAddress=mmap_addr; (signed)(currentAddress-mmap_addr)<codeSize; currentAddress+=size) {
 		int rc = 0;
-
 		xed_decoded_inst_t xedd;
+
 		xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
 
 		xed_error_enum_t xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(currentAddress), max_inst_len);
+		if (xed_code != XED_ERROR_NONE) {
+			cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << currentAddress << endl;
+			return 1;
+		}
+
+		if ((xed_decoded_inst_get_iclass(&xedd) == XED_ICLASS_CALL_NEAR) && (xed_decoded_inst_get_branch_displacement(&xedd) == (-5))) {
+			char encoded[XED_MAX_INSTRUCTION_BYTES];
+			imm = 0x49;
+			encodeMovInstruction((UINT8*)encoded, 1, imm);
+
+			xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
+
+			xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(encoded), max_inst_len);
+			if (xed_code != XED_ERROR_NONE) {
+				cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << encoded << endl;
+				return 1;
+			}
+
+			size = xed_decoded_inst_get_length (&xedd);
+			if (add_new_instr_entry(&xedd, -1, size) < 0) {
+				return 1;
+			}
+		}
+
+		xed_decoded_inst_zero_set_mode(&xedd,&dstate); 
+
+		xed_code = xed_decode(&xedd, reinterpret_cast<UINT8*>(currentAddress), max_inst_len);
 		if (xed_code != XED_ERROR_NONE) {
 			cerr << "ERROR: xed decode failed for instr at: " << "0x" << hex << currentAddress << endl;
 			return 1;
@@ -692,7 +755,8 @@ int addBinaryCodeToTC(ADDRINT mmap_addr, ADDRINT funcAddress) {
 			rc = add_new_instr_entry(&xedd, -1, size);
 		}
 		if (rc < 0) {
-			cerr << "ERROR: failed during instructon translation." << endl;
+			std::cerr << "ERROR: failed during instructon translation in addBinaryCodeToTC()." << endl;
+			std::cerr << "Instruction index during error: 0x" << hex << num_of_instr_map_entries << std::endl;
 			return 1;
 		}
 	}
@@ -912,11 +976,11 @@ int fix_direct_br_call_to_orig_addr(int instr_map_entry)
 			}
 		}
 
-		if (category_enum == XED_CATEGORY_UNCOND_BR)
+		if (category_enum == XED_CATEGORY_UNCOND_BR) {
 			xed_inst1(&enc_instr, dstate, 
 			XED_ICLASS_JMP, 64,
 			xed_mem_bd (XED_REG_RIP, xed_disp(new_disp, 32), 64));
-
+		}
 
 		xed_encoder_request_zero_set_mode(&enc_req, &dstate);
 		xed_bool_t convert_ok = xed_convert_to_encoder_request(&enc_req, &enc_instr);
@@ -1171,6 +1235,7 @@ int find_candidate_rtns_for_translation(IMG img)
 				rc = add_new_instr_entry(&xedd, INS_Address(ins), INS_Size(ins));
 				if (rc < 0) {
 					cerr << "ERROR: failed during instructon translation." << endl;
+					std::cerr << "Instruction index during error: 0x" << hex << num_of_instr_map_entries << std::endl;
 					RTN_Close( rtn );
 					return 1;
 				}
@@ -1518,12 +1583,12 @@ int allocate_and_init_memory(IMG img)
 			if (rtn == RTN_Invalid())
 				continue;
 
-			max_ins_count += RTN_NumIns  (rtn);
+			max_ins_count += RTN_NumIns(rtn);
 			max_rtn_count++;
 		}
 	}
 
-	max_ins_count *= 4;
+	max_ins_count *= 60;
 
 	// Allocate memory for the instr map needed to fix all branch targets in translated routines:
 	instr_map = (instr_map_t *)calloc(max_ins_count, sizeof(instr_map_t));
@@ -1634,7 +1699,7 @@ VOID ImageLoad(IMG img, VOID *v) {
 
 	cout << "after write all new instructions to memory tc" << endl;
 
-   if (KnobDumpTranslatedCode || true) {
+   if (KnobDumpTranslatedCode) {
 	   cerr << "Translation Cache dump:" << endl;
        dump_tc();  // dump the entire tc
 
@@ -1650,8 +1715,8 @@ VOID ImageLoad(IMG img, VOID *v) {
 	asm volatile("mfence");
 }
 
-void stub(void){
-	std::cout << "*****stub() is called()********\n";
+void stub(UINT64 x, UINT64 y) {
+	std::cout << "*****stub(" << x << ", " << y << ") is called********" << std::endl;
 }
 
 void setOfirRoutineAddresses(std::vector<ADDRINT>& addresses) {
