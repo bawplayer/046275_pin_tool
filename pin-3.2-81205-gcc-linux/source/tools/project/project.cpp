@@ -120,8 +120,7 @@ bool IsCalledAfterMain()
 /* Analysis routines                                                     */
 /* ===================================================================== */
  
-VOID Arg1Before(CHAR * name, ADDRINT size)
-{
+VOID Arg1Before(CHAR * name, ADDRINT size) {
 	if (!IsCalledAfterMain())
 		return;
 
@@ -154,26 +153,32 @@ VOID mainAfter()
 	mainFinished =  true;
 }
 
+unsigned int dump_instr_from_mem (ADDRINT *address, ADDRINT new_addr);
+
 // Print a memory read record
 VOID RecordMemRead(VOID * ip, ADDRINT addr) {
-	// std::cerr << "RecordMemRead(" << ip << ", " << addr << ")" << std::endl;
+	// dump_instr_from_mem((ADDRINT*)ip, (ADDRINT)ip);
+	// std::cerr << "RecordMemRead(" << hex << ip << ", 0x" << addr << ")" << std::endl;
 	if (!IsCalledAfterMain()) {
 		return;
 	}
 	
-	if (suspiciousAddresses.count((ADDRINT)ip) !=0)
+	if (suspiciousAddresses.count((ADDRINT)ip) !=0) {
 		cout << "Memory read overflow at address: 0x" << hex << (ADDRINT)ip << dec << endl;
+	}
 }
 
 // Print a memory write record
 VOID RecordMemWrite(VOID* ip, ADDRINT addr) {
-	// std::cerr << "RecordMemWrite(" << ip << ", " << addr << ")" << std::endl;
+	// dump_instr_from_mem((ADDRINT*)ip, (ADDRINT)ip);
+	// std::cerr << "RecordMemWrite(" << hex << ip << ", 0x" << addr << ")" << std::endl;
 	if (!IsCalledAfterMain()) {
 		return;
 	}
 	
-	if (suspiciousAddresses.count((ADDRINT)ip) !=0)
+	if (suspiciousAddresses.count((ADDRINT)ip) !=0) {
 		cout << "Memory write overflow at address: 0x" << hex << (ADDRINT)ip << dec << endl;
+	}
 }
 
 VOID CheckAddIns(ADDRINT regVal, UINT64 immediate, VOID* ip, UINT64 insSize)
@@ -341,7 +346,6 @@ int addBinaryCodeToTC(ADDRINT mmap_addr, int codeSize, int funcIndex, UINT64 val
 int addAssemblyCode(INS ins) {
 	int instrumentationAdded = 0;
 	ADDRINT instructionAddr = INS_Address(ins);
-	// cerr << "addAssembly() called with instruction address: " << instructionAddr << std::endl;
 	int instructionSize = INS_Size(ins);
 
 	if (INS_IsAdd(ins)) {
@@ -392,13 +396,13 @@ int addAssemblyCode(INS ins) {
 */				break;
 			}
 		}
-	}
-	 else { // not ADD instruction
+	} else { // not ADD instruction
 		UINT32 memOperands = INS_MemoryOperandCount(ins);
 
 		// Iterate over each memory operand of the instruction.
 		for (UINT32 memOp = 0; memOp < memOperands; memOp++) {
 			bool readFlag = false, writeFlag = false;
+
 			if (INS_MemoryOperandIsRead(ins, memOp)) {
 				readFlag = true;
 /*					 INS_InsertCall(
@@ -420,7 +424,12 @@ int addAssemblyCode(INS ins) {
 					IARG_END);
 */			}
 
+			if (!readFlag && !writeFlag) {
+				continue;
+			}
+
 /*			if (readFlag && writeFlag) { // optimization
+				// call binary code here
 				// continue;
 			}*/
 
@@ -440,6 +449,7 @@ int addAssemblyCode(INS ins) {
 			}
 		}
 	}
+	
 	return instrumentationAdded;
 }
 
@@ -719,7 +729,7 @@ int encodeBinaryMovInstructionAux(UINT8* encoded_bytes, int arg_index, UINT64 im
 		xed_inst2(&enc_instr, dstate, XED_ICLASS_MOV, 64, xed_e_oper, xed_imm0(imm, 64));
 	} else {
 		xed_inst2(&enc_instr, dstate, XED_ICLASS_MOV, 64, xed_e_oper, xed_reg(XED_REG_RAX));
-	}
+	}	
 
 	xed_encoder_request_t enc_req;
 	xed_encoder_request_zero_set_mode(&enc_req, &dstate);
@@ -982,7 +992,6 @@ int fix_direct_br_call_to_orig_addr(int instr_map_entry)
 
 	if (category_enum == XED_CATEGORY_CALL) {
 		if (instr_map[instr_map_entry].call_imm) {
-			// TODO:
 			if (instr_map[instr_map_entry].orig_targ_addr == 0) {
 				xed_inst1(&enc_instr, dstate, 
 				XED_ICLASS_CALL_NEAR, 64,
@@ -1791,13 +1800,13 @@ void stub(UINT64 x, UINT64 y) {
 }
 
 void setOfirRoutineAddresses(std::vector<ADDRINT>& addresses) {
-	addresses.push_back((ADDRINT)(&CheckAddIns));
+	addresses.push_back((ADDRINT)(&CheckAddIns)); // 2nd element
 	addresses.push_back((ADDRINT)(&CheckAddInsIndexReg));
 	
 	addresses.push_back((ADDRINT)(&RecordMemRead));
 	addresses.push_back((ADDRINT)(&RecordMemWrite));
 
-	addresses.push_back((ADDRINT)(&stub)); // 5th element
+	addresses.push_back((ADDRINT)(&stub)); // 6th element
 	// std::cout << "Stub() address is: 0x" << hex << (ADDRINT)(stub) << std::endl;
 }
 
