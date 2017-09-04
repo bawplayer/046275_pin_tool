@@ -8,15 +8,10 @@
 
 	push %rdi
 	push %rsi
+	push %rdx
+	push %rcx
 
-# function prototype should be:
-# foo(unsigned long pc, unsigned long addr)
-	call marker		# pushes the address of marker to the stack
-marker:
-	pop %rdi # C functions on x86_64 receive the 1st paremeter in rdi, 2nd parameter in rsi
-	mov %rax, %rsi # value held by rax (pointer to address to be accessed)
-
-	push   %rbp		# creating stack frame
+	push   %rbp			# creating stack frame
 	mov    %rsp,%rbp	# creating stack frame
 	push   %rax
 	push   %rdx
@@ -26,6 +21,7 @@ marker:
 	push   %r10
 	push   %r11
 
+					# Using XED, set arguments to regs
 lbl:	call lbl	# TODO: fix me to go to the C function
 	
 	pop    %r11
@@ -37,6 +33,8 @@ lbl:	call lbl	# TODO: fix me to go to the C function
 	pop    %rax
 	leave		# clear stack frame
 	
+	pop %rcx
+	pop %rdx
 	pop %rsi
 	pop %rdi
 
