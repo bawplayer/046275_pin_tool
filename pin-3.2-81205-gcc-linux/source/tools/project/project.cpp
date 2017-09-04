@@ -398,7 +398,7 @@ int addAssemblyCode(INS ins) {
 		}
 	} else { // not ADD instruction
 		UINT32 memOperands = INS_MemoryOperandCount(ins);
-
+		// bool ins_mem_op_flag = false;
 		// Iterate over each memory operand of the instruction.
 		for (UINT32 memOp = 0; memOp < memOperands; memOp++) {
 			bool readFlag = false, writeFlag = false;
@@ -427,7 +427,27 @@ int addAssemblyCode(INS ins) {
 			if (!readFlag && !writeFlag) {
 				continue;
 			}
+/*			
+			ADDRDELTA displacement = INS_OperandMemoryDisplacement(ins, memOp);
+			REG baseReg = INS_OperandMemoryBaseReg(ins, memOp);
+			REG indexReg = INS_OperandMemoryIndexReg(ins, memOp);
+			UINT32 scale = INS_OperandMemoryScale(ins, memOp);
+			if (!ins_mem_op_flag) {
+				std::cout << std::endl;
+				ins_mem_op_flag = true;
+			}
+			if (readFlag) {
+				std::cout << "READ";
+			}
+			if (writeFlag) {
+				std::cout << "WRITE";
+			}
+			std::cout << " " << memOp << std::endl;
 
+			// std::cout << "EA calc: " << displacement << ", " << str2xed_reg_enum_t((REG_StringShort(indexReg)).c_str());
+			std::cout << "EA calc: " << displacement << ", " << REG_StringShort(indexReg);
+			std::cout << ", " << REG_StringShort(baseReg) << ", " << scale << std::endl;
+*/
 /*			if (readFlag && writeFlag) { // optimization
 				// call binary code here
 				// continue;
