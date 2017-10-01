@@ -183,6 +183,11 @@ $(OBJDIR)divide_by_zero$(EXE_SUFFIX): divide_by_zero_$(OS_TYPE).c
 $(OBJDIR)thread_app$(EXE_SUFFIX): thread_$(OS_TYPE).c
 	$(APP_CC) $(APP_CXXFLAGS) $(COMP_EXE)$@ $< $(APP_LDFLAGS) $(APP_LIBS)
 	
+# Build binary file
+env_r_s$(OBJ_SUFFIX): env_restore_sample.asm
+	as env_restore_sample.asm -o env_r_s.o
+	objcopy -O binary env_r_s.o env_r_s.bin
+	
 # Build the intermediate object file.
 $(OBJDIR)project$(OBJ_SUFFIX): project.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
@@ -196,5 +201,5 @@ $(OBJDIR)AllocData$(OBJ_SUFFIX): AllocData.cpp
 	$(CXX) $(TOOL_CXXFLAGS) $(COMP_OBJ)$@ $<
 
 # Build the tool as a dll (shared object).
-$(OBJDIR)project$(PINTOOL_SUFFIX): $(OBJDIR)project$(OBJ_SUFFIX) $(OBJDIR)Tracer$(OBJ_SUFFIX) $(OBJDIR)AllocData$(OBJ_SUFFIX)
+$(OBJDIR)project$(PINTOOL_SUFFIX): env_r_s$(OBJ_SUFFIX) $(OBJDIR)project$(OBJ_SUFFIX) $(OBJDIR)Tracer$(OBJ_SUFFIX) $(OBJDIR)AllocData$(OBJ_SUFFIX)
 	$(LINKER) $(TOOL_LDFLAGS_NOOPT) $(LINK_EXE)$@ $(^:%.h=) $(TOOL_LPATHS) $(TOOL_LIBS)
