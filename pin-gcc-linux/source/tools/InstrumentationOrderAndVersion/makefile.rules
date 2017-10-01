@@ -54,12 +54,6 @@ LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
 
-# Android
-ifeq ($(TARGET_OS),android)
-    TEST_TOOL_ROOTS += special special_case special_case1 special_case2 special_case3 special_case_aoti special_case_aoti1
-    APP_ROOTS += redblue
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     TEST_TOOL_ROOTS += special special_case special_case1 special_case2 special_case3 special_case_aoti special_case_aoti1
@@ -71,14 +65,6 @@ ifeq ($(TARGET_OS),windows)
     TEST_TOOL_ROOTS += special special_case special_case1 special_case2 special_case3 special_case_aoti special_case_aoti1
     APP_ROOTS += redblue
     OBJECT_ROOTS += redblue_$(TARGET)
-endif
-
-###### Handle exceptions here ######
-
-#See Mantis 3168
-ifeq ($(TARGET_OS),android)
-    TEST_TOOL_ROOTS := $(filter-out special_case special_case1 special_case2 special_case3 special_case_aoti \
-                                    special_case_aoti1, $(TEST_TOOL_ROOTS))
 endif
 
 ###### Define the sanity subset ######
@@ -317,11 +303,6 @@ $(OBJDIR)instrumentation_order_app$(EXE_SUFFIX): instrumentation_order_app.cpp
 
 $(OBJDIR)special_case_app$(EXE_SUFFIX): special_case_app.cpp
 	$(APP_CXX) $(APP_CXXFLAGS_NOOPT) $(NO_PIC) $(COMP_EXE)$@ $< $(APP_LDFLAGS_NOOPT) $(APP_LIBS) $(CXX_LPATHS) $(CXX_LIBS)
-
-ifeq ($(TARGET_OS),android)
-$(OBJDIR)redblue$(EXE_SUFFIX): redblue$(ASM_SUFFIX)
-	$(APP_CXX) $(APP_CXXFLAGS) $(COMP_EXE)$@ $< $(APP_LDFLAGS) $(APP_LIBS) $(CXX_LPATHS) $(CXX_LIBS)
-endif
 
 ifeq ($(TARGET_OS),linux)
 $(OBJDIR)redblue$(EXE_SUFFIX): redblue$(ASM_SUFFIX)

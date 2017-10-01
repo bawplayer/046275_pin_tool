@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -39,7 +39,7 @@ END_LEGAL */
 #define XED_ENCODE_ORDER_MAX_OPERANDS 5
 #define XED_ENCODE_MAX_FB_PATTERNS 109
 #define XED_ENCODE_MAX_EMIT_PATTERNS 170
-#define XED_ENCODE_FB_VALUES_TABLE_SIZE 5534
-#define XED_ENCODE_MAX_IFORMS 6471
-#define XED_ENC_GROUPS 469
+#define XED_ENCODE_FB_VALUES_TABLE_SIZE 5528
+#define XED_ENCODE_MAX_IFORMS 6474
+#define XED_ENC_GROUPS 470
 #endif

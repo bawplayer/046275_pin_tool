@@ -183,6 +183,7 @@ protected:
 public:
   typedef _STLP_alloc_proxy<_Node_base, _Node, _Node_allocator_type> _AllocProxy;
   typedef _Alloc allocator_type;
+  typedef size_t size_type;
 
   allocator_type get_allocator() const
   { return _STLP_CONVERT_ALLOCATOR((const _Node_allocator_type&)_M_node, _Tp); }

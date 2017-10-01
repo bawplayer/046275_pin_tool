@@ -19,7 +19,7 @@
 # Tests defined here should not be defined in TOOL_ROOTS and TEST_ROOTS.
 TEST_TOOL_ROOTS := dcache edgcnt pinatrace trace icount inscount2_mt opcodemix malloctrace calltrace jumpmix toprtn \
                    catmix regmix ilenmix coco extmix get_source_location xed-print xed-use ldstmix topopcode regval \
-                   oper-imm bsr_bsf
+                   oper-imm bsr_bsf inscount_and_check_tls
 
 # This defines the tests to be run that were not already defined in TEST_TOOL_ROOTS.
 TEST_ROOTS :=
@@ -72,25 +72,11 @@ endif
 
 ###### Handle exceptions here ######
 
-# TODO: These tests fail on KNC - fix and remove the following:
-# for get_source_location see Mantis 2960
-ifeq ($(TARGET),mic)
-    TEST_TOOL_ROOTS := $(filter-out get_source_location, $(TEST_TOOL_ROOTS))
-    TEST_ROOTS := $(filter-out get_source_location_gnu_debug, $(TEST_ROOTS))
-    APP_ROOTS := $(filter-out get_source_app get_source_app_gnu_debug, $(APP_ROOTS))
-endif
-
 # topopcode can't be compiled on 64b Windows
 ifeq ($(TARGET_OS),windows)
     ifeq ($(TARGET),intel64)
         TEST_TOOL_ROOTS := $(filter-out topopcode, $(TEST_TOOL_ROOTS))
     endif
-endif
-
-ifeq ($(TARGET),mic)
-    TEST_TOOL_ROOTS := $(filter-out oper-imm, $(TEST_TOOL_ROOTS))
-    APP_ROOTS := $(filter-out oper_imm_app, $(APP_ROOTS))
-    OBJECT_ROOTS := $(filter-out oper_imm_asm, $(OBJECT_ROOTS))
 endif
 
 ###### Define the sanity subset ######
@@ -115,9 +101,9 @@ ifeq ($(TARGET_OS),windows)
     DWARF_FILE_KNOB :=
 else
     ifeq ($(TARGET_OS),mac)
-        GET_SOURCE_DEBUG_FILE := get_source_app:$(OBJDIR)get_source_app.dSYM/Contents/Resources/DWARF/get_source_app
+        GET_SOURCE_DEBUG_FILE := get_source_app$(EXE_SUFFIX):$(OBJDIR)get_source_app$(EXE_SUFFIX).dSYM/Contents/Resources/DWARF/get_source_app$(EXE_SUFFIX)
     else
-        GET_SOURCE_DEBUG_FILE := get_source_app:$(OBJDIR)get_source_app
+        GET_SOURCE_DEBUG_FILE := get_source_app$(EXE_SUFFIX):$(OBJDIR)get_source_app$(EXE_SUFFIX)
     endif
     DWARF_FILE_KNOB := -dwarf_file $(GET_SOURCE_DEBUG_FILE)
 endif
@@ -151,6 +137,10 @@ bsr_bsf.test: $(OBJDIR)bsr_bsf$(PINTOOL_SUFFIX) $(OBJDIR)bsr_bsf_app$(EXE_SUFFIX
 	$(PIN) -t $(OBJDIR)bsr_bsf$(PINTOOL_SUFFIX) -o $(OBJDIR)bsr_bsf.out -- $(OBJDIR)bsr_bsf_app$(EXE_SUFFIX)
 	$(DIFF) $(OBJDIR)bsr_bsf.out bsr_bsf.reference
 	$(RM) $(OBJDIR)bsr_bsf.out
+
+inscount_and_check_tls.test: $(OBJDIR)inscount_and_check_tls$(PINTOOL_SUFFIX) $(THREAD_APP)
+	$(PIN) -t $(OBJDIR)inscount_and_check_tls$(PINTOOL_SUFFIX) -- $(THREAD_APP) > $(OBJDIR)inscount_and_check_tls.out 2>&1
+	$(RM) $(OBJDIR)inscount_and_check_tls.out
 
 
 ##############################################################

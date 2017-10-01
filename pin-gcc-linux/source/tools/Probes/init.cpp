@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -28,7 +28,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 END_LEGAL */
-
 #include "pin.H"
 #include <iostream>
 #include <fstream>
@@ -120,8 +119,8 @@ VOID ImageLoad(IMG img, VOID *v)
                 "AlternativeLibcInit", PIN_PARG(INT32), PIN_PARG(CHAR**), PIN_PARG(CHAR**), PIN_PARG_END() );
 
             origLibcInit = (INITFUNC)RTN_ReplaceSignatureProbed(initRtn, AFUNPTR(AlternativeLibcInit),
-                IARG_PROTOTYPE, protoLibcInit, IARG_G_ARG0_CALLEE, IARG_G_ARG1_CALLEE, IARG_G_ARG2_CALLEE,
-                IARG_END);
+                IARG_PROTOTYPE, protoLibcInit, IARG_FUNCARG_ENTRYPOINT_VALUE, 0, IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                IARG_FUNCARG_ENTRYPOINT_VALUE, 2, IARG_END);
         }
         else
         {
@@ -138,8 +137,8 @@ VOID ImageLoad(IMG img, VOID *v)
                 "AlternativeLibpthreadInit", PIN_PARG(INT32), PIN_PARG(CHAR**), PIN_PARG(CHAR**), PIN_PARG_END() );
 
             origPthreadInit = (INITFUNC)RTN_ReplaceSignatureProbed(initRtn, AFUNPTR(AlternativeLibpthreadInit),
-                IARG_PROTOTYPE, protoPthreadInit, IARG_G_ARG0_CALLEE, IARG_G_ARG1_CALLEE, IARG_G_ARG2_CALLEE,
-                IARG_END);
+                IARG_PROTOTYPE, protoPthreadInit, IARG_FUNCARG_ENTRYPOINT_VALUE, 0, IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                IARG_FUNCARG_ENTRYPOINT_VALUE, 2, IARG_END);
         }
         else
         {
@@ -156,8 +155,8 @@ VOID ImageLoad(IMG img, VOID *v)
                 PIN_PARG(UINT32), PIN_PARG_END() );
 
             RTN_ReplaceSignatureProbed(initRtn, AFUNPTR(OtherImageInit),
-                IARG_PROTOTYPE, protoInit, IARG_G_ARG0_CALLEE, IARG_G_ARG1_CALLEE, IARG_G_ARG2_CALLEE,
-                IARG_ORIG_FUNCPTR, IARG_UINT32, IMG_Id(img), IARG_END);
+                IARG_PROTOTYPE, protoInit, IARG_FUNCARG_ENTRYPOINT_VALUE, 0, IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                IARG_FUNCARG_ENTRYPOINT_VALUE, 2, IARG_ORIG_FUNCPTR, IARG_UINT32, IMG_Id(img), IARG_END);
         }
     } 
 }

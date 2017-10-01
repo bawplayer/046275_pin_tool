@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -29,7 +29,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 END_LEGAL */
 
-#include <sstream> 
+#include <sstream>
 #include "control_manager.H"
 #include "control_chain.H"
 #include "alarm_manager.H"
@@ -57,7 +57,7 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "0",
         "Emit the controller's events log",
         _prefix);
-    
+
     _control_log_file_knob = new KNOB<string>(KNOB_MODE_WRITEONCE,
         _control_family,
         "controller-olog",
@@ -80,36 +80,36 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "debug the controller",
         _prefix);
 
-    _control_skip = new KNOB<string>(KNOB_MODE_WRITEONCE, 
+    _control_skip = new KNOB<string>(KNOB_MODE_WRITEONCE,
         _control_family,
         "skip",
         "",
         "number of instructions to skip",
         _prefix);
 
-    _control_length = new KNOB<string>(KNOB_MODE_WRITEONCE, 
+    _control_length = new KNOB<string>(KNOB_MODE_WRITEONCE,
         _control_family,
         "length",
         "",
         "Number of instructions to execute before stopping",
         _prefix);
 
-    _control_start_address = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_start_address = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "start_address",
         "",
         "Address and count to trigger a start",
         _prefix);
 
-    _control_stop_address = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_stop_address = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "stop_address",
         "",
         "Address and count to trigger a start",
         _prefix);
 
-    
-    _control_start_ssc = new KNOB<string>(KNOB_MODE_APPEND, 
+
+    _control_start_ssc = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "start_ssc_mark",
         "",
@@ -117,7 +117,7 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "big-endian hex  without an 0x prefix",
         _prefix);
 
-    _control_stop_ssc = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_stop_ssc = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "stop_ssc_mark",
         "",
@@ -125,7 +125,7 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "big-endian hex  without an 0x prefix",
         _prefix);
 
-    _control_start_itext = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_start_itext = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "start-itext",
         "",
@@ -133,7 +133,7 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "(max 15Bytes=30nibbles)",
         _prefix);
 
-    _control_stop_itext = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_stop_itext = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "stop-itext",
         "",
@@ -141,7 +141,7 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "(max 15Bytes=30nibbles)",
         _prefix);
 
-    _control_start_int3 = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_start_int3 = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "start-int3",
         "",
@@ -149,7 +149,7 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "Requires a count argument.",
         _prefix);
 
-    _control_stop_int3 = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_stop_int3 = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "stop-int3",
         "",
@@ -157,7 +157,7 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "Requires a count argument.",
         _prefix);
 
-    _control_start_isa_ext = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_start_isa_ext = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "start_extension",
         "",
@@ -165,7 +165,7 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "this XED ISA extension",
         _prefix);
 
-    _control_stop_isa_ext = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_stop_isa_ext = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "stop_extension",
         "",
@@ -173,7 +173,7 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "this XED ISA extension",
         _prefix);
 
-    _control_start_isa_ctg = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_start_isa_ctg = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "start_category",
         "",
@@ -181,7 +181,7 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "this XED ISA category",
         _prefix);
 
-    _control_stop_isa_ctg = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_stop_isa_ctg = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "stop_category",
         "",
@@ -189,7 +189,7 @@ VOID CONTROL_MANAGER::InitKnobs(){
         "this XED ISA category",
         _prefix);
 
-    _control_interactive = new KNOB<string>(KNOB_MODE_APPEND, 
+    _control_interactive = new KNOB<string>(KNOB_MODE_APPEND,
         _control_family,
         "interactive_file",
         "",
@@ -202,19 +202,22 @@ CONTROL_MANAGER::CONTROL_MANAGER(const string prefix,
                                  const string description)
 {
     // The call order must be before restore check point in Replay
-    _call_order = CALL_ORDER_FIRST-50 + 2; 
+    _call_order = CALL_ORDER_FIRST-50 + 2;
+    _late_call_order = CALL_ORDER_LAST + 20;
     _prefix = prefix;
     _control_family = family;
     _family_description = description;
     _uniform_alarm = NULL;
     _interactive_listener = NULL;
-    
+    _late_handler = FALSE;
+
     //add knobs definitions(new and old)
     InitKnobs();
 
     //create the region controller
     CONTROL_ARGS args(_prefix,_control_family);
     _iregions = new CONTROL_IREGIONS(args,this);
+    _pcregions = new CONTROL_PCREGIONS(args,this);
 }
 
 VOID CONTROL_MANAGER::Fini(INT32, VOID* v){
@@ -225,19 +228,39 @@ VOID CONTROL_MANAGER::Fini(INT32, VOID* v){
 }
 
 VOID CONTROL_MANAGER::RegisterHandler(CONTROL_HANDLER ch,
-                               VOID* val, BOOL passContext=FALSE) 
+                               VOID* val, BOOL passContext,
+                               CONTROL_HANDLER late_ch)
 {
     CONTROL_HANDLER_PARAMS params;
     params.handler = ch;
     params.val = val;
     params.passContext = passContext;
     _control_handler.push_back(params);
+
+    // Add late handler if needed
+    // The late handler was added to support precise controller handling in logger
+    // Previously logger handled controller events only at the end of a Trace.
+    // Since original handler is called in IPOINT_BEFORE we can not call PIN_ExecuteAt
+    // So we have added a late to be called in IPOINT_AFTER and then we call
+    // PIN_ExecuteAt which terminates a Trace and is presice.
+    if (late_ch)
+    {
+        params.handler = late_ch;
+        _late_control_handler.push_back(params);
+        if (!_late_handler)
+        {
+            _late_handler = TRUE;
+            // Set late handler flags in alarms
+            SetLateHandler();
+        }
+    }
 }
 
+
 VOID CONTROL_MANAGER::Activate()
-{   
+{
     UINT32 num_chains = _control_knob->NumberOfValues();
-  
+
     if (_control_log_knob->Value()){
         //open the controller event log
         string filename = _control_log_file_knob->Value();
@@ -259,14 +282,14 @@ VOID CONTROL_MANAGER::Activate()
         string chain_str = _control_knob->Value(i);
         CONTROL_CHAIN* chain = new CONTROL_CHAIN(this);
         _control_chain.push_back(chain);
-        
+
         //parse the chain - creates all the required alarms
         chain->Parse(chain_str);
-        
+
         if (_control_debug_knob->Value()){
             chain->DebugPrint();
         }
-        
+
         chain->Activate();
     }
 
@@ -274,7 +297,8 @@ VOID CONTROL_MANAGER::Activate()
     AddOldKnobs();
 
     _iregions->Activate(_pass_context);
-    
+    _pcregions->Activate(_pass_context);
+
     //if non of the chains has start event we must add one
     if (_control_default_start->Value()){
         AddDefaultStart();
@@ -283,13 +307,13 @@ VOID CONTROL_MANAGER::Activate()
     PIN_AddFiniFunction(Fini,this);
 }
 
-VOID CONTROL_MANAGER::Fire(EVENT_TYPE eventID, CONTEXT* ctxt, 
+VOID CONTROL_MANAGER::Fire(EVENT_TYPE eventID, CONTEXT* ctxt,
                            VOID * ip, THREADID tid, BOOL bcast)
 {
-    
+
     if (_control_log_knob->Value()){
-        //emit the controllers events log 
-        _out << "TID" << tid << ":  event: " << _events.IDToString(eventID) << 
+        //emit the controllers events log
+        _out << "TID" << tid << ":  event: " << _events.IDToString(eventID) <<
             " at icount: " << _icount[tid] << endl;
     }
 
@@ -300,9 +324,32 @@ VOID CONTROL_MANAGER::Fire(EVENT_TYPE eventID, CONTEXT* ctxt,
     }
 }
 
-//iterate all the control handlers to check if at leat one of 
+// Late Fire event
+VOID CONTROL_MANAGER::LateFire(EVENT_TYPE eventID, CONTEXT* ctxt,
+                           VOID * ip, THREADID tid, BOOL bcast)
+{
+    if (_control_log_knob->Value()){
+        //emit the controllers events log
+        _out << "TID" << tid << ":  late Fire event: " << _events.IDToString(eventID) <<
+            " at icount: " << _icount[tid] << endl;
+    }
+
+    //call all registered control handlers
+    list<CONTROL_HANDLER_PARAMS>::iterator iter = _late_control_handler.begin();
+    for ( ;iter!=_late_control_handler.end(); iter++){
+        iter->handler(eventID, iter->val, ctxt, ip, tid, bcast);
+    }
+}
+
+//iterate all the control handlers to check if at least one of
 //them needs context
 BOOL CONTROL_MANAGER::ShouldPassContext() {
+
+    // If there is a late handler then we need context
+    if (_late_handler)
+        return TRUE;
+
+    // Check all handlers
     list<CONTROL_HANDLER_PARAMS>::iterator it = _control_handler.begin();
     for (; it != _control_handler.end(); it++)
         if (it->passContext)
@@ -332,7 +379,7 @@ VOID CONTROL_MANAGER::Trace(TRACE trace, VOID* v)
     }
 }
 
-VOID CONTROL_MANAGER::ICount(CONTROL_MANAGER* control_manager, 
+VOID CONTROL_MANAGER::ICount(CONTROL_MANAGER* control_manager,
                              UINT32 nins, THREADID thread)
 {
     control_manager->_icount[thread] += nins;
@@ -358,8 +405,8 @@ VOID CONTROL_MANAGER::AddOldKnobs(){
     added_length += CreateOld(_control_start_isa_ext,"start","isa_extension",
                               TRUE);
     added_length += CreateOld(_control_stop_isa_ext,"stop","isa_extension");
-    
-    //length knob was used, but no start event was specified - so we did 
+
+    //length knob was used, but no start event was specified - so we did
     //not add this stop event to any other chain.
     if (_control_length->Value() != ""){
         if (added_length == 0){
@@ -369,10 +416,10 @@ VOID CONTROL_MANAGER::AddOldKnobs(){
 }
 
 // translate the old controller knob to the new chain syntax
-// the knob is expected to be of type APPEND 
-// add_length indicates whether we need to append 
+// the knob is expected to be of type APPEND
+// add_length indicates whether we need to append
 // the length knob - in case it is used by the user
-UINT32 CONTROL_MANAGER::CreateOld(KNOB<string>* knob, const string& control_event, 
+UINT32 CONTROL_MANAGER::CreateOld(KNOB<string>* knob, const string& control_event,
                  const string& alarm, BOOL add_length)
 {
     UINT32 length_added = 0;
@@ -385,7 +432,7 @@ UINT32 CONTROL_MANAGER::CreateOld(KNOB<string>* knob, const string& control_even
 
 
 
-UINT32 CONTROL_MANAGER::CreateOldOne(const string& raw_knob, 
+UINT32 CONTROL_MANAGER::CreateOldOne(const string& raw_knob,
                                   const string& control_event,
                                   const string& alarm, BOOL add_length)
 {
@@ -411,7 +458,7 @@ UINT32 CONTROL_MANAGER::CreateOldOne(const string& raw_knob,
             s += ",stop:icount:" + _control_length->Value();
             length_added = 1;
         }
-        
+
         if (repeat){
             s += ",repeat";
         }
@@ -428,14 +475,14 @@ UINT32 CONTROL_MANAGER::CreateOldOne(const string& raw_knob,
 //check if we have at least one start event
 BOOL CONTROL_MANAGER::HasStartEvent(){
     list<CONTROL_CHAIN*>::iterator iter = _control_chain.begin();
-    
+
     for (; iter != _control_chain.end(); iter++){
         CONTROL_CHAIN* chain = *iter;
         if (chain->HasStartEvent()){
             return TRUE;
         }
     }
-    
+
     iter = _legacy_control_chain.begin();
     for (; iter != _legacy_control_chain.end(); iter++){
         CONTROL_CHAIN* chain = *iter;
@@ -448,11 +495,31 @@ BOOL CONTROL_MANAGER::HasStartEvent(){
         return TRUE;
     }
 
+    if (_pcregions->IsActive()){
+        return TRUE;
+    }
+
     return FALSE;
 }
 
-VOID CONTROL_MANAGER::AddDefaultStart(){   
-    //no start event was defined.    
+// Set late handler in chains and alarms
+VOID CONTROL_MANAGER::SetLateHandler(){
+    list<CONTROL_CHAIN*>::iterator iter = _control_chain.begin();
+
+    for (; iter != _control_chain.end(); iter++){
+        CONTROL_CHAIN* chain = *iter;
+        chain->SetLateHandler();
+    }
+
+    iter = _legacy_control_chain.begin();
+    for (; iter != _legacy_control_chain.end(); iter++){
+        CONTROL_CHAIN* chain = *iter;
+        chain->SetLateHandler();
+    }
+}
+
+VOID CONTROL_MANAGER::AddDefaultStart(){
+    //no start event was defined.
     if(HasStartEvent() == FALSE){
         _init_alarm.Activate(this);
     }
@@ -471,7 +538,7 @@ UINT32 CONTROL_MANAGER::GetChainId(const string& chain_name){
     return 0; //pacify the compiler
 }
 
-//find the chain pointer by the Id 
+//find the chain pointer by the Id
 CONTROL_CHAIN* CONTROL_MANAGER::ChainById(UINT32 chain_id){
     list<CONTROL_CHAIN*>::iterator iter = _control_chain.begin();
     for(; iter != _control_chain.end(); iter++){
@@ -487,8 +554,16 @@ IREGION * CONTROL_MANAGER::CurrentIregion(THREADID tid) const {
     return _iregions->LastTriggeredRegion(tid);
 }
 
+PCREGION * CONTROL_MANAGER::CurrentPCregion(THREADID tid) const {
+    return _pcregions->LastTriggeredRegion(tid);
+}
+
 BOOL CONTROL_MANAGER::IregionsActive() const {
     return _iregions->IsActive();
+}
+
+BOOL CONTROL_MANAGER::PCregionsActive() const {
+    return _pcregions->IsActive();
 }
 
 BOOL CONTROL_MANAGER::UniformActive(){
@@ -520,4 +595,8 @@ EVENT_TYPE CONTROL_MANAGER::EventStringToType(const string& event_name){
 
 UINT32 CONTROL_MANAGER::GetInsOrder(){
     return _call_order;
+}
+
+UINT32 CONTROL_MANAGER::GetLateInsOrder(){
+    return _late_call_order;
 }

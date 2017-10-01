@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -43,7 +43,7 @@ KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool",
 
 // lock serializes access to the output file.
 FILE * out;
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 
 // Note that opening a file in a callback is only supported on Linux systems.
 // See buffer-win.cpp for how to work around this issue on Windows.
@@ -51,28 +51,28 @@ PIN_LOCK lock;
 // This routine is executed every time a thread is created.
 VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
-    PIN_GetLock(&lock, threadid+1);
+    PIN_GetLock(&pinLock, threadid+1);
     fprintf(out, "thread begin %d\n",threadid);
     fflush(out);
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 // This routine is executed every time a thread is destroyed.
 VOID ThreadFini(THREADID threadid, const CONTEXT *ctxt, INT32 code, VOID *v)
 {
-    PIN_GetLock(&lock, threadid+1);
+    PIN_GetLock(&pinLock, threadid+1);
     fprintf(out, "thread end %d code %d\n",threadid, code);
     fflush(out);
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 // This routine is executed each time malloc is called.
 VOID BeforeMalloc( int size, THREADID threadid )
 {
-    PIN_GetLock(&lock, threadid+1);
+    PIN_GetLock(&pinLock, threadid+1);
     fprintf(out, "thread %d entered malloc(%d)\n", threadid, size);
     fflush(out);
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 
@@ -121,7 +121,7 @@ INT32 Usage()
 int main(INT32 argc, CHAR **argv)
 {
     // Initialize the pin lock
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
     
     // Initialize pin
     if (PIN_Init(argc, argv)) return Usage();

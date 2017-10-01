@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -57,8 +57,6 @@ template<typename T> std::string GetDecString(T val, int width = 0)
     return s.str();
 }
 
-//wstring is not supported in Android ndk7. We may be able to remove this when we will build with a newer version of the ndk.
-#if !defined(TARGET_ANDROID)
 /*!
  * Convert an integral value to a decimal string.
  *
@@ -95,7 +93,6 @@ template<typename T> std::wstring GetHexStringW(T val, bool showBase = true,
     return s.str();
 }
 
-#endif
 /*!
  * Convert an integral value to a hex string.
  *
@@ -144,7 +141,7 @@ template<typename T> std::string GetHexString(T val, bool showBase = true,
 *  @param[in] start    Input iterator to the start of the input sequence.
 *  @param[in] end      Input iterator to the end of the input sequence.
 *  @param[in] base     Tells the radix to use when parsing the value, which must
-*                       be less than 37.  
+*                       be less than 37.
 *  @param[out] val     On success, receives the parsed value.
 *
 * @return  On success, an iterator that points to the first unparsed position in

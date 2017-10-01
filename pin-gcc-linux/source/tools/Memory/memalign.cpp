@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -48,8 +48,6 @@ END_LEGAL */
 #elif defined(TARGET_MAC)
 #    define HAVE_POSIX_MEMALIGN
 #    define HAVE_VALLOC
-#elif defined(TARGET_ANDROID)
-#    define HAVE_MEMALIGN
 #elif defined(TARGET_LINUX)
 #    define HAVE_POSIX_MEMALIGN
 #    define HAVE_MEMALIGN
@@ -127,7 +125,7 @@ VOID Fini(INT32 code, VOID *v)
 #ifdef HAVE_VALLOC
     fprintf(out, "Calling valloc\n");
     void* p = valloc(SIZE_TO_ALLOCATE);
-    AlignCheck("valloc", p, 
+    AlignCheck("valloc", p,
 # if defined(TARGET_MAC) || defined(PIN_CRT)
         getpagesize(),
 # else

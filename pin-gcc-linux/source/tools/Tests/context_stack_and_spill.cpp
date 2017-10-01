@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -680,32 +680,12 @@ BOOL CompareFpContext(CONTEXT *context1, CONTEXT *context2)
             compareOk = FALSE;
         }
     }
-#ifdef TARGET_MIC
-    for (i=0; i < 32; ++i)
-    {
-        if (fpVerboseContext1->_vstate._zmms[i] != fpVerboseContext2->_vstate._zmms[i])
-        {
-            printf ("_zmms[%d] ERROR\n", i);
-            fflush (stdout);
-            compareOk = FALSE;
-        }
-    }
-    for (i=0; i < 8; ++i)
-    {
-        if ((UINT16)fpVerboseContext1->_vstate._kmasks[i] != (UINT16)fpVerboseContext2->_vstate._kmasks[i])
-        {
-            printf ("_kmasks[%d] ERROR\n", i);
-            fflush (stdout);
-            compareOk = FALSE;
-        }
-    }
-#else // not TARGET_MIC
     for (i=0;
-# ifdef TARGET_IA32E
+#ifdef TARGET_IA32E
         i< 16;
-# else
+#else
         i< 8;
-# endif
+#endif
         i++)
     {
         if ((fpVerboseContext1->fxsave_legacy._xmms[i]._vec64[0] != fpVerboseContext2->fxsave_legacy._xmms[i]._vec64[0]) ||
@@ -721,11 +701,11 @@ BOOL CompareFpContext(CONTEXT *context1, CONTEXT *context2)
     {
         int k = 0;
         for (int i = 0;
-# ifdef TARGET_IA32E
+#ifdef TARGET_IA32E
              i < 16;
-# else
+#else
              i< 8;
-# endif
+#endif
              ++i)
         {
             for (int j=0; j<16; j++)
@@ -740,7 +720,6 @@ BOOL CompareFpContext(CONTEXT *context1, CONTEXT *context2)
             }
         }
     }
-#endif // not TARGET_MIC
 
     if (!compareOk)
     {

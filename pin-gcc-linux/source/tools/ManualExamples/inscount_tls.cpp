@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -30,7 +30,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 END_LEGAL */
 #include <iostream>
 #include <fstream>
-#include <map>
 #include "pin.H"
 
 KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool",
@@ -56,79 +55,11 @@ class thread_data_t
 // key for accessing TLS storage in the threads. initialized once in main()
 static  TLS_KEY tls_key = INVALID_TLS_KEY;
 
-// A map to store the data attached for each thread, and a lock to protect the map
-std::map<THREADID, thread_data_t*> threads_data;
-PIN_LOCK lock;
-
-// function to access thread-specific data
-thread_data_t* get_tls(THREADID threadid)
-{
-    thread_data_t* tdata = static_cast<thread_data_t*>(PIN_GetThreadData(tls_key, threadid));
-    if (tdata == NULL)
-    {
-        cerr << "PIN_GetThreadData(" << tls_key << "," << threadid << ") Failed" << endl;
-        PIN_ExitProcess(1);
-    }
-
-    PIN_GetLock(&lock, threadid);
-    std::map<THREADID, thread_data_t*>::const_iterator it = threads_data.find(threadid);
-    if ((it == threads_data.end()) || (it->second != tdata))
-    {
-        cerr << "PIN_GetThreadData(" << tls_key << "," << threadid << ") returned the wrong thread data" << endl;
-        PIN_ExitProcess(1);
-    }
-    PIN_ReleaseLock(&lock);
-    return tdata;
-}
-
 // This function is called before every block
 VOID PIN_FAST_ANALYSIS_CALL docount(UINT32 c, THREADID threadid)
 {
-    thread_data_t* tdata = get_tls(threadid);
+    thread_data_t* tdata = static_cast<thread_data_t*>(PIN_GetThreadData(tls_key, threadid));
     tdata->_count += c;
-}
-
-// This function tests operations with illegal TLS keys.
-VOID TestIllegalTLSOPerations(THREADID threadid)
-{
-    static bool tested = false;
-    if (tested)
-        return;
-    tested = true;
-
-    // start with an invalid key
-    TLS_KEY temp_tls_key = INVALID_TLS_KEY;
-    // Try to get thread data - expected to fail
-    if (PIN_GetThreadData(temp_tls_key, threadid) != NULL)
-    {
-        cerr << "PIN_GetThreadData(" << tls_key << "," << threadid << ") should have failed" << endl;
-        PIN_ExitProcess(1);
-    }
-    // Create a key
-    temp_tls_key = PIN_CreateThreadDataKey(NULL);
-    if (temp_tls_key == INVALID_TLS_KEY)
-    {
-        cerr << "number of already allocated keys reached the MAX_CLIENT_TLS_KEYS limit" << endl;
-        PIN_ExitProcess(1);
-    }
-    // Delete the key
-    if (PIN_DeleteThreadDataKey(temp_tls_key) == FALSE)
-    {
-        cerr << "PIN_DeleteThreadDataKey failed" << endl;
-        PIN_ExitProcess(1);
-    }
-    // Delete it again - expected to fail
-    if (PIN_DeleteThreadDataKey(temp_tls_key) == TRUE)
-    {
-        cerr << "PIN_DeleteThreadDataKey should have failed" << endl;
-        PIN_ExitProcess(1);
-    }
-    // Try to use the deleted key - expected to fail
-    if (PIN_SetThreadData(temp_tls_key, new thread_data_t, threadid) != FALSE)
-    {
-        cerr << "PIN_SetThreadData should have failed" << endl;
-        PIN_ExitProcess(1);
-    }
 }
 
 VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
@@ -140,11 +71,6 @@ VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
         cerr << "PIN_SetThreadData failed" << endl;
         PIN_ExitProcess(1);
     }
-    PIN_GetLock(&lock, threadid+1);
-    threads_data.insert(std::make_pair(threadid, tdata));
-    PIN_ReleaseLock(&lock);
-
-    TestIllegalTLSOPerations(threadid);
 }
 
 
@@ -165,8 +91,9 @@ VOID Trace(TRACE trace, VOID *v)
 // This function is called when the thread exits
 VOID ThreadFini(THREADID threadIndex, const CONTEXT *ctxt, INT32 code, VOID *v)
 {
-    thread_data_t* tdata = get_tls(threadIndex);
+    thread_data_t* tdata = static_cast<thread_data_t*>(PIN_GetThreadData(tls_key, threadIndex));
     *OutFile << "Count[" << decstr(threadIndex) << "] = " << tdata->_count << endl;
+    delete tdata;
 }
 
 // This function is called when the application exits
@@ -198,9 +125,6 @@ int main(int argc, char * argv[])
         return Usage();
 
     OutFile = KnobOutputFile.Value().empty() ? &cout : new std::ofstream(KnobOutputFile.Value().c_str());
-
-    // Initialize the pin lock
-    PIN_InitLock(&lock);
 
     // Obtain  a key for TLS storage.
     tls_key = PIN_CreateThreadDataKey(NULL);

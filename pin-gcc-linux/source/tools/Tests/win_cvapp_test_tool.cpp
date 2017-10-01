@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -447,7 +447,7 @@ LOCALVAR vector<BBLSTATS*> statsList;
 #if defined(NEED_TO_PAD)
 LOCALVAR char pad0[48];
 #endif
-LOCALVAR PIN_LOCK  ALIGN_LOCK lock;
+LOCALVAR PIN_LOCK  ALIGN_LOCK pinLock;
 #if defined(NEED_TO_PAD)
 LOCALVAR char pad1[48];
 #endif
@@ -509,9 +509,9 @@ VOID ThreadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
     // This function is locked no need for a Pin Lock here
     numThreads++;
-    PIN_GetLock(&lock, tid+1); // for output
+    PIN_GetLock(&pinLock, tid+1); // for output
     *out << "# Starting tid " << tid << endl;
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 
     thread_data_t* tdata = new thread_data_t;
     // remember my pointer for later
@@ -548,13 +548,13 @@ LOCALFUN VOID Handler(EVENT_TYPE ev, VOID *val, CONTEXT *ctxt, VOID *ip, THREADI
     switch(ev)
     {
       case EVENT_START:
-        PIN_GetLock(&lock, tid+1); // for output
+        PIN_GetLock(&pinLock, tid+1); // for output
         *out << "# Start counting for tid " << tid << endl;
-        PIN_ReleaseLock(&lock);
+        PIN_ReleaseLock(&pinLock);
         activate_counting(tid);
         break;
       case EVENT_STOP:
-        PIN_GetLock(&lock, tid+1); // for output
+        PIN_GetLock(&pinLock, tid+1); // for output
         *out << "# Stop counting for tid "  << tid << endl;
         if (control.PinPointsActive()) {
             UINT32 pp = control.CurrentPp(tid);
@@ -562,7 +562,7 @@ LOCALFUN VOID Handler(EVENT_TYPE ev, VOID *val, CONTEXT *ctxt, VOID *ip, THREADI
             *out << "# PinPointNumber " << pp << endl;
             *out << "# PinPointPhase " << phase << endl;
         }
-        PIN_ReleaseLock(&lock);
+        PIN_ReleaseLock(&pinLock);
         deactivate_counting(tid);
         if (control.PinPointsActive()) {
             // when doing pinpoints "mixes" we want to emit and then zero the stats when we stop a region.
@@ -572,15 +572,15 @@ LOCALFUN VOID Handler(EVENT_TYPE ev, VOID *val, CONTEXT *ctxt, VOID *ip, THREADI
         }
         break;
       case CONTROL_STATS_EMIT:
-        PIN_GetLock(&lock, tid+1); // for output
+        PIN_GetLock(&pinLock, tid+1); // for output
         *out << "# Emit stats for tid " << tid << endl;
-        PIN_ReleaseLock(&lock);
+        PIN_ReleaseLock(&pinLock);
         emit_stats(tid);
         break;
       case CONTROL_STATS_RESET:
-        PIN_GetLock(&lock, tid+1); // for output
+        PIN_GetLock(&pinLock, tid+1); // for output
         *out << "# Reset stats for tid " << tid << endl;
-        PIN_ReleaseLock(&lock);
+        PIN_ReleaseLock(&pinLock);
         zero_stats(tid);
         break;
 
@@ -906,12 +906,12 @@ VOID emit_bbl_stats(THREADID tid)
     }
     PIN_ReleaseLock(&bbl_list_lock);
 
-    PIN_GetLock(&lock, tid+1); // for output
+    PIN_GetLock(&pinLock, tid+1); // for output
     stat_dump_count++;
     *out << "# EMIT_STATS " << stat_dump_count << endl;
     DumpStats(*out, tdata->cstats, KnobProfilePredicated, "$dynamic-counts",tid);
     *out << "# END_STATS" <<  endl;
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 int qsort_compare_fn(const void *a, const void *b)
@@ -950,7 +950,7 @@ VOID emit_bbl_stats_sorted(THREADID tid)
 
     qsort(icounts, limit, sizeof(BBL_SORT_STATS), qsort_compare_fn);
 
-    PIN_GetLock(&lock, tid+1); // for output
+    PIN_GetLock(&pinLock, tid+1); // for output
     *out << "# EMIT_STATS TOP BLOCKS " << stat_dump_count
          << " FOR TID " << tid
          << endl;
@@ -987,7 +987,7 @@ VOID emit_bbl_stats_sorted(THREADID tid)
     }
 
     *out << "# END_STATS" <<  endl;
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
     delete [] icounts;
 }
 
@@ -1006,7 +1006,7 @@ VOID emit_pc_stats(THREADID tid)
     // Need to lock here because we might be resize (and thus reallocing)
     // the statsList when we do a push_back in the instrumentation.
 
-    PIN_GetLock(&lock, tid+1); // for output
+    PIN_GetLock(&pinLock, tid+1); // for output
     *out << "# EMIT_PC_STATS for TID "  << tid << endl;
     PIN_GetLock(&bbl_list_lock,tid+1);
     UINT32 limit = tdata->size();
@@ -1021,7 +1021,7 @@ VOID emit_pc_stats(THREADID tid)
     }
     PIN_ReleaseLock(&bbl_list_lock);
     *out << "# END_EMIT_PC_STATS for TID "  << tid << endl;
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 VOID emit_stats(THREADID tid)
 {
@@ -1193,7 +1193,7 @@ int main(int argc, CHAR **argv)
     if( PIN_Init(argc,argv) )
         return Usage();
 
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
     PIN_InitLock(&bbl_list_lock);
 
     // obtain  a key for TLS storage

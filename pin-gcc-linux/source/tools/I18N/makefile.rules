@@ -62,26 +62,6 @@ ifeq ($(TARGET_OS),windows)
     APP_ROOTS += $(OS_TYPE)_unicode_test_launcher $(OS_TYPE)_unicode
 endif
 
-###### Handle exceptions here ######
-
-# TODO: These tests fail - fix and remove the following:
-# See mantis 2963
-ifeq ($(TARGET),mic)
-    TEST_ROOTS :=
-    TOOL_ROOTS :=
-    APP_ROOTS :=
-endif
-
-# TODO: These tests fail - fix and remove the following:
-osrel := $(shell uname -r)
-ifeq ($(findstring WR,$(osrel)),WR)
-    TEST_ROOTS :=
-endif
-ifdef WRL_BUILD # This is defined on the WRL build system.
-    TOOL_ROOTS :=
-    APP_ROOTS :=
-endif
-
 ###### Define the sanity subset ######
 
 # This defines the list of tests that should run in sanity. It should include all the tests listed in

@@ -4,16 +4,16 @@
 #define CC_USED_ABI_VERSION 1002
 
 /*! @ingroup MISC
- * The Pin major version number.  E.g. "3" if the kit is "3.2".
+ * The Pin major version number.  E.g. "3" if the kit is "3.4".
  */
 #define PIN_PRODUCT_VERSION_MAJOR 3
 
 /*! @ingroup MISC
- * The Pin minor version number.  E.g. "2" if the kit is "3.2".
+ * The Pin minor version number.  E.g. "4" if the kit is "3.4".
  */
-#define PIN_PRODUCT_VERSION_MINOR 2
+#define PIN_PRODUCT_VERSION_MINOR 4
 
 /*! @ingroup MISC
  * The Pin kit build number.  This is unique for every Pin kit.
  */
-#define PIN_BUILD_NUMBER 81205
+#define PIN_BUILD_NUMBER 97438-gf90d1f746

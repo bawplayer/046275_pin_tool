@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -57,17 +57,11 @@ extern "C" void ChangeRegsWrapper() ASMNAME("ChangeRegsWrapper");
 // The SaveAppPointers() function is an empty function which is used by the tool to save pointers
 // to the application's modified register values.
 // These values will be set in the SaveRegsToMem() function (see the changeRegs_<arch> assembly file).
-#ifdef TARGET_MIC
-extern "C" EXPORT_SYM void SaveAppPointers(unsigned char* agprval, unsigned char* astval,
-                                           unsigned char* azmmval, unsigned char* akval)
+extern "C" EXPORT_SYM void SaveAppPointers(unsigned char* agprptr, unsigned char* astptr,
+                                           unsigned char* axmmptr, unsigned char* aymmptr,
+                                           unsigned char* azmmptr, unsigned char* aopmaskptr)
 {
 }
-#else
-extern "C" EXPORT_SYM void SaveAppPointers(unsigned char* agprval, unsigned char* astval,
-                                           unsigned char* axmmval, unsigned char* aymmval)
-{
-}
-#endif
 
 
 /////////////////////
@@ -76,11 +70,7 @@ extern "C" EXPORT_SYM void SaveAppPointers(unsigned char* agprval, unsigned char
 
 int main()
 {
-#ifdef TARGET_MIC
-    SaveAppPointers(agprval, astval, azmmval, akval);
-#else
-    SaveAppPointers(agprval, astval, axmmval, aymmval);
-#endif
+    SaveAppPointers(agprval, astval, axmmval, aymmval, azmmval, aopmaskval);
     ChangeRegsWrapper();
     return 0;
 }

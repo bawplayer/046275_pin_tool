@@ -48,17 +48,6 @@ LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
 
-#Android
-ifeq ($(TARGET_OS),android)
-    TEST_TOOL_ROOTS +=imageUnload_tool
-    TEST_ROOTS += jitImageUnload probeImageUnload l_imageLoad launchReattachImageLoadCallbacks softLinkedMainImage \
-                  attachReattachImageLoadCallbacks instrument_script
-    TOOL_ROOTS += images_on_attach_tool imageLoad_tool reattachImageLoadCallback_tool
-    APP_ROOTS += imageUnload_app images_on_attach_app l_imageLoad_app mt_fork_app launchReattachImageLoadCallbacks_app \
-                 attachReattachImageLoadCallbacks_app 
-    DLL_ROOTS += one two my_dll my_dll_1 
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     TEST_TOOL_ROOTS += imageUnload_tool split_image_linux single_segment l_vdso_image gnu_hash
@@ -105,25 +94,6 @@ endif
 
 ###### Handle exceptions here ######
 
-# MIC does not have python so the split_image_linux test can't be completed successfully.
-ifeq ($(TARGET),mic)
-    TEST_TOOL_ROOTS := $(filter-out split_image_linux, $(TEST_TOOL_ROOTS))
-    APP_ROOTS := $(filter-out split_image_linux_app, $(APP_ROOTS))
-    DLL_ROOTS := $(filter-out split_image_linux_lib, $(DLL_ROOTS))
-    OBJECT_ROOTS := $(filter-out split_image_linux_app split_image_linux_lib, $(OBJECT_ROOTS))
-endif
-
-# TODO: These tests fail - fix and remove the following:
-# reattach tests are disabled - see mantis 2946.  
-# See Mantis 2907 for: l_imageLoad probeImageUnload
-# l_imageLoad causes a segmentation fault on Android JB. See mantis 3209.
-ifeq ($(TARGET_OS),android)
-    TEST_ROOTS := $(filter-out launchReattachImageLoadCallbacks attachReattachImageLoadCallbacks \
-                               l_imageLoad reattach_probed_sigtrap_block, $(TEST_ROOTS))
-    TOOL_ROOTS := $(filter-out reattachImageLoadCallback_tool, $(TOOL_ROOTS))
-    APP_ROOTS := $(filter-out launchReattachImageLoadCallbacks_app attachReattachImageLoadCallbacks_app, $(APP_ROOTS))
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     # Old linkers don't support -Ttext-segment
@@ -152,6 +122,14 @@ ifeq ($(TARGET_OS),linux)
         TEST_TOOL_ROOTS := $(filter-out gnu_hash, $(TEST_TOOL_ROOTS))
         APP_ROOTS := $(filter-out gnu_hash_app, $(APP_ROOTS))
     endif
+endif
+
+# Windows
+# Disabling tests until we migrate to the system default dbghelp, after which we cn remove those tests.
+# In the meantime, disable, since we don't use dbghelp at symbol load anymore.
+ifeq ($(TARGET_OS),windows)
+    TEST_ROOTS := $(filter-out win_load_dbghelp, $(TEST_ROOTS))
+    TEST_ROOTS := $(filter-out dbghelp_version, $(TEST_ROOTS))
 endif
 
 ###### Define the sanity subset ######

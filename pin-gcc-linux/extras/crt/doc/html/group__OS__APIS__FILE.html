@@ -141,6 +141,8 @@
 
 <tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="el" href="struct__OS__RETURN__CODE.html">OS_RETURN_CODE</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__OS__APIS__FILE.html#g49a854421122ef45c7b1175902cc9c4c">OS_DuplicateFD</a> (<a class="el" href="group__OS__APIS__TYPES.html#gd22a4a28c640a6ee38d31d001d59d5b7">NATIVE_FD</a> fd, <a class="el" href="group__OS__APIS__TYPES.html#g4b232cbc1ba7648e8617b0673d33b863">BOOL_T</a> dupCloseOnExec, <a class="el" href="group__OS__APIS__TYPES.html#gd22a4a28c640a6ee38d31d001d59d5b7">NATIVE_FD</a> *outFd)</td></tr>
 
+<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="el" href="struct__OS__RETURN__CODE.html">OS_RETURN_CODE</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__OS__APIS__FILE.html#ge055be56ef72c4ee927e2eae686dcb85">OS_Ftruncate</a> (<a class="el" href="group__OS__APIS__TYPES.html#gd22a4a28c640a6ee38d31d001d59d5b7">NATIVE_FD</a> fd, INT64 length)</td></tr>
+
 <tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__OS__APIS__FILE.html#g98d8fa4b38393a18cdd06327bdc2e3a4">OS_ReportFileOpen</a> (<a class="el" href="group__OS__APIS__TYPES.html#gd22a4a28c640a6ee38d31d001d59d5b7">NATIVE_FD</a> fd)</td></tr>
 
 <tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__OS__APIS__FILE.html#ga67547e3fdb8e6491b1d68f3ec23226b">OS_ReportFileClose</a> (<a class="el" href="group__OS__APIS__TYPES.html#gd22a4a28c640a6ee38d31d001d59d5b7">NATIVE_FD</a> fd)</td></tr>
@@ -828,6 +830,59 @@ Flush the object referenced by the descriptor <b>fd</b>.<p>
   </table>
 </dl>
 <dl compact><dt><b>Availability:</b></dt><dd><b>O/S</b>: Windows <br>
+ <b>CPU:</b> All <br>
+ </dd></dl>
+    </td>
+  </tr>
+</table>
+<a class="anchor" name="ge055be56ef72c4ee927e2eae686dcb85"></a><!-- doxytag: member="file.h::OS_Ftruncate" ref="ge055be56ef72c4ee927e2eae686dcb85" args="(NATIVE_FD fd, INT64 length)" --><p>
+<table class="mdTable" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"><a class="el" href="struct__OS__RETURN__CODE.html">OS_RETURN_CODE</a> OS_Ftruncate           </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top"><a class="el" href="group__OS__APIS__TYPES.html#gd22a4a28c640a6ee38d31d001d59d5b7">NATIVE_FD</a>&nbsp;</td>
+          <td class="mdname" nowrap> <em>fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td class="md"></td>
+          <td class="md" nowrap>INT64&nbsp;</td>
+          <td class="mdname" nowrap> <em>length</em></td>
+        </tr>
+        <tr>
+          <td class="md"></td>
+          <td class="md">)&nbsp;</td>
+          <td class="md" colspan="2"></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing="5" cellpadding="0" border="0">
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Truncates a file referenced by fd to a size of length bytes. If the original file size is bigger than length, the extra data is lost. If the original file size is smaller than length,the file extended.<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign="top"><tt>[in]</tt>&nbsp;</td><td valign="top"><em>fd</em>&nbsp;</td><td>File descriptor to change his size. </td></tr>
+    <tr><td valign="top"><tt>[in]</tt>&nbsp;</td><td valign="top"><em>length</em>&nbsp;</td><td>File new length.</td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Return values:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign="top"></td><td valign="top"><em>OS_RETURN_CODE_NO_ERROR</em>&nbsp;</td><td>If the operation succeeded </td></tr>
+    <tr><td valign="top"></td><td valign="top"><em>OS_RETURN_CODE_FILE_OPERATION_FAILED</em>&nbsp;</td><td>If the operation failed</td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Availability:</b></dt><dd><b>O/S</b>: Windows &amp; Linux &amp; OS X* <br>
  <b>CPU:</b> All <br>
  </dd></dl>
     </td>
@@ -1771,7 +1826,7 @@ Attempts to write <b>count</b> bytes of data to the object referenced by the des
     </td>
   </tr>
 </table>
-<hr size="1"><address style="align: right;"><small>Generated on Thu Feb 2 21:59:15 2017 for PinCRT by&nbsp;
+<hr size="1"><address style="align: right;"><small>Generated on Sun Aug 27 14:29:31 2017 for PinCRT by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.4.6 </small></address>
 </body>

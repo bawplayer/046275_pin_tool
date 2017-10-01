@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -40,7 +40,7 @@ KNOB<std::string> KnobOut(KNOB_MODE_WRITEONCE, "pintool", "o",
     "stop-resume-when-suspended.out", "Output file");
 
 static std::ofstream Out;
-static PIN_LOCK lock;
+static PIN_LOCK pinLock;
 static volatile THREADID mainThread = INVALID_THREADID;
 
 // Check that stopping and resuming the program from the same thread works
@@ -63,12 +63,12 @@ static VOID SuspendResume(THREADID tid)
 
 static VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
-    PIN_GetLock(&lock, threadid);
+    PIN_GetLock(&pinLock, threadid);
 
     // Record the first thread that started and call it the main thread
     if (INVALID_THREADID == mainThread)
         mainThread = threadid;
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 
@@ -101,7 +101,7 @@ int main(int argc, char * argv[])
     Out.open(KnobOut.Value().c_str());
 
     // Initialize the lock
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
 
     // Register ThreadStart to be called when a thread starts.
     PIN_AddThreadStartFunction(ThreadStart, NULL);

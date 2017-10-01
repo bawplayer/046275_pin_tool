@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -30,13 +30,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 END_LEGAL */
 #define _GNU_SOURCE
 #ifdef TARGET_MAC
-#include <sys/ucontext.h>
-#elif defined(TARGET_ANDROID) && !defined(TARGET_NDK64)
-#include <signal.h>
-#include <setjmp.h>
-#include "android_ucontext.h"
+# include <sys/ucontext.h>
 #else
-#include <ucontext.h>
+# include <ucontext.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,11 +45,9 @@ END_LEGAL */
 #include "raise-exception-addrs.h"
 #include "faultcheck-target.h"
 
-#ifndef TARGET_ANDROID
 #define PAGESIZE 4096
-#endif
 
-/* When an executable is position independent, it may load into any location. 
+/* When an executable is position independent, it may load into any location.
  * This causes a problem when diffing the outputs of two runs of this program.
  * We can solve this by only comparing the page offsets, which should remain
  * constant between runs. If, for debugging purposes, full addresses are
@@ -551,7 +545,7 @@ TSTATUS DoTest(unsigned int tnum)
 #endif
     case 33:
         printf("  illegal mem access in lfs/lgs \n");
-#if !defined(TARGET_BSD) 
+#if !defined(TARGET_BSD)
         PrintSiAddr = 0;
         DoIllegalSetOfSegReg2();
         return TSTATUS_NOFAULT;
@@ -561,7 +555,7 @@ TSTATUS DoTest(unsigned int tnum)
 #endif
     case 34:
         printf("  illegal mem access in RW to segment register\n");
-#if !defined(TARGET_BSD) 
+#if !defined(TARGET_BSD)
         PrintSiAddr = 1;
         DoIllegalGetOfSegReg1();
         return TSTATUS_NOFAULT;
@@ -598,7 +592,7 @@ TSTATUS DoTest(unsigned int tnum)
             return TSTATUS_SKIP;
 
 #endif
-        
+
         PrintSiAddr = 1;
         fn = (void (*)(void))&IntTrapCode[trapNo*BYTES_PER_TRAP_FUNC];
         fn();

@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -70,27 +70,34 @@ VOID ImageLoad( IMG img, VOID *v )
     
     if (RTN_Valid(rtn))
     {
-        cout << "Replacing malloc in " << IMG_Name(img) << endl;
-        
-        // Define a function prototype that describes the application routine
-        // that will be replaced.
-        //
-        PROTO proto_malloc = PROTO_Allocate( PIN_PARG(void *), CALLINGSTD_DEFAULT,
-                                             "malloc", PIN_PARG(int), PIN_PARG_END() );
-        
-        // Replace the application routine with the replacement function.
-        // Additional arguments have been added to the replacement routine.
-        //
-        RTN_ReplaceSignatureProbed(rtn, AFUNPTR(NewMalloc),
-                                   IARG_PROTOTYPE, proto_malloc,
-                                   IARG_ORIG_FUNCPTR,
-                                   IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                                   IARG_RETURN_IP,
-                                   IARG_END);
+        if (RTN_IsSafeForProbedReplacement(rtn))
+        {
+            cout << "Replacing malloc in " << IMG_Name(img) << endl;
 
-        // Free the function prototype.
-        //
-        PROTO_Free( proto_malloc );
+            // Define a function prototype that describes the application routine
+            // that will be replaced.
+            //
+            PROTO proto_malloc = PROTO_Allocate(PIN_PARG(void *), CALLINGSTD_DEFAULT,
+                "malloc", PIN_PARG(int), PIN_PARG_END());
+
+            // Replace the application routine with the replacement function.
+            // Additional arguments have been added to the replacement routine.
+            //
+            RTN_ReplaceSignatureProbed(rtn, AFUNPTR(NewMalloc),
+                IARG_PROTOTYPE, proto_malloc,
+                IARG_ORIG_FUNCPTR,
+                IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                IARG_RETURN_IP,
+                IARG_END);
+
+            // Free the function prototype.
+            //
+            PROTO_Free(proto_malloc);
+        }
+        else
+        {
+            cout << "Skip replacing malloc in " << IMG_Name(img) << " since it is not safe." << endl;
+        }
     }
 }
 

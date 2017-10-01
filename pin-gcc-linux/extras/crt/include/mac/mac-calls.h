@@ -35,6 +35,12 @@ int MacSysCtl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 
 mach_port_t OS_mach_alloc_reply_port();
 kern_return_t OS_mach_port_deallocate ( ipc_space_t task, mach_port_name_t name);
+
+/**
+ * @brief Deallocate/destroy the given port (@name) (we actually deallocate/destroy what is called a task's right)
+ */
+kern_return_t OS_mach_port_mod_refs(ipc_space_t task, mach_port_name_t name, mach_port_right_t right, mach_port_delta_t delta);
+
 mach_msg_return_t OS_mach_msg(mach_msg_header_t *msg, mach_msg_option_t option, mach_msg_size_t send_size, mach_msg_size_t rcv_size,
         mach_port_t rcv_name, mach_msg_timeout_t timeout, mach_port_t notify);
 mach_msg_return_t OS_mach_msg_send(mach_msg_header_t *msg);

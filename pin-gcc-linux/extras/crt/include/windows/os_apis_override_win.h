@@ -18,6 +18,9 @@ typedef UINT32 (*OS_FnNtCreateFile)(NATIVE_FD* hFile,
                                       UINT32 shareAccess,
                                       UINT32 createDisposition,
                                       UINT32 createOptions);
+typedef UINT32 (*OS_FnNtQueryAttributesFile)(const CHAR * fileName,
+                                               UINT32 objAttributes,
+                                               void *fbi);
 
 typedef struct _FileApiOverrides
 {
@@ -25,6 +28,7 @@ typedef struct _FileApiOverrides
     OS_FnPtrReadFD readFd;
     OS_FnPtrIsConsoleFD isConsoleFd;
     OS_FnNtCreateFile ntCreateFile;
+    OS_FnNtQueryAttributesFile ntQueryAttributesFile;
 } FileApiOverrides;
 
 typedef VOID (*OS_FnPtrSetFileApiOverrides)(FileApiOverrides* overrides);

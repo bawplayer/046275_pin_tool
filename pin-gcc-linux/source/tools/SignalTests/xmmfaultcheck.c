@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -52,11 +52,9 @@ END_LEGAL */
 #endif
 
 #if defined(TARGET_MAC)
-#include <sys/ucontext.h>
-#elif defined(TARGET_ANDROID) && !defined(TARGET_NDK64)
-#include "android_ucontext.h"
+# include <sys/ucontext.h>
 #else
-#include <ucontext.h>
+# include <ucontext.h>
 #endif
 
 // If we defined __USE_GNU ourselves, we need to undefine it here.
@@ -189,7 +187,7 @@ static void Handle(int sig, siginfo_t *i, void *vctxt)
     ctxt->uc_mcontext.gregs[REG_RAX] = (unsigned long)&Glob;
 #endif
 #endif
-    
+
     /* This changes the values of the XMM registers */
     CopyWithXmm(SigBuf2, SigBuf1, SIZE);
 }

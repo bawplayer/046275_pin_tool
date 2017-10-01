@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -55,6 +55,7 @@ typedef enum {
   XED_CATEGORY_BMI2,
   XED_CATEGORY_BROADCAST,
   XED_CATEGORY_CALL,
+  XED_CATEGORY_CET,
   XED_CATEGORY_CLFLUSHOPT,
   XED_CATEGORY_CLWB,
   XED_CATEGORY_CLZERO,
@@ -86,6 +87,7 @@ typedef enum {
   XED_CATEGORY_PKU,
   XED_CATEGORY_POP,
   XED_CATEGORY_PREFETCH,
+  XED_CATEGORY_PREFETCHWT1,
   XED_CATEGORY_PT,
   XED_CATEGORY_PUSH,
   XED_CATEGORY_RDRAND,

@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -189,6 +189,7 @@ typedef enum {
   XED_NONTERMINAL_RIP,
   XED_NONTERMINAL_SAE,
   XED_NONTERMINAL_SEG,
+  XED_NONTERMINAL_SEG_MOV,
   XED_NONTERMINAL_SE_IMM8,
   XED_NONTERMINAL_SIB,
   XED_NONTERMINAL_SIB_BASE0,

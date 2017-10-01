@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,10 +41,10 @@ BOOL SigFunc(THREADID tid, INT32 sig, CONTEXT *ctxt, BOOL hasHandler, const EXCE
     cout << "Thread " << tid << ": Tool got signal " << sig << " at PC " << hex << address << dec << "\n";
     numSignalsReceived++;
     if (numSignalsReceived == (NUM_SEGVS/2))
-    {  
+    {
         // Invalidate this instruction in code cache so it will be reinstrumented
         cout << "invalidating after " << numSignalsReceived << endl;
-        CODECACHE_InvalidateRange(address, address + 20);
+        PIN_RemoveInstrumentationInRange(address, address + 20);
     }
     return (TRUE); // skip to next instruction
 }

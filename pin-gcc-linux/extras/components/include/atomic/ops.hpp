@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,7 +41,7 @@ END_LEGAL */
 
 #if defined(HOST_IA32)
 #   include "atomic/private/ia32/ops-impl.hpp"
-#elif defined(HOST_IA32E) || defined(HOST_MIC)
+#elif defined(HOST_IA32E)
 #   include "atomic/private/intel64/ops-impl.hpp"
 #endif
 
@@ -123,7 +123,7 @@ class /*<UTILITY>*/ OPS
         BARRIER_SWAP barrier = BARRIER_SWAP_NONE)
     {
         T oldVal;
-        
+
         OPS_IMPL::Swap<sizeof(T)>(static_cast<volatile void*>(location),
             static_cast<void*>(&oldVal),
             static_cast<const void*>(&newVal),

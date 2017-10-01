@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -269,7 +269,7 @@ static void I_Trace(TRACE trace, void *v)
                                      IARG_INST_PTR,
                                      IARG_SYSCALL_NUMBER,
                                      IARG_REG_VALUE, REG_STACK_PTR,
-                                     IARG_SYSCALL_ARG0,
+                                     IARG_SYSARG_VALUE, 0,
                                      IARG_END);
 
         } else {
@@ -342,20 +342,14 @@ I_ImageLoad(IMG img, void *v)
       ASSERTX(RTN_Valid(rtn));
 
       RTN_Open(rtn);
-      RTN_InsertCall(rtn, IPOINT_BEFORE,
-                     (AFUNPTR)A_RegisterAddr,
-                     IARG_G_ARG0_CALLEE,
-                     IARG_END);
+      RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)A_RegisterAddr, IARG_FUNCARG_ENTRYPOINT_VALUE, 0, IARG_END);
       RTN_Close(rtn);
     } else if( strstr(SYM_Name(sym).c_str(), "MAID_unregister_address" ) ) {
       RTN rtn;
       rtn = RTN_FindByName(img, SYM_Name(sym).c_str());
       ASSERTX(RTN_Valid(rtn));
       RTN_Open(rtn);
-      RTN_InsertCall(rtn, IPOINT_BEFORE,
-		     (AFUNPTR)A_UnregisterAddr,
-		     IARG_G_ARG0_CALLEE,
-		     IARG_END);
+      RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)A_UnregisterAddr, IARG_FUNCARG_ENTRYPOINT_VALUE, 0, IARG_END);
       RTN_Close(rtn);
     }
   }

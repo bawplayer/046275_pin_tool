@@ -46,13 +46,6 @@ DLL_ROOTS :=
 # This defines any static libraries (archives), that need to be built.
 LIB_ROOTS :=
 
-###### Handle exceptions here ######
-
-# KNC does not support SSE, therefore don't test the following on that platform.
-ifeq ($(TARGET),mic)
-    TEST_TOOL_ROOTS := $(filter-out debugtrace, $(TEST_TOOL_ROOTS))
-endif
-
 ###### Define the sanity subset ######
 
 # This defines the list of tests that should run in sanity. It should include all the tests listed in

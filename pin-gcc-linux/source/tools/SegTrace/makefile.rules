@@ -48,13 +48,6 @@ LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
 
-# Android
-ifeq ($(TARGET_OS),android)
-    TEST_ROOTS += trace_thread
-    TOOL_ROOTS += segtrace
-    APP_ROOTS += thread
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     TEST_ROOTS += trace_thread

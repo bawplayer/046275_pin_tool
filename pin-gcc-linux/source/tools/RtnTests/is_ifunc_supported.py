@@ -41,12 +41,6 @@ else:
 p = subprocess.Popen([gccpath, arch, "-v"], stdout=PIPE, stderr=STDOUT)
 gcc_out = p.communicate();
 p.wait()
-target_re = re.compile(r'^Target: \S+-android', re.MULTILINE)
-target = target_re.search(gcc_out[0])
-if target is not None:
-    # All supported version of Android toolchains are ifunc compatible
-    print "IFUNC_SUPPORTED"
-    sys.exit(0)
 
 gcc_ver_re = re.compile(r'version (\d+)\.(\d+).(\d*)', re.MULTILINE)
 gcc_ver = gcc_ver_re.search(gcc_out[0])

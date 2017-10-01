@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -552,7 +552,7 @@ VOID CallTrace(TRACE trace, INS ins)
 
         INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(EmitIndirectCall), IARG_THREAD_ID,
                        IARG_PTR, new string(s), IARG_BRANCH_TARGET_ADDR,
-                       IARG_G_ARG0_CALLER, IARG_G_ARG1_CALLER, IARG_END);
+                       IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
     }
     else if (INS_IsDirectBranchOrCall(ins))
     {
@@ -594,7 +594,7 @@ VOID CallTrace(TRACE trace, INS ins)
 
             INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(EmitDirectCall),
                            IARG_THREAD_ID, IARG_PTR, new string(s), IARG_BOOL, tailcall,
-                           IARG_G_ARG0_CALLER, IARG_G_ARG1_CALLER, IARG_END);
+                           IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_FUNCARG_CALLSITE_VALUE, 1, IARG_END);
         }
     }
     else if (INS_IsRet(ins))
@@ -607,7 +607,7 @@ VOID CallTrace(TRACE trace, INS ins)
 #endif
         string tracestring = "Return " + FormatAddress(INS_Address(ins), rtn);
         INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(EmitReturn),
-                       IARG_THREAD_ID, IARG_PTR, new string(tracestring), IARG_G_RESULT0, IARG_END);
+                       IARG_THREAD_ID, IARG_PTR, new string(tracestring), IARG_FUNCRET_EXITPOINT_VALUE, IARG_END);
     }
 }
 

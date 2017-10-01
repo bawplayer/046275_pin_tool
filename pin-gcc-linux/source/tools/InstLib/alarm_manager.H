@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -54,7 +54,8 @@ typedef enum { ALARM_TYPE_ICOUNT,
                ALARM_TYPE_EXIT_FUNC,
                ALARM_TYPE_CPUID,
                ALARM_TYPE_MAGIC,
-               ALARM_TYPE_PCONTROL
+               ALARM_TYPE_PCONTROL,
+               ALARM_TYPE_TIMEOUT
 } ALARM_TYPE;
 
 
@@ -63,7 +64,7 @@ class ALARM_MANAGER
 public:
            
     ALARM_MANAGER(const string& alarm_str,CONTROL_CHAIN* control_chain, 
-                  UINT32 id);
+                  UINT32 id, BOOL late_handler);
     
     //arm all threads in the alarm 
     VOID ArmAll(){_ialarm->Arm();}
@@ -78,6 +79,7 @@ public:
     
     //rolls the event to the control chain
     VOID Fire(CONTEXT* ctx, VOID * ip, THREADID tid);
+    VOID LateFire(CONTEXT* ctx, VOID * ip, THREADID tid);
     
     BOOL ArmNext(){return _arm_next;}
 
@@ -89,9 +91,17 @@ public:
     VOID Print();
 
     UINT32 GetInsOrder(){return _control_chain->GetInsOrder();}
+    UINT32 GetLateInsOrder(){return _control_chain->GetLateInsOrder();}
 
     INTERACTIVE_LISTENER* GetListener(){return _control_chain->GetListener();}
-    
+
+    //return the type of the alarm from the manager
+    ALARM_TYPE GetAlarmTypeFromManager() {return _alarm_type;}
+
+    // APIs for alarm manager late handler
+    BOOL HasLateHandler(){return _late_handler;}
+    VOID SetLateHandler(){_late_handler = TRUE;}
+
 private:  
     //extract the event id
     VOID ParseEventId(vector<string>& control_tokens);
@@ -164,6 +174,7 @@ private:
     
     map<string, ALARM_TYPE> _alarm_map;
 
+    BOOL _late_handler;
 };//class
 }//namespace
 #endif

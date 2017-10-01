@@ -20,11 +20,11 @@
 TEST_TOOL_ROOTS := applicationexit create_and_exit_thread
 
 # This defines the tests to be run that were not already defined in TEST_TOOL_ROOTS.
-TEST_ROOTS :=
+TEST_ROOTS := exitProcessFromInstrumentationCallback
 
 # This defines the tools which will be run during the the tests, and were not already defined in
 # TEST_TOOL_ROOTS.
-TOOL_ROOTS :=
+TOOL_ROOTS := exitFromInstCallback_tool
 
 # This defines all the applications that will be run during the tests.
 APP_ROOTS := create_and_exit_thread_app
@@ -39,17 +39,6 @@ DLL_ROOTS :=
 LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
-
-# Android
-ifeq ($(TARGET_OS),android)
-    TEST_ROOTS += threadFini threadFini_exception threadFini_sig raceToExit exitApplicationFromThreadFini \
-                  exitApplicationFromFini exitProcessFromRunningThreadFini exitProcessFromBlockedThreadFini \
-                  exitProcessFromFini exitApplicationLocked
-    TOOL_ROOTS += threadFini_tool exitFromFini_tool exitApplicationLocked_tool
-    APP_ROOTS += threadFini_app threadFini_exception_app threadFini_sig_app threadFini_sendsig raceToExit_app \
-                 exitFromFini_app exitApplicationLocked_app
-    OBJECT_ROOTS += threadUtils
-endif
 
 # Linux
 ifeq ($(TARGET_OS),linux)
@@ -76,17 +65,6 @@ endif
 
 # TODO: These tests fail - fix and remove the following:
 
-# See Mantis 2963
-ifeq ($(TARGET),mic)
-    TEST_ROOTS := $(filter-out threadFini, $(TEST_ROOTS))
-endif
-
-# See Mantis 3170
-ifeq ($(TARGET_OS),android)
-    TEST_ROOTS := $(filter-out threadFini, $(TEST_ROOTS))
-    APP_ROOTS := $(filter-out threadFini_app, $(APP_ROOTS))
-endif
-
 # See Mantis 3672 for create_and_exit_thread. See Mantis 3612 for the rest.
 ifeq ($(TARGET_OS),windows)
     TEST_TOOL_ROOTS := $(filter-out create_and_exit_thread, $(TEST_TOOL_ROOTS))
@@ -97,6 +75,9 @@ endif
 # This defines the list of tests that should run in sanity. It should include all the tests listed in
 # TEST_TOOL_ROOTS and TEST_ROOTS excluding only unstable tests.
 SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
+
+# See Mantis 4259
+SANITY_SUBSET := $(filter-out create_and_exit_thread, $(SANITY_SUBSET))
 
 
 ##############################################################
@@ -282,6 +263,9 @@ exitProcessFromFini.test: $(OBJDIR)exitFromFini_tool$(PINTOOL_SUFFIX) $(OBJDIR)e
 	$(CMP) $(OBJDIR)threadStarts_exitProcessFromFini.sorted $(OBJDIR)threadFinis_exitProcessFromFini.sorted
 	$(RM) $(OBJDIR)exitProcessFromFini.out $(OBJDIR)exitProcessFromFini.log
 	$(RM) $(OBJDIR)threadStarts_exitProcessFromFini.* $(OBJDIR)threadFinis_exitProcessFromFini.*
+
+exitProcessFromInstrumentationCallback.test: $(OBJDIR)exitFromInstCallback_tool$(PINTOOL_SUFFIX) $(TESTAPP)
+	$(PIN) -t $(OBJDIR)exitFromInstCallback_tool$(PINTOOL_SUFFIX) -- $(TESTAPP) ; $(BASHTEST) $$? -eq 123
 
 exitApplicationLocked.test: $(OBJDIR)exitApplicationLocked_tool$(PINTOOL_SUFFIX) $(OBJDIR)exitApplicationLocked_app$(EXE_SUFFIX)
 	-$(PIN) -logfile $(OBJDIR)exitApplicationLocked.log \

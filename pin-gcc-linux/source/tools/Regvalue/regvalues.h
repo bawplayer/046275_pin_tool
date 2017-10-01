@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -46,15 +46,14 @@ const unsigned STSIZEALIGNED = 16;
 const unsigned XMMSIZE = 16;
 const unsigned YMMSIZE = 32;
 const unsigned ZMMSIZE = 64;
-const unsigned KSIZE = 2;
-const unsigned KSIZEALIGNED = 8;
+const unsigned OPMASKSIZE = 8;
 
 const unsigned GPRBITSIZE = GPRSIZE * 8;
 const unsigned STBITSIZE = STSIZE * 8;
 const unsigned XMMBITSIZE = XMMSIZE * 8;
 const unsigned YMMBITSIZE = YMMSIZE * 8;
 const unsigned ZMMBITSIZE = ZMMSIZE * 8;
-const unsigned KBITSIZE = KSIZE * 8;
+const unsigned OPMASKBITSIZE = OPMASKSIZE * 8;
 
 // The fpSaveArea includes the fxsave area (512 bytes), the additional xsave area (320 bytes)
 // and a 64 byte padding since the (f)xsave instructions require a 64-byte-aligned address
@@ -74,7 +73,7 @@ extern const unsigned char stval[STSIZE] ASMNAME("stval");
 extern const unsigned char xmmval[XMMSIZE] ASMNAME("xmmval");
 extern const unsigned char ymmval[YMMSIZE] ASMNAME("ymmval");
 extern const unsigned char zmmval[ZMMSIZE] ASMNAME("zmmval");
-extern const unsigned char kval[KSIZE] ASMNAME("kval");
+extern const unsigned char opmaskval[OPMASKSIZE] ASMNAME("opmaskval");
 
 // These values will be loaded to registers by the tool in the ReplaceChangeRegs() function.
 // All values should be 64-bit aligned.
@@ -87,7 +86,7 @@ extern const unsigned char tstval[STSIZEALIGNED] ASMNAME("tstval");
 extern const unsigned char txmmval[XMMSIZE] ASMNAME("txmmval");
 extern const unsigned char tymmval[YMMSIZE] ASMNAME("tymmval");
 extern const unsigned char tzmmval[ZMMSIZE] ASMNAME("tzmmval");
-extern const unsigned char tkval[KSIZEALIGNED] ASMNAME("tkval");
+extern const unsigned char topmaskval[OPMASKSIZE] ASMNAME("topmaskval");
 
 
 // These values will be assigned (stored from registers) by the application in the SaveRegsToMem() function.
@@ -96,7 +95,7 @@ extern unsigned char astval[STSIZE] ASMNAME("astval");
 extern unsigned char axmmval[XMMSIZE] ASMNAME("axmmval");
 extern unsigned char aymmval[YMMSIZE] ASMNAME("aymmval");
 extern unsigned char azmmval[ZMMSIZE] ASMNAME("azmmval");
-extern unsigned char akval[KSIZE] ASMNAME("akval");
+extern unsigned char aopmaskval[OPMASKSIZE] ASMNAME("aopmaskval");
 } // extern "C"
 
 #endif // REGVALUES_H

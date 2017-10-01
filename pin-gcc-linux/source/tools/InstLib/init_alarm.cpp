@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -42,7 +42,7 @@ VOID INIT_ALARM::Activate(CONTROL_MANAGER* manager){
     memset(_start_thread,0,sizeof(_start_thread));
 
     PIN_CALLBACK thread_start = PIN_AddThreadStartFunction(ThreadStart, this);
-    // other tools working with the controller might do some initialization in their 
+    // other tools working with the controller might do some initialization in their
     // thread start callback.
     // need to make sure we are been call AFTER all thread start callbacks were called.
     CALLBACK_SetExecutionPriority(thread_start, CALL_ORDER_LAST);
@@ -55,20 +55,20 @@ VOID INIT_ALARM::ThreadStart(THREADID tid, CONTEXT *ctxt, INT32 flags, VOID *v){
 
     ADDRINT first_ip = PIN_GetContextReg(ctxt, REG_INST_PTR);
     me->_thread_first_ip.insert(first_ip);
-    // this IP might be already instrumented, so we need to reset 
+    // this IP might be already instrumented, so we need to reset
     // the instrumentations on it's BB.
-    CODECACHE_InvalidateRange(first_ip, first_ip+15);
+    PIN_RemoveInstrumentationInRange(first_ip, first_ip+15);
 }
 
 VOID INIT_ALARM::OnTrace(TRACE trace, VOID *vthis){
     INIT_ALARM *me = static_cast<INIT_ALARM*>(vthis);
 
     INS ins = BBL_InsHead(TRACE_BblHead(trace));
-    ADDRINT first_ip = INS_Address(ins); 
-    
+    ADDRINT first_ip = INS_Address(ins);
+
     if (me->_thread_first_ip.find(first_ip) == me->_thread_first_ip.end()){
         // the first instruction of the TARCE is not the first instruction of
-        // any new created thread 
+        // any new created thread
         return;
     }
     INS_InsertIfCall(
@@ -83,10 +83,10 @@ VOID INIT_ALARM::OnTrace(TRACE trace, VOID *vthis){
         INS_InsertThenCall(
             ins, IPOINT_BEFORE, AFUNPTR(Start),
             IARG_CALL_ORDER, me->_manager->GetInsOrder(),
-            IARG_CONTEXT, 
+            IARG_CONTEXT,
             IARG_INST_PTR,
-            IARG_THREAD_ID, 
-            IARG_ADDRINT, me, 
+            IARG_THREAD_ID,
+            IARG_ADDRINT, me,
             IARG_END);
     }
     else
@@ -96,7 +96,7 @@ VOID INIT_ALARM::OnTrace(TRACE trace, VOID *vthis){
             IARG_CALL_ORDER, me->_manager->GetInsOrder(),
             IARG_ADDRINT, static_cast<ADDRINT>(0),
             IARG_INST_PTR,
-            IARG_THREAD_ID, 
+            IARG_THREAD_ID,
             IARG_ADDRINT, me,
             IARG_END);
     }
@@ -104,7 +104,7 @@ VOID INIT_ALARM::OnTrace(TRACE trace, VOID *vthis){
 
 VOID INIT_ALARM::Start(CONTEXT *ctxt, ADDRINT ip, THREADID tid, VOID *vthis){
     INIT_ALARM *me = static_cast<INIT_ALARM*>(vthis);
-    
+
     me->_start_thread[tid] = FALSE;
     me->_manager->Fire(EVENT_START,ctxt,Addrint2VoidStar(ip),tid,TRUE);
 }

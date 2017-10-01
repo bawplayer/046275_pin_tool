@@ -147,6 +147,8 @@ void OS_MutexLock(volatile OS_MUTEX_TYPE *lock);
  *
  * @param[in]  lock               The mutex to acquire.
  * @param[in]  tid                The thread ID of the thread that wants to acquire the mutex.
+ *                                This argument can be INVALID_NATIVE_TID if the thread ID is
+ *                                not known (e.g. in a mutex of type OS_MUTEX_DEPTH_SIMPLE).
  *
  * @par Availability:
  *   - @b O/S:   Windows, Linux & OS X*
@@ -178,6 +180,8 @@ BOOL_T OS_MutexTryLock(volatile OS_MUTEX_TYPE *lock);
  *
  * @param[in]  lock               The mutex to acquire.
  * @param[in]  tid                The thread ID of the thread that wants to acquire the mutex.
+ *                                This argument can be INVALID_NATIVE_TID if the thread ID is
+ *                                not known (e.g. in a mutex of type OS_MUTEX_DEPTH_SIMPLE).
  *
  * @retval     TRUE               If the mutex was acquired.
  *
@@ -228,6 +232,8 @@ BOOL_T OS_MutexTimedLock(volatile OS_MUTEX_TYPE *lock, UINT32 timeoutMillis);
  * @param[in]  lock               The mutex to acquire.
  * @param[in]  timeoutMillis      The timeout to block.
  * @param[in]  tid                The thread ID of the thread that wants to acquire the mutex.
+ *                                This argument can be INVALID_NATIVE_TID if the thread ID is
+ *                                not known (e.g. in a mutex of type OS_MUTEX_DEPTH_SIMPLE).
  *
  * @retval     TRUE               If the mutex is locked.
  *             FALSE              If the timeout was expired and the mutex can't be acquired during that time.

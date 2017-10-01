@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -48,31 +48,20 @@ FILE * out;
 
 /* ===================================================================== */
 // Specific Linux code -
-// On fc5, we found that when running out of memory, the kernal memory
-// was also exausted and the process was killed by SIGKILL.
+// On fc5, we found that when running out of memory, the kernel memory
+// was also exhausted and the process was killed by SIGKILL.
 // Therefore, use getrlimit64/setrlimit64 in order to make sure kernel
-// memory is not exausted. This limitation is also valuable for 64-bit
+// memory is not exhausted. This limitation is also valuable for 64-bit
 // Linux systems in order to prevent memory trashing
-//
-// On FreeBSD we found the system to hang when kern.maxswzone isn't large
-// enough to cover the entire swap area
 /* ===================================================================== */
 
-#if defined(TARGET_LINUX) && !defined(TARGET_ANDROID) && !defined(PIN_CRT)
-#define GETRLIMIT getrlimit64
-#define SETRLIMIT setrlimit64
-typedef struct rlimit64 rlimit_t;
-#endif
-
-#if defined(TARGET_MAC) || defined(TARGET_ANDROID) || defined(PIN_CRT)
 #define GETRLIMIT getrlimit
 #define SETRLIMIT setrlimit
 typedef struct rlimit rlimit_t;
-#endif
 
 #if defined(TARGET_LINUX) || defined(TARGET_MAC)
 
-#if defined(TARGET_LINUX) && !defined(TARGET_ANDROID)
+#if defined(TARGET_LINUX)
 
 UINT64 GetTotalSwap()
 {

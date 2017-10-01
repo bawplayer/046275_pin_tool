@@ -177,7 +177,13 @@ extern UINT64 MilliSecondsElapsed();
 extern string AssertString(const char *fileName, const char *functionName, unsigned line, const std::string &message);
 
                                                                   /* DO NOT EDIT */
+extern "C" VOID PrintPinStackTrace(ostream& os);
+
+                                                                  /* DO NOT EDIT */
 extern VOID BreakMe();
+
+                                                                  /* DO NOT EDIT */
+extern BOOL SlowAssertsEnabled();
 
                                                                   /* DO NOT EDIT */
 /* DO NOT EDIT */
@@ -207,7 +213,7 @@ extern VOID BreakMe();
 #define ASSERTX(condition) ASSERT(condition,"assertion failed: " #condition  "\n")
 
 #define ASSERTSLOW(condition,message)   \
-  do{ if(KnobSlowAsserts && !(condition)) \
+  do{ if(LEVEL_BASE::SlowAssertsEnabled() && !(condition)) \
           ASSERTQ(LEVEL_BASE::AssertString(PIN_ASSERT_FILE, __FUNCTION__, __LINE__, std::string("") + message));} while(0)
 
 #define ASSERTXSLOW(condition) ASSERTSLOW(condition,"assertion failed: " #condition  "\n")

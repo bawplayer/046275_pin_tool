@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -37,9 +37,9 @@ END_LEGAL */
 # define XED_GEN_TABLE_DEFS_H
 #define XED_ICLASS_NAME_STR_MAX 108
 #define XED_MAX_ATTRIBUTE_COUNT 85
-#define XED_MAX_INST_TABLE_NODES 6449
+#define XED_MAX_INST_TABLE_NODES 6452
 #define XED_MAX_OPERAND_TABLE_NODES 1328
-#define XED_MAX_OPERAND_SEQUENCES 7739
+#define XED_MAX_OPERAND_SEQUENCES 7745
 #define XED_MAX_REQUIRED_SIMPLE_FLAGS_ENTRIES 94
 #define XED_MAX_REQUIRED_COMPLEX_FLAGS_ENTRIES 37
 #define XED_MAX_GLOBAL_FLAG_ACTIONS 410

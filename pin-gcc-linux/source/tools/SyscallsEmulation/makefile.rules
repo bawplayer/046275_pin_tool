@@ -17,7 +17,7 @@
 # This defines tests which run tools of the same name.  This is simply for convenience to avoid
 # defining the test name twice (once in TOOL_ROOTS and again in TEST_ROOTS).
 # Tests defined here should not be defined in TOOL_ROOTS and TEST_ROOTS.
-TEST_TOOL_ROOTS :=
+TEST_TOOL_ROOTS := syscall_time
 
 # This defines the tests to be run that were not already defined in TEST_TOOL_ROOTS.
 TEST_ROOTS :=
@@ -47,15 +47,6 @@ DLL_ROOTS :=
 LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
-
-# Android
-ifeq ($(TARGET_OS),android)
-    TEST_TOOL_ROOTS += mmap
-    TEST_ROOTS += system_syscall_client_lock popen_syscall_client_lock clone_syscall_different_process_client_lock \
-                  clone_syscall_same_process_client_lock
-    TOOL_ROOTS += syscalls_and_locks_tool
-    APP_ROOTS += syscalls_and_locks_app mmap_app
-endif
 
 # Linux
 ifeq ($(TARGET_OS),linux)
@@ -156,11 +147,11 @@ syscall_tracing_compare.test: $(OBJDIR) $(TESTAPP)
 	$(PIN) -xyzzy -syscall_tracer seh -log_server -mesgon log_winloader -logfile $(OBJDIR)syscall_tracing_compare_seh.log \
 	  -- $(TESTAPP) makefile $(OBJDIR)syscall_tracing_compare_seh.makefile.copy
 	$(CMP) makefile $(OBJDIR)syscall_tracing_compare_seh.makefile.copy
-	$(GREP) "syscall number =" $(OBJDIR)syscall_tracing_compare_seh.log > $(OBJDIR)syscall_numbers_seh.log
+	$(GREP) "syscall number =" $(OBJDIR)syscall_tracing_compare_seh.log | $(SED) 's/trace ended.*syscall/syscall/' > $(OBJDIR)syscall_numbers_seh.log
 	$(PIN) -xyzzy -syscall_tracer dbg -log_server -mesgon log_winloader -logfile $(OBJDIR)syscall_tracing_compare_dbg.log \
 	  -- $(TESTAPP) makefile $(OBJDIR)syscall_tracing_compare_dbg.makefile.copy
 	$(CMP) makefile $(OBJDIR)syscall_tracing_compare_dbg.makefile.copy
-	$(GREP) "syscall number =" $(OBJDIR)syscall_tracing_compare_dbg.log > $(OBJDIR)syscall_numbers_dbg.log
+	$(GREP) "syscall number =" $(OBJDIR)syscall_tracing_compare_dbg.log | $(SED) 's/trace ended.*syscall/syscall/' > $(OBJDIR)syscall_numbers_dbg.log
 	$(CMP) $(OBJDIR)syscall_numbers_seh.log $(OBJDIR)syscall_numbers_dbg.log
 	$(RM) $(OBJDIR)syscall_tracing_compare_*.makefile.copy $(OBJDIR)syscall_tracing_compare_*.log $(OBJDIR)syscall_numbers_*.log
 
@@ -169,6 +160,10 @@ pin_clone.test: $(OBJDIR)pin_clone_app$(EXE_SUFFIX)
 
 exit_restartable_syscall.test: $(OBJDIR)exit_restartable_syscall_app$(EXE_SUFFIX)
 	$(PIN) -- $(OBJDIR)exit_restartable_syscall_app$(EXE_SUFFIX)
+
+syscall_time.test: $(OBJDIR)syscall_time$(PINTOOL_SUFFIX) $(THREAD_APP)
+	$(PIN) -t $(OBJDIR)syscall_time$(PINTOOL_SUFFIX) -- $(THREAD_APP) > $(OBJDIR)syscall_time.out 2>&1
+	$(RM) $(OBJDIR)syscall_time.out
 
 
 ##############################################################

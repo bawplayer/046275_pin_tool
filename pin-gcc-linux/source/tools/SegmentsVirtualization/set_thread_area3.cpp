@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -33,13 +33,9 @@ END_LEGAL */
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
-#if defined(TARGET_ANDROID)
-#include <sys/syscall.h>
-#else
 #include <syscall.h>
-#endif
-#include <linux/unistd.h> 
-#include <asm/ldt.h> 
+#include <linux/unistd.h>
+#include <asm/ldt.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/utsname.h>
@@ -104,7 +100,7 @@ unsigned int GdtFirstEntry()
         thrDescr.entry_number = i;
         int res = syscall(SYS_get_thread_area, &thrDescr);
         if ((res == 0) || (errno != EINVAL))
-        { 
+        {
             first = i;
             return first;
         }
@@ -131,7 +127,7 @@ int main (int argc, char *argv[])
 
     tr.entry_number = (unsigned)-1;
     tr.base_addr = 0xabcd;
-    
+
     res = syscall(SYS_set_thread_area, &tr);
     if (res != 0)
     {
@@ -140,16 +136,16 @@ int main (int argc, char *argv[])
     }
 
     printf("Allocated entry is %d\n", tr.entry_number);
-    
-    
+
+
     memset(&set_tr, 0, sizeof(UserDesc));
     set_tr.entry_number = tr.entry_number;
     set_tr.read_exec_only = 1;
     set_tr.seg_not_present = 1;
     set_tr.useable = 0;
-    
+
     printf("Free entry %d\n", set_tr.entry_number);
-    res = syscall(SYS_set_thread_area, &set_tr);    
+    res = syscall(SYS_set_thread_area, &set_tr);
     if (res != 0)
     {
         printf("SYS_set_thread_area failed with error: %s\n", strerror(errno));
@@ -166,7 +162,7 @@ int main (int argc, char *argv[])
         return 0;
     }
     printf("Allocated entry is %d\n", tr.entry_number);
-    
+
     tr.base_addr = 0;
     res = syscall(SYS_get_thread_area, &tr);
     if (res != 0)
@@ -175,7 +171,7 @@ int main (int argc, char *argv[])
         return 0;
     }
     printf("Base address for entry %d is 0x%x\n", tr.entry_number, tr.base_addr);
-    
+
     tr.entry_number = GdtFirstEntry()+2;
     res = syscall(SYS_get_thread_area, &tr);
     if (res != 0)
@@ -184,7 +180,7 @@ int main (int argc, char *argv[])
         return 0;
     }
     printf("Base address for entry %d is 0x%x\n", tr.entry_number, tr.base_addr);
-  
+
     return 0;
 }
 

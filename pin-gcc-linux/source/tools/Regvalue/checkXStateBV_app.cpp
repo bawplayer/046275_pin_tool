@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -160,7 +160,7 @@ int main(int argc, const char* argv[])
 
     bool success = true;
     flags = 7;
-    DoXsave(); // get the register value before the change
+    DoXsave(); // get the register value after the change
     if (!IsOn(regClass))
     {
         cerr << "ERROR: The " << componentStrings[regClass] << " state bit was expected to be set at this point "

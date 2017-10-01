@@ -48,19 +48,10 @@ LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
 
-#Android
-ifeq ($(TARGET_OS),android)
-    TEST_ROOTS += flag_ac_inline_smc smc_except
-    APP_ROOTS += smcapp_except flag_ac_app
-    # smc_sse cause memory corruption. See mantis 3210.
-    TEST_ROOTS := $(filter-out smc_sse, $(TEST_ROOTS))
-    APP_ROOTS := $(filter-out sse, $(APP_ROOTS))
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     TEST_ROOTS += smc_except flag_ac_inline_smc
-    APP_ROOTS += smcapp_except
+    APP_ROOTS += smcapp_except flag_ac_app
 endif
 
 # Windows
@@ -83,13 +74,6 @@ ifeq ($(ICC),1)
     ifeq ($(TARGET_OS),windows)
         TEST_ROOTS := $(filter-out smc_bbl, $(TEST_ROOTS))
     endif
-endif
-
-# KNC does not support SSE, therefore don't test the following on that platform.
-ifeq ($(TARGET),mic)
-    TEST_ROOTS := $(filter-out smc_sse, $(TEST_ROOTS))
-    APP_ROOTS := $(filter-out sse, $(APP_ROOTS))
-    SANITY_ROOTS := $(filter-out smc_sse, $(SANITY_ROOTS))
 endif
 
 ###### Define the sanity subset ######

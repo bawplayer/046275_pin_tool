@@ -48,11 +48,6 @@ endif
 
 ###### Place OS-specific definitions here ######
 
-# Android
-ifeq ($(TARGET_OS),android)
-    TEST_TOOL_ROOTS += memalloc memalloc2
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     TEST_TOOL_ROOTS += memalloc memalloc2 restrict_memory_vdso
@@ -66,14 +61,6 @@ ifeq ($(TARGET_OS),windows)
 endif
 
 ###### Handle exceptions here ######
-
-# Android
-ifeq ($(TARGET_OS),android)
-    ifeq ($(NDK_VERSION),10)
-        # memalloc, big_malloc: The memory allocation causes a soft reboot in Android. See mantis 3308.
-        TEST_TOOL_ROOTS := $(filter-out big_malloc memalloc, $(TEST_TOOL_ROOTS))
-    endif
-endif
 
 # Mac OS X*
 ifeq ($(TARGET_OS),mac)
@@ -155,12 +142,6 @@ ifeq ($(TARGET),intel64)
     PIN_IMAGE_RANGE_PARAM := -pin_image_memory_range $(PIN_IMAGE_RANGE)
     PIN_RESTRICT_RANGE_PARAM := -restrict_memory 0x304000000:0x304010000
 endif
-ifeq ($(TARGET),mic)    
-    MEMORY_BOUNDARY_TO_CHECK := 0x20BadBeef:0x21BadBeef
-    CC_BOUNDARY_TO_CHECK := 0x30BadBeef:0x32BadBeef
-    PIN_IMAGE_RANGE := 0:0
-    PIN_IMAGE_RANGE_PARAM :=
-endif
 
 # -pin_image_memory_range is not supported on Windows and OS X*.
 ifeq ($(TARGET_OS),mac)
@@ -231,7 +212,7 @@ restrict_memory.test: $(OBJDIR)mmap_reader_app$(EXE_SUFFIX)
 	  "\<0*$(word 3, $(subst x, , $(subst :, ,$(PIN_RESTRICT_RANGE_PARAM))))-" )
 	$(RM) $(OBJDIR)restrict_memory.out
 
-restrict_memory_vdso.test: $(OBJDIR)restrict_memory_vdso$(PINTOOL_SUFFIX) $(OBJDIR)print_vdso$(EXE_SUFFIX) $(OBJDIR)print_vvar $(EXE_SUFFIX) $(DISABLE_ASLR)
+restrict_memory_vdso.test: $(OBJDIR)restrict_memory_vdso$(PINTOOL_SUFFIX) $(OBJDIR)print_vdso$(EXE_SUFFIX) $(OBJDIR)print_vvar$(EXE_SUFFIX) $(DISABLE_ASLR)
 	$(RM) -f $(OBJDIR)restrict_memory_vdso.out $(OBJDIR)the_vdso.txt $(OBJDIR)the_vvar.txt
 	$(DISABLE_ASLR) $(PIN) -- $(OBJDIR)print_vdso$(EXE_SUFFIX) > $(OBJDIR)the_vdso.txt
 	$(DISABLE_ASLR) $(PIN) -restrict-memory `cat $(OBJDIR)the_vdso.txt` \

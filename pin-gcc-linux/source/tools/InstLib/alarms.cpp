@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -103,6 +103,9 @@ VOID ALARM_SSC::Trace(TRACE trace, VOID* v)
                   memcmp(ssc_marker,dst_buf,pattern_len) == 0){
                     InsertIfCall_Count(ssc_alarm, ins, 1);
                     InsertThenCall_Fire(ssc_alarm, ins);        
+
+                    // Add late handler instrumentation if needed
+                    Insert_LateInstrumentation(ssc_alarm,ins);
                 }
 
             }
@@ -133,7 +136,10 @@ VOID ALARM_SSC::Trace(TRACE trace, VOID* v)
                 if (copy_size == pattern_len &&  
                   memcmp(ssc_marker,dst_buf,pattern_len) == 0){
                     InsertIfCall_Count(ssc_alarm, ins, 1);
-                    InsertThenCall_Fire(ssc_alarm, ins);        
+                    InsertThenCall_Fire(ssc_alarm, ins);       
+
+                    // Add late handler instrumentation if needed
+                    Insert_LateInstrumentation(ssc_alarm,ins);
                 }
             }
         }
@@ -198,6 +204,7 @@ VOID ALARM_INT3::Trace(TRACE trace, VOID* v)
                 ALARM_INT3* int3_alarm = static_cast<ALARM_INT3*>(v);
                 InsertIfCall_Count(int3_alarm, ins, 1);
                 InsertThenCall_Fire(int3_alarm, ins);
+
                 INS_Delete(ins); // so no "int3" will be actually executed
             }
         }
@@ -222,7 +229,10 @@ VOID ALARM_ISA_CATEGORY::Trace(TRACE trace, VOID* v)
             category = static_cast<xed_category_enum_t>(INS_Category(ins));
             if (category == isa_ctg_alarm->_required_ctg){
                 InsertIfCall_Count(isa_ctg_alarm, ins, 1);
-                InsertThenCall_Fire(isa_ctg_alarm, ins);        
+                InsertThenCall_Fire(isa_ctg_alarm, ins);      
+
+                // Add late handler instrumentation if needed
+                Insert_LateInstrumentation(isa_ctg_alarm,ins);
             }
         }
     }
@@ -245,8 +255,11 @@ VOID ALARM_ISA_EXTENSION::Trace(TRACE trace, VOID* v)
             xed_extension_enum_t extension;
             extension = static_cast<xed_extension_enum_t>(INS_Extension(ins));
             if (extension == isa_ext_alarm->_required_ext){
-                    InsertIfCall_Count(isa_ext_alarm, ins, 1);
-                    InsertThenCall_Fire(isa_ext_alarm, ins);        
+                InsertIfCall_Count(isa_ext_alarm, ins, 1);
+                InsertThenCall_Fire(isa_ext_alarm, ins);        
+
+                // Add late handler instrumentation if needed
+                Insert_LateInstrumentation(isa_ext_alarm,ins);
             }
         }
     }
@@ -255,24 +268,7 @@ VOID ALARM_ISA_EXTENSION::Trace(TRACE trace, VOID* v)
 //*****************************************************************************
 
 VOID ALARM_ADDRESS::Activate(){
-    TRACE_AddInstrumentFunction(Trace, this);
-}
-
-VOID ALARM_ADDRESS::Trace(TRACE trace, VOID* v)
-{
-    ALARM_ADDRESS* address_alarm = static_cast<ALARM_ADDRESS*>(v);
-
-    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
-    {
-        for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
-        {
-            if (INS_Address(ins) == address_alarm->_address){
-                InsertIfCall_Count(address_alarm, ins, 1);
-                InsertThenCall_Fire(address_alarm, ins);
-            }
-            
-        }
-    }
+    TRACE_AddInstrumentFunction(TraceAddress, this);
 }
 
 //*****************************************************************************
@@ -281,7 +277,7 @@ VOID ALARM_SYMBOL::Activate(){
     PIN_InitSymbols();
     //this is for finding the address of the required symbol
     IMG_AddInstrumentFunction(Img, this);
-    TRACE_AddInstrumentFunction(Trace, this);
+    TRACE_AddInstrumentFunction(TraceAddress, this);
 }
 
 VOID ALARM_SYMBOL::Img(IMG img, VOID* v)
@@ -298,21 +294,6 @@ VOID ALARM_SYMBOL::Img(IMG img, VOID* v)
     
     }
 }
-VOID ALARM_SYMBOL::Trace(TRACE trace, VOID* v)
-{
-    ALARM_SYMBOL* symbol_alarm = static_cast<ALARM_SYMBOL*>(v);
-
-    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
-    {
-        for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
-        {
-            if (INS_Address(ins) == symbol_alarm->_address){
-                InsertIfCall_Count(symbol_alarm, ins, 1);
-                InsertThenCall_Fire(symbol_alarm, ins);
-            }
-        }
-    }
-}
 
 //*****************************************************************************
 
@@ -320,7 +301,7 @@ VOID ALARM_IMAGE::Activate(){
     PIN_InitSymbols();
     //this is for finding the address of the required symbol
     IMG_AddInstrumentFunction(Img, this);
-    TRACE_AddInstrumentFunction(Trace, this);
+    TRACE_AddInstrumentFunction(TraceAddress, this);
 }
 
 VOID ALARM_IMAGE::Img(IMG img, VOID* v)
@@ -354,22 +335,6 @@ VOID ALARM_IMAGE::Img(IMG img, VOID* v)
     }
 }
 
-VOID ALARM_IMAGE::Trace(TRACE trace, VOID* v)
-{
-    ALARM_IMAGE* image_alarm = static_cast<ALARM_IMAGE*>(v);
-
-    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
-    {
-        for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins))
-        {
-            if (INS_Address(ins) == image_alarm->_address){
-                InsertIfCall_Count(image_alarm, ins, 1);
-                InsertThenCall_Fire(image_alarm, ins);
-            }
-            
-        }
-    }
-}
 
 //*****************************************************************************
 
@@ -417,10 +382,10 @@ ALARM_INTERACTIVE::InteractiveShouldFire(ALARM_INTERACTIVE* alarm,
     UINT32 armed = alarm->_armed[tid];
     UINT32 correct_tid = (alarm->_tid == tid) | (alarm->_tid == ALL_THREADS);
 
-    if (armed & correct_tid){
-        return alarm->_listener->CheckClearSignal();
-    }
-    return 0;
+    // In order to make sure that this routine is inline we call
+    // GetClearSignal that checks if we can clear signal
+    // The actual modification by cmpxchgl is done in Fire routine
+    return (armed & correct_tid & alarm->_listener->GetClearSignal());
 }
 
 //*****************************************************************************
@@ -621,4 +586,49 @@ ALARM_PCONTROL::OnMpiPcontrol(ALARM_PCONTROL* alarm,
         if (alarm->Count(alarm, tid, 1))
             alarm->_alarm_manager->Fire(ctxt,reinterpret_cast<VOID*>(ip),tid);
     }
+}
+
+//*****************************************************************************
+
+VOID ALARM_TIMEOUT::Activate(){
+    TRACE_AddInstrumentFunction(Trace, this);
+    PIN_SpawnInternalThread(WaitForTimeout, this, 0 ,NULL);
+}
+    
+VOID ALARM_TIMEOUT::WaitForTimeout(VOID* v)
+{
+    ALARM_TIMEOUT* timeout_alarm = static_cast<ALARM_TIMEOUT*>(v);
+    PIN_Sleep(timeout_alarm->_seconds_timeout*1000);
+    timeout_alarm->_timeout_passed = TRUE;
+}
+
+VOID ALARM_TIMEOUT::Trace(TRACE trace, VOID* v)
+{
+    ALARM_TIMEOUT* timeout_alarm = static_cast<ALARM_TIMEOUT*>(v);
+    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
+    {
+        INS ins = BBL_InsHead(bbl);
+        InsertIfCall_CheckTime(timeout_alarm, ins);
+        InsertThenCall_Fire(timeout_alarm, ins);
+    }
+}
+
+// Instrumentation of time checking
+VOID ALARM_TIMEOUT::InsertIfCall_CheckTime(ALARM_TIMEOUT* alarm, INS ins){
+    INS_InsertIfCall(ins, IPOINT_BEFORE,
+        AFUNPTR(CheckTime),
+        IARG_FAST_ANALYSIS_CALL,
+        IARG_CALL_ORDER, alarm->GetInstrumentOrder(),
+        IARG_ADDRINT, alarm,
+        IARG_THREAD_ID,
+        IARG_END);
+}
+
+// Check if we have reached the timeout we need
+ADDRINT PIN_FAST_ANALYSIS_CALL ALARM_TIMEOUT::CheckTime(ALARM_TIMEOUT* ialarm, 
+                                                        UINT32 tid) {
+    BOOL armed = ialarm->_armed[tid];
+    BOOL correct_tid = (ialarm->_tid == tid) | (ialarm->_tid == ALL_THREADS);
+
+    return armed & correct_tid & ialarm->_timeout_passed;
 }

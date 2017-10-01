@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -33,13 +33,9 @@ END_LEGAL */
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
-#if defined(TARGET_ANDROID)
-#include <sys/syscall.h>
-#else
 #include <syscall.h>
-#endif
-#include <linux/unistd.h> 
-#include <asm/ldt.h> 
+#include <linux/unistd.h>
+#include <asm/ldt.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/utsname.h>
@@ -118,7 +114,7 @@ unsigned int GdtFirstEntry()
         thrDescr.entry_number = i;
         int res = syscall(SYS_get_thread_area, &thrDescr);
         if ((res == 0) || (errno != EINVAL))
-        { 
+        {
             first = i;
             return first;
         }
@@ -132,9 +128,9 @@ int main (int argc, char *argv[])
     int rc;
     UserDesc tr;
     int res;
-    
+
    	tr.entry_number = GdtFirstEntry();
-    
+
     res = syscall(SYS_get_thread_area, &tr);
     if (res != 0)
     {
@@ -146,24 +142,24 @@ int main (int argc, char *argv[])
     tr.base_addr = (unsigned int)new UserInfo();
     ((UserInfo*)(tr.base_addr))->d1 = value1;
     ((UserInfo*)(tr.base_addr))->d2 = value2;
-    
+
 
     res = syscall(SYS_set_thread_area, &tr);
-    
+
     if (res != 0)
     {
         printf("SYS_set_thread_area failed with error: %s\n", strerror(errno));
         return 0;
     }
-    
+
     TLS_SET_FS_REG((tr.entry_number << 3) + 3);
 
 	if ((GetVal(0) == value1) && (GetVal(4) == value2))
-	{       
+	{
 	    printf("TEST PASSED\n");
 	}
 	else
-	{       
+	{
 	    printf("TEST FAILED\n");
 	}
     return 0;

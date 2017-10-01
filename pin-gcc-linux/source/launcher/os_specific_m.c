@@ -76,7 +76,7 @@ void update_environment(char* base_path)
     ext_libs64 = append3(base_path64, "/", lib_ext_dir);
 
     /* make pin_ld_library_path pre-pending pin_libs -- for the VM ultimately */
-    ld_library_path = getenv("DYLD_LIBRARY_PATH");
+    ld_library_path = getenv("PIN_VM_DYLD_LIBRARY_PATH");
     pin_ld_library_path = ld_library_path;
 
     /* Add the path which contains XED */

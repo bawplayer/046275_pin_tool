@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -61,39 +61,39 @@ INT32 Usage()
     return -1;
 }
 
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 
 UINT32 threadCounter=0;
 BOOL   isAppStartReceived = FALSE;
 
 VOID AppStart(VOID *v)
 {
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
     TraceFile << "Application Start Callback is called from thread " << dec << PIN_GetTid() << endl;
     isAppStartReceived = TRUE;
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 VOID AttachedThreadStart(VOID *sigmask, VOID *v)
 {
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
     TraceFile << "Thread counter is updated to " << dec <<  (threadCounter+1) << endl;
     ++threadCounter;
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 int PinReady(unsigned int numOfThreads)
 {
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
 	// Check that we don't have any extra thread
 	assert(threadCounter <= numOfThreads);
     if ((threadCounter == numOfThreads) && isAppStartReceived)
     {
         TraceFile.close();
-        PIN_ReleaseLock(&lock);
+        PIN_ReleaseLock(&pinLock);
         return 1;
     }
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
     return 0;
 }
 
@@ -153,7 +153,7 @@ int main(int argc, CHAR *argv[])
     TraceFile << hex;
     TraceFile.setf(ios::showbase);
 
-	PIN_InitLock(&lock);
+	PIN_InitLock(&pinLock);
 	
     IMG_AddInstrumentFunction(ImageLoad, 0);
     PIN_AddApplicationStartFunction(AppStart, 0);

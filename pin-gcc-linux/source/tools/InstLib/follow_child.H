@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -33,19 +33,15 @@ END_LEGAL */
 
 #ifndef TARGET_WINDOWS
 
-#if defined(TARGET_LINUX) && !defined(TARGET_ANDROID)
-#include <syscall.h>
+#if defined(TARGET_LINUX)
+# include <syscall.h>
 #endif
 
-#if defined(TARGET_MAC) || defined(TARGET_BSD) || defined(TARGET_ANDROID)
-#include <sys/syscall.h>
-#    ifdef TARGET_ANDROID
-// Android NDK doesn't support the SYS_* convention.
-#    define SYS_execve __NR_execve
-#    endif
+#if defined(TARGET_MAC)
+# include <sys/syscall.h>
 #endif
 
-namespace INSTLIB 
+namespace INSTLIB
 {
 
 /*! @defgroup FOLLOW_CHILD
@@ -76,7 +72,7 @@ class FOLLOW_CHILD
         _prefix = 0;
         _active = FALSE;
     };
-    
+
     /*! @ingroup FOLLOW_CHILD
      *
      * Set the prefix to be used for the next child. The prefix is the full
@@ -139,11 +135,11 @@ class FOLLOW_CHILD
     {
         if (syscallNumber != SYS_execve)
             return;
-    
+
         CHAR const * const appFilenameKnob = "-app_filename";
-        
+
         // Construct a new argv array
-        
+
         // Compute size of pin prefix, ends with '--'
         INT32 newArgvSize = 0;
         for (INT32 i = 0; strcmp(_prefix[i],"--") != 0; i++)
@@ -157,21 +153,21 @@ class FOLLOW_CHILD
             {
                 newArgvSize++;
             }
-            
+
         }
-        
+
         // Add space for "-app_filename <file> --"
         newArgvSize += 3;
-    
+
         // Compute size of application argv, ends with 0
         for (INT32 i = 0; (*argv)[i] != 0; i++)
         {
             newArgvSize++;
         }
-        
+
         // Add space for 0
         newArgvSize++;
-    
+
         // We are about to do an exec, so this is not a true memory leak
         CHAR const ** newArgv = new CHAR const *[newArgvSize];
         INT32 newArgc = 0;
@@ -207,9 +203,9 @@ class FOLLOW_CHILD
         }
         // Add terminating 0
         newArgv[newArgc++] = 0;
-                           
+
         ASSERTX(newArgc == newArgvSize);
-        
+
         // Change the system call arguments
         *filename = newArgv[0];
         *argv = newArgv;

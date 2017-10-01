@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -33,13 +33,9 @@ END_LEGAL */
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
-#if defined(TARGET_ANDROID)
-#include <sys/syscall.h>
-#else
 #include <syscall.h>
-#endif
-#include <linux/unistd.h> 
-#include <asm/ldt.h> 
+#include <linux/unistd.h>
+#include <asm/ldt.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/utsname.h>
@@ -100,7 +96,7 @@ unsigned int GdtFirstEntry()
         thrDescr._entry_number = i;
         int res = syscall(SYS_get_thread_area, &thrDescr);
         if ((res == 0) || (errno != EINVAL))
-        { 
+        {
             first = i;
             return first;
         }
@@ -118,7 +114,7 @@ void * thread_func (void *arg)
 
 	unsigned int gdtEntryMin = GdtFirstEntry();
 	unsigned int gdtEntryMax = gdtEntryMin + GDT_NUM_OF_ENTRIES - 1;
-	
+
     for (unsigned int i=gdtEntryMin; i<=gdtEntryMax+1; i++)
     {
         UserDesc thrDescr;
@@ -127,18 +123,18 @@ void * thread_func (void *arg)
         if (res == 0)
         {
             if (thrDescr._base_addr != mainThreadAddress[i])
-                sprintf(buf[thread_no-1],"%s thread %d: base addr for entry %d has been changed by clone()\n", 
+                sprintf(buf[thread_no-1],"%s thread %d: base addr for entry %d has been changed by clone()\n",
                     buf[thread_no-1], thread_no, i);
             else
-               sprintf(buf[thread_no-1],"%s thread %d: base addr for entry %d is equal to the same entry in main thread\n", 
-                    buf[thread_no-1], thread_no, i); 
+               sprintf(buf[thread_no-1],"%s thread %d: base addr for entry %d is equal to the same entry in main thread\n",
+                    buf[thread_no-1], thread_no, i);
         }
         else
         {
-           sprintf(buf[thread_no-1],"%s thread %d: SYS_get_thread_area failed for entry %d with error: %s\n", 
+           sprintf(buf[thread_no-1],"%s thread %d: SYS_get_thread_area failed for entry %d with error: %s\n",
            buf[thread_no-1], thread_no, i, strerror(errno));
         }
-        
+
     }
 
     return 0;
@@ -153,7 +149,7 @@ int main (int argc, char *argv[])
     {
         mainThreadAddress[i] = 0;
     }
-    
+
     thrDescr._entry_number = GdtFirstEntry();
     int res = syscall(SYS_get_thread_area, &thrDescr);
     if (res != 0)

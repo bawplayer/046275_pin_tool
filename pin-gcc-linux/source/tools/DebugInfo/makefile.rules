@@ -48,13 +48,8 @@ LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
 
-ifeq ($(TARGET_OS),android)
-    TEST_ROOTS += debug_jit debug_probe
-    TOOL_ROOTS += debugtest
-endif
-
 ifeq ($(TARGET_OS),linux)
-    TEST_TOOL_ROOTS += backtrace app_backtrace backtrace_from_dll
+    TEST_TOOL_ROOTS += backtrace app_backtrace backtrace_from_dll pin_backtrace_on_assert
     TEST_ROOTS += debug_dwarf4_jit debug_jit debug_dwarf4_probe debug_probe
     TOOL_ROOTS += debugtest
     APP_ROOTS += app_backtrace_app
@@ -62,7 +57,7 @@ ifeq ($(TARGET_OS),linux)
 endif
 
 ifeq ($(TARGET_OS),mac)
-    TEST_TOOL_ROOTS += backtrace app_backtrace backtrace_from_dll
+    TEST_TOOL_ROOTS += backtrace app_backtrace backtrace_from_dll pin_backtrace_on_assert
     APP_ROOTS += app_backtrace_app
     DLL_ROOTS += backtrace_dll
 endif
@@ -74,17 +69,6 @@ ifeq ($(TARGET_OS),linux)
     ifeq ($(DWARF4_NOT_SUPPORTED),1)
         TEST_ROOTS := $(filter-out debug_dwarf4_jit debug_dwarf4_probe, $(TEST_ROOTS))
     endif
-endif
-
-# Debug information and probe mode are not supported on Mic.
-ifeq ($(TARGET),mic)
-    TEST_ROOTS := $(filter-out debug_jit debug_probe, $(TEST_ROOTS))
-endif
-
-# Our WRL compiler does not support dwarf4.
-osrel := $(shell uname -r)
-ifeq ($(findstring WR,$(osrel)),WR)
-    TEST_ROOTS := $(filter-out debug_dwarf4_jit debug_dwarf4_probe, $(TEST_ROOTS))
 endif
 
 ###### Define the sanity subset ######
@@ -157,6 +141,11 @@ backtrace_from_dll.test: $(OBJDIR)backtrace_from_dll$(PINTOOL_SUFFIX) $(HELLO_AP
 	  --  $(HELLO_APP) > $(OBJDIR)backtrace_from_dll.out 2>&1
 	$(PYCOMPARE) -p backtrace_from_dll.reference -c $(OBJDIR)backtrace_from_dll.out
 
+pin_backtrace_on_assert.test: $(OBJDIR)pin_backtrace_on_assert$(PINTOOL_SUFFIX) $(TESTAPP)
+	! ( $(PIN) -t $(OBJDIR)pin_backtrace_on_assert$(PINTOOL_SUFFIX) \
+	  -- $(TESTAPP) makefile $(OBJDIR)pin_backtrace_on_assert.makefile.copy > $(OBJDIR)pin_backtrace_on_assert.out 2>&1 )
+	$(PYCOMPARE) -p pin_backtrace_on_assert.reference -c $(OBJDIR)pin_backtrace_on_assert.out
+	$(RM) -f $(OBJDIR)pin_backtrace_on_assert.out
 
 ##############################################################
 #
@@ -169,9 +158,6 @@ backtrace_from_dll.test: $(OBJDIR)backtrace_from_dll$(PINTOOL_SUFFIX) $(HELLO_AP
 
 ###### Special tools' build rules ######
 
-ifeq ($(TARGET_OS),android)
-    VERSION_SCRIPT_PATTERN := -Wl,--version-script=%
-endif
 ifeq ($(TARGET_OS),linux)
     VERSION_SCRIPT_PATTERN := -Wl,--version-script=%
 endif
@@ -185,6 +171,9 @@ $(OBJDIR)backtrace$(PINTOOL_SUFFIX): $(OBJDIR)backtrace$(OBJ_SUFFIX)
 
 $(OBJDIR)backtrace_from_dll$(PINTOOL_SUFFIX): $(OBJDIR)backtrace_from_dll$(OBJ_SUFFIX) $(OBJDIR)$(DLL_PREFIX)backtrace_dll$(DLL_SUFFIX)
 	$(LINKER) $(TOOL_LDFLAGS_NOOPT) $(LINK_EXE)$@ $^ $(TOOL_LPATHS) $(TOOL_LIBS)
+
+$(OBJDIR)pin_backtrace_on_assert$(PINTOOL_SUFFIX): $(OBJDIR)pin_backtrace_on_assert$(OBJ_SUFFIX) $(CONTROLLERLIB)
+	$(LINKER) $(EXPORT_ALL) $(COMP_EXE)$@ $< $(filter-out $(VERSION_SCRIPT_PATTERN),$(TOOL_LDFLAGS_NOOPT)) $(TOOL_LPATHS) $(TOOL_LIBS)
 
 ###### Special objects' build rules ######
 
@@ -208,6 +197,9 @@ $(OBJDIR)backtrace_from_dll$(OBJ_SUFFIX): backtrace_from_dll.cpp
 	$(CXX) $(TOOL_CXXFLAGS_NOOPT) $(COMP_OBJ)$@ $<
 
 $(OBJDIR)backtrace_dll$(OBJ_SUFFIX): backtrace_dll.cpp
+	$(CXX) $(TOOL_CXXFLAGS_NOOPT) $(COMP_OBJ)$@ $<
+
+$(OBJDIR)pin_backtrace_on_assert$(OBJ_SUFFIX): pin_backtrace_on_assert.cpp
 	$(CXX) $(TOOL_CXXFLAGS_NOOPT) $(COMP_OBJ)$@ $<
 
 ###### Special dlls' build rules ######

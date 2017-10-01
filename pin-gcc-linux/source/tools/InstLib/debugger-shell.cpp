@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -283,7 +283,7 @@ private:
         UINT64 _mcount;     //   memory instruction count
         THREADID _tid;      //   thread to trigger the event
     };
-        
+
     struct EVENT
     {
         ETYPE _type;                // Breakpoint vs. tracepoint.
@@ -307,7 +307,7 @@ private:
 
             AT_ICOUNT _atIcount; // TRIGGER_AT_ICOUNT
 
-            AT_MCOUNT _atMcount; // TRIGGER_AT_ICOUNT           
+            AT_MCOUNT _atMcount; // TRIGGER_AT_ICOUNT
 
             struct
             {                       // TRIGGER_STORE_VALUE_TO:
@@ -319,7 +319,7 @@ private:
             {                       // TRIGGER_LOAD_VALUE_FROM:
                 ADDRINT _ea;        //   EA of load.
                 UINT64 _value;      //   value loaded.
-            } _loadValueFrom;            
+            } _loadValueFrom;
 
             struct
             {                       // TRIGGER_REG_IS:
@@ -386,7 +386,7 @@ public:
         _regSkipOne = PIN_ClaimToolRegister();
         _regRecordEa = PIN_ClaimToolRegister();
         _regThreadData = PIN_ClaimToolRegister();
-        
+
         if (!REG_valid(_regSkipOne) || !REG_valid(_regRecordEa) || !REG_valid(_regThreadData))
         {
             PrintError("Unable to allocate Pin virtual register");
@@ -476,7 +476,7 @@ private:
      *  @param[in,out] ctxt     Register state for the thread
      *  @param[in] flags        OS specific flags
      *  @param[in] v            Any tool specific value
-     */    
+     */
     static VOID ThreadStart(THREADID tid, CONTEXT * ctxt, INT32 flags, VOID * v)
     {
         THREAD_DATA * td = new THREAD_DATA();
@@ -494,7 +494,7 @@ private:
      *  @param[in] ctxt         Register state for the thread
      *  @param[in] code         OS specific exit code
      *  @param[in] v            Any tool specific value
-     */        
+     */
     static VOID ThreadFini(THREADID tid, const CONTEXT * ctxt, INT32 code, VOID * v)
     {
         THREAD_DATA * td = NULL;
@@ -503,7 +503,7 @@ private:
         td = reinterpret_cast<THREAD_DATA *>(PIN_GetContextReg(ctxt, ds->_regThreadData));
         if (td) delete td;
     }
-    
+
     /*
      * Pin call-back that implements an extended debugger command.
      *
@@ -556,9 +556,9 @@ private:
          *
          *  0x1234: rax = 0x5678
          *  0x1234:
-         *  0x1234: if store to 0x89abc: rax = 0x5678 
+         *  0x1234: if store to 0x89abc: rax = 0x5678
          *  0x1234: if store to 0x89abc
-         *  0x1234: after store to 0x89abc = 0xdef00: rax = 0x5678 
+         *  0x1234: after store to 0x89abc = 0xdef00: rax = 0x5678
          *  0x1234: after store to 0x89abc = 0xdef00
          */
 
@@ -686,7 +686,7 @@ private:
             //
             *result = me->ParseTriggerLoadFromEvent(ETYPE_BREAKPOINT, words[4], "");
             return TRUE;
-        }        
+        }
         else if (nWords == 5 && words[0] == "trace" && words[1] == "if" && words[2] == "store" &&
             words[3] == "to")
         {
@@ -718,7 +718,7 @@ private:
             //
             *result = me->ParseTriggerLoadFromEvent(ETYPE_TRACEPOINT, words[5], words[1]);
             return TRUE;
-        }        
+        }
         else if (nWords == 7 && words[0] == "break" && words[1] == "before" && words[2] == "load" &&
             words[3] == "from" && words[5] == "==")
         {
@@ -766,7 +766,7 @@ private:
             //
             *result = me->ParseTriggerLoadValueFromEvent(ETYPE_TRACEPOINT, words[5], words[7], words[1]);
             return TRUE;
-        }        
+        }
         else if (me->_clientArgs._enableIcountBreakpoints && nWords == 4 && words[0] == "break" &&
             words[1] == "if" && words[2] == "icount")
         {
@@ -782,7 +782,7 @@ private:
             //
             *result = me->ParseTriggerAtCount(ETYPE_BREAKPOINT, words[3], TRIGGER_AT_MCOUNT, tid);
             return TRUE;
-        }                
+        }
         else if (nWords == 5 && words[0] == "break" && words[1] == "if" && words[2] == "jump" &&
             words[3] == "to")
         {
@@ -808,7 +808,7 @@ private:
      */
     VOID Flush()
     {
-        CODECACHE_FlushCache();
+        PIN_RemoveInstrumentation();
     }
 
 
@@ -955,7 +955,7 @@ private:
         helpCommands->push_back(HELP("break if store to <addr>",
             "Break before any store to <addr>."));
         helpCommands->push_back(HELP("break before load from <addr> == <value>",
-            "Break before load if <value> loaded from <addr>."));        
+            "Break before load if <value> loaded from <addr>."));
         helpCommands->push_back(HELP("break after store to <addr> == <value>",
             "Break after store if <value> stored to <addr>."));
 
@@ -1006,7 +1006,7 @@ private:
             "specified, record that register's value too."));
         helpCommands->push_back(HELP("trace [<reg>] before load from <addr> == <value>",
             "Record trace entry before any load of <value> from <addr>.  If <reg> is "
-            "specified, record that register's value too."));        
+            "specified, record that register's value too."));
 
 
         // Register names.
@@ -1015,7 +1015,7 @@ private:
         std::string regUpper = regLower;
         std::transform(regUpper.begin(), regUpper.end(), regUpper.begin(), ::toupper);
 
-        std::string intro = 
+        std::string intro =
             "Some of the extended debugger commands accept a <reg> parameter.  You can specify a registers name "
             "using either \"$\" or \"%\" followed by the name of the register.  For example, all of these strings "
             "specify the same register: \"$" + regLower + "\", \"%" + regLower + "\", \"$" + regUpper + "\", \"%" +
@@ -1506,7 +1506,7 @@ private:
         ADDRINT pc;
         if (!ParseNumber(pcStr, &pc))
         {
-            std::ostringstream os;            
+            std::ostringstream os;
             os << "Invalid address " << pcStr << "\n";
             return os.str();
         }
@@ -1517,7 +1517,7 @@ private:
             reg = ParseRegName(regStr);
             if (!REG_valid(reg))
             {
-                std::ostringstream os;            
+                std::ostringstream os;
                 os << "Invalid register " << regStr << " (see \"help registers\")\n";
                 return os.str();
             }
@@ -1580,10 +1580,10 @@ private:
     {
         ADDRINT addr;
         string outStr;
-        
+
         if (!ParseNumber(addrStr, &addr))
         {
-            std::ostringstream os;            
+            std::ostringstream os;
             os << "Invalid address " << addrStr << "\n";
             return os.str();
         }
@@ -1594,7 +1594,7 @@ private:
             reg = ParseRegName(regStr);
             if (!REG_valid(reg))
             {
-                std::ostringstream os;            
+                std::ostringstream os;
                 os << "Invalid register " << regStr << " (see \"help registers\")\n";
                 return os.str();
             }
@@ -1634,7 +1634,7 @@ private:
             evnt._isEnabled = TRUE;
 
             ret = "Tracepoint " + osList.str() + "\n";
-        }        
+        }
 
         // fill in information specific to this trigger event
         evnt._type = type;
@@ -1660,7 +1660,7 @@ private:
         ADDRINT addr;
         if (!ParseNumber(addrStr, &addr))
         {
-            std::ostringstream os;            
+            std::ostringstream os;
             os << "Invalid address " << addrStr << "\n";
             return os.str();
         }
@@ -1668,7 +1668,7 @@ private:
         UINT64 value = 0;
         if (!ParseNumber(valueStr, &value))
         {
-            std::ostringstream os;            
+            std::ostringstream os;
             os << "Invalid value " << valueStr << "\n";
             return os.str();
         }
@@ -1679,7 +1679,7 @@ private:
             reg = ParseRegName(regStr);
             if (!REG_valid(reg))
             {
-                std::ostringstream os;            
+                std::ostringstream os;
                 os << "Invalid register " << regStr << " (see \"help registers\")\n";
                 return os.str();
             }
@@ -1719,7 +1719,7 @@ private:
             evnt._isEnabled = TRUE;
 
             ret = "Tracepoint " + osList.str() + "\n";
-        }                      
+        }
 
         evnt._type = type;
         evnt._trigger = TRIGGER_LOAD_VALUE_FROM;
@@ -1804,7 +1804,7 @@ private:
         return ret;
     }
 
-    
+
     /*
      * Parse an event with trigger type TRIGGER_STORE_VALUE_TO.
      *
@@ -1821,7 +1821,7 @@ private:
         ADDRINT addr;
         if (!ParseNumber(addrStr, &addr))
         {
-            std::ostringstream os;            
+            std::ostringstream os;
             os << "Invalid address " << addrStr << "\n";
             return os.str();
         }
@@ -1829,7 +1829,7 @@ private:
         UINT64 value = 0;
         if (!ParseNumber(valueStr, &value))
         {
-            std::ostringstream os;            
+            std::ostringstream os;
             os << "Invalid value " << valueStr << "\n";
             return os.str();
         }
@@ -1840,7 +1840,7 @@ private:
             reg = ParseRegName(regStr);
             if (!REG_valid(reg))
             {
-                std::ostringstream os;            
+                std::ostringstream os;
                 os << "Invalid register " << regStr << " (see \"help registers\")\n";
                 return os.str();
             }
@@ -1904,9 +1904,9 @@ private:
      */
     std::string ParseTriggerAtCount(ETYPE type, const std::string &countStr, TRIGGER trigger, THREADID tid)
     {
-        ASSERTX(type == ETYPE_BREAKPOINT);        
+        ASSERTX(type == ETYPE_BREAKPOINT);
         ASSERTX(trigger == TRIGGER_AT_ICOUNT || trigger == TRIGGER_AT_MCOUNT);
-        
+
         UINT64 count = 0;
         if (!ParseNumber(countStr, &count))
         {
@@ -1916,7 +1916,7 @@ private:
         }
 
         unsigned id = _nextEventId++;
-        
+
         std::ostringstream os;
         os << "thread " << std::dec << tid << " if " << (trigger==TRIGGER_AT_ICOUNT ? "icount" : "mcount") << " " << std::dec << count;
 
@@ -1926,11 +1926,11 @@ private:
         std::ostringstream osTrigger;
         osTrigger << "Triggered breakpoint #" << std::dec << id << ": break " << os.str();
         evnt._triggerMsg = osTrigger.str();
-        
+
         std::ostringstream osList;
         osList << "#" << std::dec << id << ":  break " << os.str();
         evnt._listMsg = osList.str();
-        
+
         ret = "Breakpoint " + osList.str() + "\n";
 
         evnt._type = type;
@@ -1965,7 +1965,7 @@ private:
         ADDRINT addr;
         if (!ParseNumber(addrStr, &addr))
         {
-            std::ostringstream os;            
+            std::ostringstream os;
             os << "Invalid address " << addrStr << "\n";
             return os.str();
         }
@@ -1976,7 +1976,7 @@ private:
             reg = ParseRegName(regStr);
             if (!REG_valid(reg))
             {
-                std::ostringstream os;            
+                std::ostringstream os;
                 os << "Invalid register " << regStr << " (see \"help registers\")\n";
                 return os.str();
             }
@@ -2025,7 +2025,7 @@ private:
         Flush();
         return ret;
     }
-    
+
     /*
      * Parse an event with trigger type TRIGGER_REG_IS.
      *
@@ -2043,7 +2043,7 @@ private:
         ADDRINT pc;
         if (!ParseNumber(pcStr, &pc))
         {
-            std::ostringstream os;            
+            std::ostringstream os;
             os << "Invalid address " << pcStr << "\n";
             return os.str();
         }
@@ -2051,7 +2051,7 @@ private:
         REG regCheck = ParseRegName(regCheckStr);
         if (!REG_valid(regCheck))
         {
-            std::ostringstream os;            
+            std::ostringstream os;
             os << "Invalid register " << regCheckStr << " (see \"help registers\")\n";
             return os.str();
         }
@@ -2059,7 +2059,7 @@ private:
         ADDRINT value;
         if (!ParseNumber(valueStr, &value))
         {
-            std::ostringstream os;            
+            std::ostringstream os;
             os << "Invalid value " << valueStr << "\n";
             return os.str();
         }
@@ -2070,7 +2070,7 @@ private:
             regTrace = ParseRegName(regTraceStr);
             if (!REG_valid(regTrace))
             {
-                std::ostringstream os;            
+                std::ostringstream os;
                 os << "Invalid register " << regTraceStr << " (see \"help registers\")\n";
                 return os.str();
             }
@@ -2173,14 +2173,14 @@ private:
                 //
                 if (insertSkipClear)
                     me->InsertSkipClear(ins);
-                
+
                 if (me->_clientArgs._enableIcountBreakpoints)
                     me->InsertCountingInstrumentation(ins);
             }
         }
     }
-    
-                
+
+
     /*
      * Instrument an instruction.
      *
@@ -2224,9 +2224,9 @@ private:
               {
                   InsertIcountBreakpoint(ins, bbl, it->second);
                   *insertSkipClear = TRUE;
-              }              
+              }
               break;
-              
+
             case TRIGGER_AT_MCOUNT:
               if (type == ETYPE_BREAKPOINT)
               {
@@ -2235,9 +2235,9 @@ private:
                       InsertMcountBreakpoint(ins, bbl, it->second);
                       *insertSkipClear = TRUE;
                   }
-              }                            
+              }
               break;
-                
+
             case TRIGGER_LOAD_FROM:
                 if (INS_IsMemoryRead(ins))
                 {
@@ -2257,7 +2257,7 @@ private:
                 }
                 break;
 
-                
+
             case TRIGGER_STORE_TO:
                 if (INS_IsMemoryWrite(ins))
                 {
@@ -2280,13 +2280,13 @@ private:
             case TRIGGER_LOAD_VALUE_FROM:
                 if (INS_IsMemoryRead(ins))
                 {
-                    if (type == ETYPE_BREAKPOINT)                    
+                    if (type == ETYPE_BREAKPOINT)
                         *insertSkipClear = TRUE;
 
                     InstrumentLoadValueFrom(ins, bbl, it->first, it->second);
                 }
                 break;
-                
+
             case TRIGGER_STORE_VALUE_TO:
                 if (INS_IsMemoryWrite(ins))
                 {
@@ -2357,7 +2357,7 @@ private:
 
         InsertBreakpoint(ins, bbl, TRUE, IPOINT_BEFORE, evnt);
     }
-    
+
     /*
      * Instrument a memory instruction with a TRIGGER_AT_MCOUNT event.
      *
@@ -2387,7 +2387,7 @@ private:
                              IARG_PTR, &evnt._atMcount, IARG_END);
         }
         InsertBreakpoint(ins, bbl, TRUE, IPOINT_BEFORE, evnt);
-    }                      
+    }
 
     VOID InsertCountingInstrumentation(INS ins)
     {
@@ -2395,7 +2395,7 @@ private:
 
         if (INS_IsPrefetch(ins) && !_clientArgs._countPrefetchAsMemOp)
             isMemory = FALSE;
-        
+
         if (isMemory)
         {
             if (INS_HasRealRep(ins) && !_clientArgs._countZeroRepAsMemOp)
@@ -2404,14 +2404,14 @@ private:
                                IARG_CALL_ORDER, _clientArgs._callOrderBefore,
                                IARG_FAST_ANALYSIS_CALL,
                                IARG_REG_VALUE, _regThreadData, IARG_END);
-                
+
                 INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR)IncrementMcount,
                                          IARG_CALL_ORDER, _clientArgs._callOrderBefore,
                                          IARG_FAST_ANALYSIS_CALL,
                                          IARG_REG_VALUE, _regThreadData, IARG_END);
             }
             else
-            {   
+            {
                 INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)IncrementIMcount,
                                IARG_CALL_ORDER, _clientArgs._callOrderBefore,
                                IARG_FAST_ANALYSIS_CALL,
@@ -2426,7 +2426,7 @@ private:
                 IARG_REG_VALUE, _regThreadData, IARG_END);
         }
     }
-    
+
     /*
      * Instrument a load instruction with a TRIGGER_LOAD_VALUE_FROM event.
      *
@@ -2456,7 +2456,7 @@ private:
             break;
         }
     }
-    
+
     /*
      * Instrument a store instruction with a TRIGGER_STORE_VALUE_TO event.
      *
@@ -2521,7 +2521,7 @@ private:
         }
     }
 
-    
+
     /*
      * Instrument a store instruction with a TRIGGER_STORE_VALUE_TO event.
      *
@@ -2594,13 +2594,13 @@ private:
                          IARG_ADDRINT, evnt._loadValueFrom._ea,
                          IARG_ADDRINT, hi, IARG_ADDRINT, lo,
                          IARG_END);
-        
+
         if (type == ETYPE_BREAKPOINT)
             InsertBreakpoint(ins, bbl, TRUE, IPOINT_BEFORE, evnt);
         else
             InsertTracepoint(ins, bbl, TRUE, IPOINT_BEFORE, id, evnt);
     }
-    
+
     /*
      * Instrument a 64-bit store instruction with a TRIGGER_STORE_VALUE_TO event.
      * The value is checked using high and low ADDRINT parts (where ADDRINT is assumed
@@ -2677,7 +2677,7 @@ private:
             {
                 _clientArgs._customInstrumentor->InsertBreakpointAfter(ins, bbl,
                     ipoint, _clientArgs._callOrderAfter, evnt._triggerMsg);
-            }   
+            }
             return;
         }
 
@@ -2685,8 +2685,8 @@ private:
         {
             INS_InsertThenCall(ins, ipoint, (AFUNPTR)TriggerBreakpointBefore,
                 IARG_CALL_ORDER, _clientArgs._callOrderBefore,
-                IARG_CONST_CONTEXT, // IARG_CONST_CONTEXT has much lower overhead 
-                                    // than IARG_CONTEX fog passing the CONTEXT* 
+                IARG_CONST_CONTEXT, // IARG_CONST_CONTEXT has much lower overhead
+                                    // than IARG_CONTEX fog passing the CONTEXT*
                                     // to the analysis routine. Note that IARG_CONST_CONTEXT
                                     // passes a read-only CONTEXT* to the analysis routine
                 IARG_THREAD_ID,
@@ -2698,8 +2698,8 @@ private:
         {
             INS_InsertThenCall(ins, ipoint, (AFUNPTR)TriggerBreakpointAfter,
                 IARG_CALL_ORDER, _clientArgs._callOrderAfter,
-                IARG_CONST_CONTEXT, // IARG_CONST_CONTEXT has much lower overhead 
-                                    // than IARG_CONTEX fog passing the CONTEXT* 
+                IARG_CONST_CONTEXT, // IARG_CONST_CONTEXT has much lower overhead
+                                    // than IARG_CONTEX fog passing the CONTEXT*
                                     // to the analysis routine. Note that IARG_CONST_CONTEXT
                                     // passes a read-only CONTEXT* to the analysis routine
                 IARG_INST_PTR, IARG_THREAD_ID,
@@ -2846,19 +2846,19 @@ private:
         return (td->_icount == expected->_icount) & (td->_tid == expected->_tid);
     }
 
-    // check if the mcount and the thread match the expected by the breakpoint    
+    // check if the mcount and the thread match the expected by the breakpoint
     static ADDRINT PIN_FAST_ANALYSIS_CALL CheckMcount(THREAD_DATA * td, AT_MCOUNT * expected)
     {
         // bit-wise "and" because logical "and" does not produce inline-able code
         return (td->_mcount == expected->_mcount) & (td->_tid == expected->_tid);
-    }    
+    }
 
     static ADDRINT PIN_FAST_ANALYSIS_CALL CheckPredMcount(THREAD_DATA * td, AT_MCOUNT * expected, BOOL executing)
     {
         // bit-wise "and" because logical "and" does not produce inline-able code
         return executing & static_cast<BOOL>(CheckMcount(td, expected));
-    }    
-    
+    }
+
     /*
      * These are utility analysis routines that return values to be stored in a Pin virtual
      * register.  They are meant to be used with IARG_RETURN_REGS.
@@ -2873,7 +2873,7 @@ private:
         return a;
     }
 
-    /* 
+    /*
      * Analysis routine to keep track of the debugger shell state, such as instruction
      * count or memory count
      */
@@ -2889,10 +2889,10 @@ private:
 
     static VOID PIN_FAST_ANALYSIS_CALL IncrementIMcount(THREAD_DATA * td)
     {
-        td->_icount++;        
+        td->_icount++;
         td->_mcount++;
     }
-    
+
     /*
      * Trigger a breakpoint that occurs before an instruction.
      *
@@ -2920,7 +2920,7 @@ private:
         // need to copy the ctxt into a writable context in order to do
         // the following PIN_SetContextReg
         PIN_SaveContext(ctxt, &writableContext);
-            
+
 
         PIN_SetContextReg(&writableContext, static_cast<REG>(regSkipOne), pc);
         PIN_ApplicationBreakpoint(&writableContext, tid, FALSE, message);

@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -74,10 +74,8 @@ public:
       }
 private:
     VOID Activate();
-    static VOID Trace(TRACE trace, VOID* v);
-
-    ADDRINT _address;
 };
+
 //*****************************************************************************
 class ALARM_SYMBOL : public IALARM
 {
@@ -91,10 +89,8 @@ public:
 private:
     VOID Activate();
     static VOID Img(IMG img, VOID* v);
-    static VOID Trace(TRACE trace, VOID* v);
 
     string _symbol;
-    ADDRINT _address;
 };
 
 //*****************************************************************************
@@ -113,10 +109,8 @@ public:
 private:
     VOID Activate();
     static VOID Img(IMG img, VOID* v);
-    static VOID Trace(TRACE trace, VOID* v);
 
     string _image;
-    ADDRINT _address;
     UINT64 _offset;
 };
 
@@ -225,6 +219,7 @@ public:
     IALARM(tid, 1, need_ctxt, manager){
         Activate();
       }
+    INTERACTIVE_LISTENER* GetListener() {return _listener;}
 
 private:
     INTERACTIVE_LISTENER* _listener;
@@ -341,6 +336,40 @@ private:
 
     static VOID OnMpiPcontrol(ALARM_PCONTROL* alarm, CONTEXT* ctxt, ADDRINT ip,
                               ADDRINT region_app, UINT32 tid);
+};
+
+//*****************************************************************************
+class ALARM_TIMEOUT : public IALARM
+{
+public:
+    ALARM_TIMEOUT(const string& timeout_str, UINT32 tid, UINT32 count, 
+                 BOOL need_ctxt, ALARM_MANAGER* manager):
+      IALARM(tid, count, need_ctxt, manager) {
+
+          _timeout_passed = FALSE;
+          _seconds_timeout = PARSER::StringToUint32(timeout_str);
+
+          Activate();
+      }
+
+private:
+ 
+    // Private timeout data members
+    UINT32 _seconds_timeout;
+    BOOL _timeout_passed;
+
+    
+    VOID Activate();
+
+    // Internal thread routine
+    static VOID WaitForTimeout(VOID* v);
+
+    // Instrumentation routines 
+    static VOID Trace(TRACE trace, VOID* v);
+    static VOID InsertIfCall_CheckTime(ALARM_TIMEOUT* alarm, INS ins);
+
+    // Analysis routines
+    static ADDRINT PIN_FAST_ANALYSIS_CALL CheckTime(ALARM_TIMEOUT* ialarm, UINT32 tid);
 };
 
 //*****************************************************************************

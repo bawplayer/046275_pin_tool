@@ -175,4 +175,16 @@ OS_RETURN_CODE OS_WaitForProcessTermination(OS_PROCESS_WAITABLE_PROCESS process,
  */
 VOID OS_TriggerSoftwareBreakpoint();
 
+#ifndef TARGET_WINDOWS
+/*! @ingroup OS_APIS_PROCESS
+ * Notifies the locking machanism about a forked child.
+ *
+ * @par Availability:
+ *   - @b O/S:   Linux & OS X*
+ *   - @b CPU:   All
+ */
+void OS_NotifyFork();
+
+#endif // TARGET_WINDOWS
+
 #endif // file guard

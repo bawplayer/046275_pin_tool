@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -80,6 +80,10 @@ VOID CheckFpState(CONTEXT * ctxt)
 {
     FPSTATE fpState;
     FPSTATE fpStateCopy;
+    // need to clear the fp state as Get/Set FP state will not copy over all the state
+    // e.g. in case we are running on machine without AVX/AVX512 support
+    memset(&fpState,0,FPSTATE_SIZE);
+    memset(&fpStateCopy,0,FPSTATE_SIZE);
     PIN_GetContextFPState(ctxt, &fpState);
     PIN_SetContextFPState(ctxt, &fpState);
     PIN_GetContextFPState(ctxt, &fpStateCopy);

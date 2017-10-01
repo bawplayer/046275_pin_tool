@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -42,12 +42,7 @@ END_LEGAL */
 
 #else
 
-# ifdef TARGET_MIC
-   // KNC does not support emms. We don't expect anyone to run mmx code on KNC anyway.
-#  define MIX_FP_SAVE(x)    asm volatile("fxsave %0" : "=m" (*x)  )
-# else
-#  define MIX_FP_SAVE(x)    asm volatile("fxsave %0 \n\t emms" : "=m" (*x)  )
-# endif
+# define MIX_FP_SAVE(x)    asm volatile("fxsave %0 \n\t emms" : "=m" (*x)  )
 
 // need the * because  x is an array and need to make it an lvalue
 # define MIX_FP_RELOAD(x)    asm volatile("fxrstor %0" : : "m" (*x) )
@@ -57,7 +52,7 @@ END_LEGAL */
 
 
 #if defined(_WIN32) && !defined(__GNUC__)
-typedef unsigned char __declspec(align(16)) mix_fp_save_buffer_t[512+16];    
+typedef unsigned char __declspec(align(16)) mix_fp_save_buffer_t[512+16];
 #else
 typedef unsigned char mix_fp_save_buffer_t[512+16]  __attribute__ ((aligned(16)));
 #endif

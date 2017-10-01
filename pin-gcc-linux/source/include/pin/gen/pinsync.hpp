@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -39,6 +39,35 @@ END_LEGAL */
 #include <string>
 
 namespace PINVM {
+/*!
+ * Interface for generic lock
+ */
+class ILOCK /*<INTERFACE>*/
+{
+public:
+    /*!
+     * Destructor
+     */
+    virtual ~ILOCK() {}
+
+    /*!
+     * Blocks the caller until the lock can be acquired.
+     */
+    virtual void Lock() = 0;
+
+    /*!
+     * Releases the lock.
+     */
+    virtual void Unlock() = 0;
+
+    /*!
+     * Attempts to acquire the lock, but does not block the caller.
+     *
+     * @return  Returns TRUE if the lock is acquired, FALSE if not.
+     */
+    virtual bool TryLock() = 0;
+};
+
 /*!
  * Basic non-recursive lock.
  */
@@ -150,6 +179,11 @@ public:
     PINSYNC_RWLOCK() { OS_RWLockInitialize(&_impl); }
 
     /*!
+     * Destructor
+     */
+    ~PINSYNC_RWLOCK() { Destroy(); }
+
+    /*!
      * It is not necessary to call this method.  It is provided only for symmetry.
      *
      * @return  Always returns TRUE.
@@ -165,7 +199,7 @@ public:
      * Set the state of the lock to "not locked", even if the calling thread
      * does not own the lock.
      */
-    void Reset() { OS_RWLockRelease(&_impl); }
+    void Reset() { Destroy(); Initialize(); }
 
     /*!
      * Acquire the lock for "read" access.  Multiple "reader" threads may
@@ -267,9 +301,11 @@ public:
 } PINSYNC_POD_RWLOCK;
 
 
+#ifdef CC_FAST_LOOKUP
 /*!
  * Recursive Read-writer lock.
  */
+template <int MaxThreads>
 class PINSYNC_RECURSIVE_RWLOCK /*<UTILITY>*/
 {
 public:
@@ -280,7 +316,7 @@ public:
     {
         _writer_tid = INVALID_NATIVE_TID;
         _write_recursion_level = 0;
-        _read_recursion_level.clear();
+        _read_recursion_level.ClearNonAtomic();
         _impl.Initialize();
         _mutex.Initialize();
         _snapshots.clear();
@@ -311,7 +347,7 @@ public:
     {
         _writer_tid = INVALID_NATIVE_TID;
         _write_recursion_level = 0;
-        _read_recursion_level.clear();
+        _read_recursion_level.ClearNonAtomic();
         _impl.Reset();
         _mutex.Reset();
         _snapshots.clear();
@@ -324,13 +360,15 @@ public:
      * simultaneously acquire the lock.
      * To prevent a thread from deadlocking on itself, only nested Read locks are allowed.
      */
-    virtual void ReadLock()
+    virtual void ReadLock(NATIVE_TID tid)
     {
-        NATIVE_TID tid;
-        ASSERTX( OS_RETURN_CODE_IS_SUCCESS(OS_GetTid(&tid)) );
-        ASSERTX( IsPaused(tid) == false );
-        ASSERTX( IsLegalLockChain(tid) );
-        ReadLock(tid);
+        int recursion_level;
+        ASSERTXSLOW( IsPaused(tid) == false );
+        ASSERTXSLOW( IsLegalLockChain(tid) );
+        ASSERTX( MayAcquireReadLock(tid, &recursion_level) );
+        if (recursion_level == 0)
+            _impl.ReadLock();
+        RegisterReadLock(tid);
     }
 
     /*!
@@ -340,37 +378,35 @@ public:
      * To prevent a thread from deadlocking on itself, once a thread took a Write lock,
      * and for as long as it is locked, it may not take another lock, neither Read nor Write.
      */
-    virtual void WriteLock()
+    virtual void WriteLock(NATIVE_TID tid)
     {
-        NATIVE_TID tid;
-        ASSERTX( OS_RETURN_CODE_IS_SUCCESS(OS_GetTid(&tid)) );
-        ASSERTX( IsPaused(tid) == false );
-        ASSERTX( IsLegalLockChain(tid) );
-        WriteLock(tid);
+        int recursion_level;
+        ASSERTXSLOW( IsPaused(tid) == false );
+        ASSERTXSLOW( IsLegalLockChain(tid) );
+        ASSERTX( MayAcquireWriteLock(tid, &recursion_level) );
+        if (recursion_level == 0)
+            _impl.WriteLock();
+        RegisterWriteLock(tid);
     }
 
     /*!
      * Release the lock.  Used for both "readers" and "writers".
      */
-    virtual void Unlock()
+    virtual void Unlock(NATIVE_TID tid)
     {
-        NATIVE_TID tid;
-        ASSERTX( OS_RETURN_CODE_IS_SUCCESS(OS_GetTid(&tid)) );
-        ASSERTX( IsPaused(tid) == false );
-        ASSERTX( IsLegalLockChain(tid) );
-        Unlock(tid);
+        ASSERTXSLOW( IsPaused(tid) == false );
+        ASSERTXSLOW( IsLegalLockChain(tid) );
+        Unlock(tid, true);
     }
 
     /*!
      * Release the lock if it is currently locked.  Used for both "readers" and "writers".
      */
-    virtual void UnlockIfLocked()
+    virtual void UnlockIfLocked(NATIVE_TID tid)
     {
-        NATIVE_TID tid;
-        ASSERTX( OS_RETURN_CODE_IS_SUCCESS(OS_GetTid(&tid)) );
-        ASSERTX( IsPaused(tid) == false );
-        ASSERTX( IsLegalLockChain(tid) );
-        UnlockIfLocked(tid);
+        ASSERTXSLOW( IsPaused(tid) == false );
+        ASSERTXSLOW( IsLegalLockChain(tid) );
+        Unlock(tid, false);
     }
 
     /*!
@@ -379,13 +415,33 @@ public:
        The state of all locks in saved in a way that allows the current thread to later
        re-claim the exact locks when calling ResumeLock().
      */
-    virtual void PauseLock()
+    virtual void PauseLock(NATIVE_TID tid)
     {
-        NATIVE_TID tid;
-        ASSERTX( OS_RETURN_CODE_IS_SUCCESS(OS_GetTid(&tid)) );
-        ASSERTX( IsPaused(tid) == false );
-        ASSERTX( IsLegalLockChain(tid) );
-        PauseLock(tid);
+        ASSERTXSLOW( IsPaused(tid) == false );
+        ASSERTXSLOW( IsLegalLockChain(tid) );
+        int* rd_recursion_ptr = _read_recursion_level.Find(tid);
+        int rd_recursion = (NULL==rd_recursion_ptr) ? 0 : *rd_recursion_ptr;
+        int wr_recursion = (_writer_tid == tid) ? _write_recursion_level : 0;
+        if ((rd_recursion==0) && (wr_recursion==0))
+        {
+            return;
+        }
+        _mutex.Lock();
+        typename SNAPSHOTS_MAP::iterator it_snp = _snapshots.find(tid);
+        ASSERTX(it_snp == _snapshots.end());
+        _snapshots.insert(std::make_pair(tid, new Snapshot(rd_recursion, wr_recursion)));
+        _pausedInAtLeastOneThread = true;
+        if (wr_recursion >= 1)
+        {
+            _write_recursion_level = 1;
+            *rd_recursion_ptr = 0;
+        }
+        else
+        {
+            *rd_recursion_ptr = 1;
+        }
+        _mutex.Unlock();
+        Unlock(tid);
     }
 
     /*!
@@ -393,137 +449,11 @@ public:
      * If the lock had both active Write locks and Read locks then the Write lock takes precedence
      * since only Write can be at the top of the lock chain.
      */
-    virtual void ResumeLock()
+    virtual void ResumeLock(NATIVE_TID tid)
     {
-        NATIVE_TID tid;
-        ASSERTX( OS_RETURN_CODE_IS_SUCCESS(OS_GetTid(&tid)) );
-        ASSERTX( IsLegalLockChain(tid) );
-        ResumeLock(tid);
-    }
-
-    /*!
-     * Attempts to acquire the lock as a "reader" thread, but does not
-     * block the caller.
-     *
-     * @return  Returns TRUE if the lock is acquired, FALSE if not.
-     */
-    virtual bool TryReadLock()
-    {
-        NATIVE_TID tid;
-        ASSERTX( OS_RETURN_CODE_IS_SUCCESS(OS_GetTid(&tid)) );
-        ASSERTX( IsPaused(tid) == false );
-        ASSERTX( IsLegalLockChain(tid) );
-        return TryReadLock();
-    }
-
-    /*!
-     * Attempts to acquire the lock as an exclusive "writer" thread, but
-     * does not block the caller.
-     *
-     * @return  Returns TRUE if the lock is acquired, FALSE if not.
-     */
-    virtual bool TryWriteLock()
-    {
-        NATIVE_TID tid;
-        ASSERTX( OS_RETURN_CODE_IS_SUCCESS(OS_GetTid(&tid)) );
-        ASSERTX( IsPaused(tid) == false );
-        ASSERTX( IsLegalLockChain(tid) );
-        return TryWriteLock(tid);
-    }
-
-    /*!
-     * Returns TRUE if the current thread has acquired either a Read lock or Write lock.
-     *
-     * @return  Returns TRUE if a Read/Write lock is acquired, FALSE if not.
-     */
-    virtual bool IsLockedByCurrentThread()
-    {
-        NATIVE_TID tid;
-        ASSERTX( OS_RETURN_CODE_IS_SUCCESS(OS_GetTid(&tid)) );
-        return IsLocked(tid);
-    }
-
-private:
-
-    void ReadLock(NATIVE_TID tid)
-    {
-        int recursion_level;
-        ASSERTX( MayAcquireReadLock(tid, &recursion_level) );
-        if (recursion_level == 0)
-            _impl.ReadLock();
-        RegisterReadLock(tid);
-    }
-
-    void WriteLock(NATIVE_TID tid)
-    {
-        int recursion_level;
-        ASSERTX( MayAcquireWriteLock(tid, &recursion_level) );
-        if (recursion_level == 0)
-            _impl.WriteLock();
-        RegisterWriteLock(tid);
-    }
-
-    void Unlock(NATIVE_TID tid)
-    {
-        Unlock(tid, true);
-    }
-
-    void UnlockIfLocked(NATIVE_TID tid)
-    {
-        Unlock(tid, false);
-    }
-
-    void Unlock(NATIVE_TID tid, bool assert_is_locked)
-    {
-        int recursion_level=0;
-        // Unregister Read locks first because only Write can be at the top of the lock chain
-        bool lock_unregistered = UnregisterReadLock(tid, &recursion_level);
-        if (lock_unregistered )
-        {
-            if (recursion_level==0)
-                recursion_level = GetWriteRecursionLevel(tid);
-        }
-        else
-        {
-            lock_unregistered = UnregisterWriteLock(tid, &recursion_level);
-        }
-        ASSERTX( (assert_is_locked==false) || lock_unregistered );
-        if (lock_unregistered && (recursion_level==0))
-            _impl.Unlock();
-    }
-
-    void PauseLock(NATIVE_TID tid)
-    {
+        ASSERTXSLOW( IsLegalLockChain(tid) );
         _mutex.Lock();
-        std::map<NATIVE_TID, int>::iterator it_rd = _read_recursion_level.find(tid);
-        int rd_recursion = ((it_rd != _read_recursion_level.end()) && (it_rd->second >= 1)) ? it_rd->second : 0;
-        int wr_recursion = (_writer_tid == tid) ? _write_recursion_level : 0;
-        if ((rd_recursion==0) && (wr_recursion==0))
-        {
-            _mutex.Unlock();
-            return;
-        }
-        std::map<NATIVE_TID, Snapshot*>::iterator it_snp = _snapshots.find(tid);
-        ASSERTX(it_snp == _snapshots.end());
-        _snapshots.insert(std::make_pair(tid, new Snapshot(rd_recursion, wr_recursion)));
-        _pausedInAtLeastOneThread = true;
-        if (wr_recursion >= 1)
-        {
-            _write_recursion_level = 1;
-            it_rd->second = 0;
-        }
-        else
-        {
-            it_rd->second = 1;
-        }
-        _mutex.Unlock();
-        Unlock(tid);
-    }
-
-    void ResumeLock(NATIVE_TID tid)
-    {
-        _mutex.Lock();
-        std::map<NATIVE_TID, Snapshot*>::iterator it_snp = _snapshots.find(tid);
+        typename SNAPSHOTS_MAP::iterator it_snp = _snapshots.find(tid);
         if (it_snp == _snapshots.end())
         {
             _mutex.Unlock();
@@ -553,9 +483,17 @@ private:
             RegisterReadLock(tid);
     }
 
-    bool TryReadLock(NATIVE_TID tid)
+    /*!
+     * Attempts to acquire the lock as a "reader" thread, but does not
+     * block the caller.
+     *
+     * @return  Returns TRUE if the lock is acquired, FALSE if not.
+     */
+    virtual bool TryReadLock(NATIVE_TID tid)
     {
         int recursion_level;
+        ASSERTXSLOW( IsPaused(tid) == false );
+        ASSERTXSLOW( IsLegalLockChain(tid) );
         ASSERTX( MayAcquireReadLock(tid, &recursion_level) );
         if (recursion_level == 0)
             if (! _impl.TryReadLock())
@@ -565,8 +503,16 @@ private:
         return true;
     }
 
-    bool TryWriteLock(NATIVE_TID tid)
+    /*!
+     * Attempts to acquire the lock as an exclusive "writer" thread, but
+     * does not block the caller.
+     *
+     * @return  Returns TRUE if the lock is acquired, FALSE if not.
+     */
+    virtual bool TryWriteLock(NATIVE_TID tid)
     {
+        ASSERTXSLOW( IsPaused(tid) == false );
+        ASSERTXSLOW( IsLegalLockChain(tid) );
         int recursion_level;
         ASSERTX( MayAcquireWriteLock(tid, &recursion_level) );
         if (recursion_level == 0)
@@ -576,6 +522,46 @@ private:
         RegisterWriteLock(tid);
         return true;
     }
+
+    /*!
+     * Returns TRUE if the thread 'tid' has acquired either a Read lock or Write lock.
+     *
+     * @return  Returns TRUE if a Read/Write lock is acquired, FALSE if not.
+     */
+    virtual bool IsLockedByThread(NATIVE_TID tid)
+    {
+        if (_writer_tid == tid)
+        {
+            return true;
+        }
+        else
+        {
+            int* recursion_level_ptr = _read_recursion_level.Find(tid);
+            return (NULL != recursion_level_ptr) && (*recursion_level_ptr > 0);
+        }
+    }
+
+private:
+
+    void Unlock(NATIVE_TID tid, bool assert_is_locked)
+    {
+        int recursion_level=0;
+        // Unregister Read locks first because only Write can be at the top of the lock chain
+        bool lock_unregistered = UnregisterReadLock(tid, &recursion_level);
+        if (lock_unregistered )
+        {
+            if (recursion_level==0)
+                recursion_level = GetWriteRecursionLevel(tid);
+        }
+        else
+        {
+            lock_unregistered = UnregisterWriteLock(tid, &recursion_level);
+        }
+        ASSERTX( (assert_is_locked==false) || lock_unregistered );
+        if (lock_unregistered && (recursion_level==0))
+            _impl.Unlock();
+    }
+
     /*!
      * Checks the conditions for whether it is legal to take a Read lock for this thread.
      * Taking a Read lock is always legal.
@@ -591,12 +577,10 @@ private:
      */
     bool MayAcquireReadLock(NATIVE_TID tid, int* recursionLevel)
     {
-        _mutex.Lock();
-        std::map<NATIVE_TID, int>::const_iterator it = _read_recursion_level.find(tid);
-        *recursionLevel = (it == _read_recursion_level.end()) ? 0 : it->second;
+        int* recursion_level_ptr = _read_recursion_level.Find(tid);
+        *recursionLevel = (NULL == recursion_level_ptr) ? 0 : *recursion_level_ptr;
         if (tid == _writer_tid)
             *recursionLevel += _write_recursion_level;
-        _mutex.Unlock();
         return true;
     }
 
@@ -612,20 +596,17 @@ private:
      */
     bool MayAcquireWriteLock(NATIVE_TID tid, int* recursionLevel)
     {
-        bool ret = false;
         *recursionLevel = 0;
-        _mutex.Lock();
-        std::map<NATIVE_TID, int>::const_iterator it = _read_recursion_level.find(tid);
-        if ((tid == _writer_tid) || (it == _read_recursion_level.end()) || (it->second==0))
+        int* recursion_level_ptr = _read_recursion_level.Find(tid);
+        if ((tid == _writer_tid) || (NULL == recursion_level_ptr) || (*recursion_level_ptr==0))
         {
-            ret = true;
             if (tid == _writer_tid)
                 *recursionLevel += _write_recursion_level;
-            if (it != _read_recursion_level.end())
-                *recursionLevel += it->second;
+            if (NULL != recursion_level_ptr)
+                *recursionLevel += *recursion_level_ptr;
+            return true;
         }
-        _mutex.Unlock();
-         return ret;
+        return false;
     }
 
     /*!
@@ -633,13 +614,11 @@ private:
      */
     void RegisterReadLock(NATIVE_TID tid)
     {
-        _mutex.Lock();
-        std::map<NATIVE_TID, int>::iterator it = _read_recursion_level.find(tid);
-        if (it != _read_recursion_level.end())
-            (it->second)++;
+        int *recursion_level_ptr = _read_recursion_level.Find(tid);
+        if (NULL != recursion_level_ptr)
+            ATOMIC::OPS::Increment(recursion_level_ptr, 1);
         else
-            _read_recursion_level.insert(std::make_pair(tid, 1));
-        _mutex.Unlock();
+            _read_recursion_level.Add(tid, 1);
     }
 
     /*!
@@ -652,21 +631,17 @@ private:
      */
     bool UnregisterReadLock(NATIVE_TID tid, int* recursionLevel)
     {
-        bool is_locked = false;
         *recursionLevel = 0;
-        _mutex.Lock();
-        std::map<NATIVE_TID, int>::iterator it = _read_recursion_level.find(tid);
-        if ( (it != _read_recursion_level.end()) && (it->second >= 1) )
+        int *recursion_level_ptr = _read_recursion_level.Find(tid);
+        if (NULL != recursion_level_ptr)
         {
-            is_locked = true;
-            *recursionLevel = it->second - 1;
-            if (it->second == 1)
-                _read_recursion_level.erase(it);
-            else
-                (it->second)--;
+            *recursionLevel = ATOMIC::OPS::Increment(recursion_level_ptr, -1) - 1;
+            ASSERTX(*recursionLevel >= 0);
+            if (*recursionLevel == 0)
+                _read_recursion_level.Remove(tid);
+            return true;
         }
-        _mutex.Unlock();
-        return is_locked;
+        return false;
     }
 
     /*!
@@ -674,10 +649,8 @@ private:
      */
     void RegisterWriteLock(NATIVE_TID tid)
     {
-        _mutex.Lock();
         _writer_tid = tid;
-        _write_recursion_level++;
-        _mutex.Unlock();
+        ATOMIC::OPS::Increment(&_write_recursion_level, 1);
     }
 
     /*!
@@ -690,22 +663,18 @@ private:
      */
     bool UnregisterWriteLock(NATIVE_TID tid, int* recursionLevel)
     {
-        bool is_locked = false;
         *recursionLevel = 0;
-        _mutex.Lock();
         if (_writer_tid == tid)
         {
-            is_locked = true;
-            _write_recursion_level--;
-            *recursionLevel = _write_recursion_level;
+            *recursionLevel = ATOMIC::OPS::Increment(&_write_recursion_level, -1) - 1;
 
             if (_write_recursion_level == 0)
             {
                 _writer_tid = INVALID_NATIVE_TID;
             }
+            return true;
         }
-        _mutex.Unlock();
-        return is_locked;
+        return false;
     }
 
     /*!
@@ -717,32 +686,7 @@ private:
      */
     int GetWriteRecursionLevel(NATIVE_TID tid)
     {
-        _mutex.Lock();
-        int recursionLevel = (_writer_tid == tid) ? _write_recursion_level : 0;
-        _mutex.Unlock();
-        return recursionLevel;
-    }
-
-    /*!
-     * Checks whether the current thread has acquired either a Read or Write lock
-     *
-     * @return  Returns TRUE if the current thread has either a Read or Write lock. FALSE otherwise.
-     */
-    bool IsLocked(NATIVE_TID tid)
-    {
-        bool is_locked = false;
-        _mutex.Lock();
-        if (_writer_tid == tid)
-        {
-            is_locked = true;
-        }
-        else
-        {
-            std::map<NATIVE_TID, int>::const_iterator it = _read_recursion_level.find(tid);
-            is_locked = (it != _read_recursion_level.end()) && (it->second > 0);
-        }
-        _mutex.Unlock();
-        return is_locked;
+        return (_writer_tid == tid) ? _write_recursion_level : 0;
     }
 
     /*!
@@ -755,10 +699,9 @@ private:
         if (! _pausedInAtLeastOneThread)
             return false;
 
-        bool is_paused = false;
         _mutex.Lock();
-        std::map<NATIVE_TID, Snapshot*>::const_iterator it = _snapshots.find(tid);
-        is_paused = (it != _snapshots.end());
+        typename SNAPSHOTS_MAP::const_iterator it = _snapshots.find(tid);
+        bool is_paused = (it != _snapshots.end());
         _mutex.Unlock();
         return is_paused;
     }
@@ -777,9 +720,9 @@ private:
     {
         if (_dependent_lock==NULL)
             return true;
-        if (IsLocked(tid))
+        if (IsLockedByThread(tid))
             return true;
-        if (_dependent_lock->IsLockedByCurrentThread()==false)
+        if (_dependent_lock->IsLockedByThread(tid)==false)
             return true;
         return false;
     }
@@ -787,7 +730,8 @@ private:
     PINSYNC_POD_RWLOCK  _impl;
     NATIVE_TID _writer_tid;
     int _write_recursion_level;
-    std::map<NATIVE_TID, int> _read_recursion_level;
+    typedef ATOMIC::FIXED_MULTIMAP<NATIVE_TID, int, INVALID_NATIVE_TID, NATIVE_TID_CURRENT, MaxThreads> READERS_MAP;
+    READERS_MAP _read_recursion_level;
     PINSYNC_POD_LOCK _mutex;
     struct Snapshot
     {
@@ -795,11 +739,12 @@ private:
         int write_recursion_level;
         Snapshot(int rd_rec, int wr_rec) : read_recursion_level(rd_rec), write_recursion_level(wr_rec) {}
     };
-    std::map<NATIVE_TID, Snapshot*> _snapshots;
+    typedef std::map<NATIVE_TID, Snapshot*> SNAPSHOTS_MAP;
+    SNAPSHOTS_MAP _snapshots;
     bool _pausedInAtLeastOneThread;
     PINSYNC_RECURSIVE_RWLOCK* _dependent_lock;
  };
-
+#endif
 
 
 
@@ -814,6 +759,11 @@ public:
      * The initial state of the semaphore is "clear".
      */
     PINSYNC_SEMAPHORE() { OS_MutexInit(&_impl); Clear(); }
+
+    /*!
+     * Destructor
+     */
+    ~PINSYNC_SEMAPHORE() { Destroy(); }
 
     /*!
      * It is not necessary to call this method.  It is provided only for symmetry.
@@ -833,12 +783,12 @@ public:
      * Wait() or TimedWait() only if the semaphore is still "set" when they
      * actually do resume running.
      */
-    void Set() { OS_MutexUnlock(&_impl); }
+    void Set() { _isSet = true; OS_MutexUnlock(&_impl); }
 
     /*!
      * Change the semaphore to "clear" state.
      */
-    void Clear() { OS_MutexTryLock(&_impl); }
+    void Clear() { _isSet = false; OS_MutexTryLock(&_impl); }
 
     /*!
      * Check whether the semaphore's state is "set".  This method always returns
@@ -846,7 +796,7 @@ public:
      *
      * @return  TRUE if the state is "set".
      */
-    bool IsSet() { return !OS_MutexIsLocked(&_impl); }
+    bool IsSet() { return _isSet; }
 
     /*!
      * Block the calling thread until the semaphore's state is "set".  This
@@ -873,6 +823,15 @@ public:
 
 private:
     OS_MUTEX_TYPE _impl;
+
+    /*!
+     * This member field was introduced only to be used in the IsSet() method.
+     * Because the implementation of Wait() on a "set" PINSYNC_SEMAPHORE is to immediately lock
+     * and unlock the '_impl' mutex, IsSet() might return 'false' in the short time between
+     * the lock and unlock.
+     * Using this member field as a return values from IsSet() will return the right result in this case.
+     */
+    volatile bool _isSet;
 };
 
 /*!

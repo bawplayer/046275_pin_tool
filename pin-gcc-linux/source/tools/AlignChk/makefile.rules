@@ -48,14 +48,6 @@ LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
 
-# Android
-ifeq ($(TARGET_OS),android)
-    ifeq ($(TARGET),ia32)
-        TEST_TOOL_ROOTS += movdqa_test2
-        TEST_ROOTS += movdqa_test3 movdqa_test4
-    endif
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     ifeq ($(TARGET),ia32)
@@ -65,18 +57,6 @@ ifeq ($(TARGET_OS),linux)
 endif
 
 ###### Handle exceptions here ######
-
-# KNC does not support the movdqa instruction, therefore don't test this directory on that platform.
-ifeq ($(TARGET),mic)
-    TEST_TOOL_ROOTS :=
-    TEST_ROOTS :=
-    TOOL_ROOTS :=
-    SA_TOOL_ROOTS :=
-    APP_ROOTS :=
-    OBJECT_ROOTS :=
-    DLL_ROOTS :=
-    LIB_ROOTS :=
-endif
 
 # These tests fail - fix and remove the following:
 # Mantis 3159 - alignchk

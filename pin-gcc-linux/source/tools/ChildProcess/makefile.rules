@@ -48,19 +48,6 @@ LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
 
-# Android
-ifeq ($(TARGET_OS),android)
-    TEST_ROOTS += fork_hang badexec fork_jit sigchld bind_now follow_execv_with_config1 follow_execv_with_config2 \
-                  follow_execv_with_config3 apparmor unique_logfile injectchild injectparent selfexec selfexeclog \
-                  unix_launcher null_argument fork_probed vfork_probed fork_probed_static vfork_probed_static execve_errno \
-                  follow_execv_with_config1_probe follow_execv_with_config2_probe follow_execv_with_config3_probe sigchld2 \
-                  null_argument_probed
-    TOOL_ROOTS += fork_hang_tool fork_jit_tool fork_probed_tool follow_child unix_parent_tool null_arg_check_tool \
-                  simple_tool
-    APP_ROOTS += fork_hang_app fork_app vfork_app fork_app_static vfork_app_static parent_process child_process \
-                 injection_test_app sigchld_app null_check_app1 null_check_app2 bind_now_app badexec selfexec_app
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     TEST_TOOL_ROOTS += fork_probed2
@@ -127,24 +114,6 @@ endif
 ifeq ($(TARGET_OS),mac)
     ifeq ($(shell if [ -x /usr/bin/csrutil ]; then /usr/bin/csrutil status | $(AWK) '{print $$5}'; fi),enabled.)
         TEST_ROOTS := $(filter-out null_argument null_argument_probed follow_popen_probe follow_popen, $(TEST_ROOTS))
-    endif
-endif
-
-# See Mantis 3109 for the following tests (Runtime errors): selfexec, selfexeclog, injectchild, injectparent
-ifeq ($(TARGET_OS),android)
-    TEST_ROOTS := $(filter-out sigchld2 injectparent, $(TEST_ROOTS))
-    ifeq ($(TARGET),ia32)
-        TEST_ROOTS := $(filter-out null_argument null_argument_probed unix_launcher injectchild selfexec \
-                                   selfexeclog, $(TEST_ROOTS))
-    endif
-    ifeq ($(NDK_VERSION),10)
-        # NDK10 does not support static executables.
-        TEST_ROOTS := $(filter-out injectchild fork_probed_static vfork_probed_static, $(TEST_ROOTS))
-        APP_ROOTS := $(filter-out fork_app_static vfork_app_static, $(APP_ROOTS))
-        ifeq ($(TARGET),ia32)
-            # Can't run execve_errno in cross, because it runs shell scripts, and there's no 32 bit shell available.
-            TEST_ROOTS := $(filter-out execve_errno, $(TEST_ROOTS))
-        endif
     endif
 endif
 
@@ -460,9 +429,10 @@ unix_launcher.test: $(OBJDIR)follow_child$(PINTOOL_SUFFIX) $(OBJDIR)parent_proce
 	$(SH) ./parent_process_launcher.sh $(OBJDIR)parent_process$(EXE_SUFFIX) $(OBJDIR)child_process$(EXE_SUFFIX) \
 	  > $(OBJDIR)unix_launcher.reference
 	-$(PIN) -follow_execv 1 -t $(OBJDIR)follow_child$(PINTOOL_SUFFIX) -o $(OBJDIR)$(@:test=tool.out) \
-	  -- $(OBJDIR)parent_process $(OBJDIR)child_process > $(OBJDIR)$(@:test=app.out)
+	  -- $(OBJDIR)parent_process$(EXE_SUFFIX) $(OBJDIR)child_process$(EXE_SUFFIX) > $(OBJDIR)$(@:test=app.out)
 	$(PIN) -follow_execv 1 -t $(OBJDIR)follow_child$(PINTOOL_SUFFIX) -o $(OBJDIR)$(@:test=tool.out) \
-	  -- $(OBJDIR)parent_process $(OBJDIR)child_process "param1 param2" param3 >> $(OBJDIR)$(@:test=app.out)
+	  -- $(OBJDIR)parent_process$(EXE_SUFFIX) $(OBJDIR)child_process$(EXE_SUFFIX) "param1 param2" param3 \
+	    >> $(OBJDIR)$(@:test=app.out)
 	$(DIFF) $(OBJDIR)$(@:test=app.out) $(OBJDIR)unix_launcher.reference
 	## PinTool should appear 4 times: 
 	## parent_process - 2 child_process - 2
@@ -492,7 +462,7 @@ null_argument_probed.test: $(OBJDIR)null_arg_check_tool$(PINTOOL_SUFFIX) $(OBJDI
 # Execve fails and returns with error code
 badexec.test: $(OBJDIR)badexec$(EXE_SUFFIX)
 	$(OBJDIR)badexec$(EXE_SUFFIX) > $(OBJDIR)badexec.reference
-	$(PIN) -xyzzy -follow_execv 1 -- $(OBJDIR)badexec > $(OBJDIR)badexec.out 2>&1
+	$(PIN) -xyzzy -follow_execv 1 -- $(OBJDIR)badexec$(EXE_SUFFIX) > $(OBJDIR)badexec.out 2>&1
 	$(DIFF) $(OBJDIR)badexec.out $(OBJDIR)badexec.reference
 	$(RM) $(OBJDIR)badexec.out $(OBJDIR)badexec.reference 
 
@@ -530,10 +500,11 @@ unique_logfile.test: $(OBJDIR)parent_process$(EXE_SUFFIX) $(OBJDIR)child_process
 	$(BASHTEST) `ls $(OBJDIR)unique_logfile.log.* | $(LINECOUNT)` -eq 2
 	$(RM) $(OBJDIR)unique_logfile.log.* $(OBJDIR)unique_logfile.out
 
-unique_logfile_mac.test: $(OBJDIR)parent_process $(OBJDIR)child_process$(EXE_SUFFIX)
+unique_logfile_mac.test: $(OBJDIR)parent_process$(EXE_SUFFIX) $(OBJDIR)child_process$(EXE_SUFFIX)
 	$(RM) -f $(OBJDIR)unique_logfile_mac.log.*
 	$(PIN) -follow_execv 1 -xyzzy -mesgon log_syscall -logfile $(OBJDIR)unique_logfile_mac.log -unique_logfile \
-	  -- $(OBJDIR)parent_process $(OBJDIR)child_process "param1 param2" param3 > $(OBJDIR)unique_logfile_mac.out
+	  -- $(OBJDIR)parent_process$(EXE_SUFFIX) $(OBJDIR)child_process$(EXE_SUFFIX) "param1 param2" param3 \
+	    > $(OBJDIR)unique_logfile_mac.out
 	$(BASHTEST) `ls $(OBJDIR)unique_logfile_mac.log.* | $(LINECOUNT)` -eq 2
 	$(RM) $(OBJDIR)unique_logfile_mac.log.* $(OBJDIR)unique_logfile_mac.out
 

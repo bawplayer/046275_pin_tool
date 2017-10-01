@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -32,7 +32,12 @@ END_LEGAL */
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <string.h>
 #include "call-stack.H"
+
+#if defined(TARGET_WINDOWS)
+#define strdup _strdup
+#endif
 
 using namespace std;
 using namespace CALLSTACK;
@@ -49,33 +54,39 @@ KNOB<BOOL> _knob_source_location(KNOB_MODE_WRITEONCE,
 static void a_process_call(ADDRINT target,
                ADDRINT sp, CallStack* call_stack)
 {
+    ASSERTX(call_stack);
     call_stack->process_call(sp, target);
 }
 
 
 static void a_process_return(ADDRINT sp, ADDRINT ip, CallStack* call_stack)
 {
+    ASSERTX(call_stack);
     call_stack->process_return(sp, ip);
 }
 
 static void a_on_call(ADDRINT target,
                       CallStackManager* mngr, THREADID tid, CONTEXT* ctxt)
 {
+    ASSERTX(mngr);
     mngr->on_call(tid, ctxt, target);
 }
 
 static ADDRINT a_target_interesting(ADDRINT target, CallStackManager* mngr)
 {
+    ASSERTX(mngr);
     return mngr->TargetInteresting(target);
 }
 
 static ADDRINT a_on_ret_should_fire(THREADID tid, CallStackManager* mngr)
 {
+    ASSERTX(mngr);
     return mngr->on_ret_should_fire(tid);
 }
 
 static void a_on_ret_fire(THREADID tid, CONTEXT* ctxt, ADDRINT ip, CallStackManager* mngr)
 {
+    ASSERTX(mngr);
     mngr->on_ret_fire(tid, ctxt, ip);
 }
 /////////////////////// End Analysis Functions ////////////////////////////////
@@ -84,6 +95,7 @@ static void
 i_trace(TRACE trace, void *v)
 {
     CallStackManager* mngr = CallStackManager::get_instance();
+    ASSERTX(mngr);
     IARGLIST args = IARGLIST_Alloc();
     if (mngr->NeedContext()){		
         IARGLIST_AddArguments(args, IARG_CONTEXT, IARG_END);		
@@ -145,7 +157,7 @@ i_trace(TRACE trace, void *v)
                 IARG_BRANCH_TARGET_ADDR,
                 IARG_PTR, mngr,
                 IARG_END);
-            INS_InsertThenCall(tail, IPOINT_BEFORE,
+            INS_InsertThenCall(tail, IPOINT_TAKEN_BRANCH,
                 (AFUNPTR)a_on_call,
                 IARG_BRANCH_TARGET_ADDR,
                 IARG_PTR, mngr,
@@ -194,7 +206,7 @@ static string RemoveNamespace(const string& name){
 
 void
 CallStack::create_entry( ADDRINT current_sp,
-                              ADDRINT target)
+                         ADDRINT target)
 {
     // push entry -- note this is sp at the callsite
     CallEntry entry(current_sp, target);
@@ -262,6 +274,7 @@ void CallStack::save_all_ips_info(){
     
     CallStackInfo info;
     CallStackManager* mngr = CallStackManager::get_instance();
+    ASSERTX(mngr);
     for (UINT32 i = 0; i< depth(); i++){
         ADDRINT ip = _call_vec[i].target();
         mngr->get_ip_info(ip, info);
@@ -270,6 +283,12 @@ void CallStack::save_all_ips_info(){
 
 ADDRINT CallStack::top_target(){
     return _call_vec.back().target();
+}
+
+// Get target of specific call stack depth 
+ADDRINT CallStack::depth_target(UINT32 depth) {
+    ASSERTX(_call_vec.size() > depth);
+    return _call_vec[depth].target();
 }
 
 UINT32 CallStack::depth(){
@@ -314,7 +333,7 @@ void CallStack::emit_stack( UINT32 depth,
         o << "0x" << hex << setw(width) << setfill('0') << iter->target() << "  ";
         o << setw(20) << setfill(' ') << left << info.func_name;
         o << setw(20) << info.image_name;
-        if (_source_location && info.file_name.length()) {
+        if (_source_location && info.file_name) {
             o << " at " << info.file_name << ":" << dec << info.line;
             if (info.column){
                 o << ":" << info.column;
@@ -334,95 +353,128 @@ void CallStack::emit_stack( UINT32 depth,
     out.push_back("\n");
 }
 
+void CallStack::get_targets(list<ADDRINT>& out)
+{
+    CallVec::reverse_iterator iter;
+    for(iter = _call_vec.rbegin(); iter != _call_vec.rend(); iter++) {
+        out.push_back(iter->target());
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 CallStackManager* CallStackManager::_instance = 0;
 
+// Handle new thread
 void CallStackManager::thread_begin(THREADID tid, CONTEXT* ctxt,
                                     INT32 flags, void* v){
     CallStack* call_stack = new CallStack();
+    ASSERTX(call_stack);
+    ASSERTX(v);
+    ASSERTX(ctxt);
     CallStackManager* call_stack_manager = reinterpret_cast<CallStackManager*>(v);
+    ASSERTX(call_stack_manager);
     call_stack_manager->add_stack(tid, call_stack);
         
     PIN_SetContextReg(ctxt, vreg, (ADDRINT)call_stack);
-
-
 }
 
+// Add the call stack of a new thread
 void CallStackManager::add_stack(THREADID tid, CallStack* call_stack){
+    ASSERTX(call_stack);
+    PIN_GetLock(&_map_lock,tid+1);
     _call_stack_map[tid] = call_stack;
+    PIN_ReleaseLock(&_map_lock);
 }
 
+// Activate call stack manager if needed 
 void CallStackManager::activate(){
     if (_activated){
         return;
     }
     _activated = true;
 
+    // Get virtual register and insturmentation routines
     vreg = PIN_ClaimToolRegister();
     PIN_AddThreadStartFunction(thread_begin, this);
     TRACE_AddInstrumentFunction(i_trace, this);
     IMG_AddInstrumentFunction(Img, this);
 }
 
+// Get call stack manager instance and create it if needed
 CallStackManager* CallStackManager::get_instance(){
     if (_instance != 0){
         return _instance;
     }
 
+    // Create new instance
     _instance = new CallStackManager();
+    ASSERTX(_instance);
     return _instance;
 }
 
+// Get call stack of a specific IP
 CallStack CallStackManager::get_stack(THREADID tid){
-    CallStack* call_stack = _call_stack_map[tid];
+    PIN_GetLock(&_map_lock,tid+1);
+    CallStack *call_stack = _call_stack_map[tid];  
+    PIN_ReleaseLock(&_map_lock);
+    ASSERTX(call_stack);
     return *call_stack; //copy const. 
 }
 
+// Get call stack and source information for a specific IP
 void CallStackManager::get_ip_info(
     ADDRINT ip,
     CallStackInfo& info)
-{
-    
+{ 
     PIN_GetLock(&_lock,0);
+
+    // If we already have information for this IP then just return it
     CallStackInfoMap::iterator it = _call_stack_info.find(ip);
 
     if ( it != _call_stack_info.end() ) {
         PIN_ReleaseLock(&_lock);
-        info.image_name = it->second.image_name.c_str();
-        info.file_name  = it->second.file_name.c_str();
-        info.func_name  = it->second.func_name.c_str();
-        info.line = it->second.line;
-        info.column = it->second.column;
+        info = it->second;
         return;
     }
 
-    CallStackInfo i;
+    // We got here for new IP
+    CallStackInfo curr_info;
+    string curr_file_name;
 
+    // Get routine and image information
     PIN_LockClient();
-    i.func_name = RTN_FindNameByAddress(ip);
+    curr_info.rtn_id = RTN_Id(RTN_FindByAddress(ip));
+    curr_info.func_name = strdup(RTN_FindNameByAddress(ip).c_str());
     IMG img = IMG_FindByAddress(ip);
     
+    // Get source location if neeed
     if (_knob_source_location){
-        PIN_GetSourceLocation(ip, &i.column, &i.line, &i.file_name);
+        PIN_GetSourceLocation(ip, &curr_info.column, &curr_info.line, &curr_file_name);
+        if (curr_file_name.length() > 0)
+            curr_info.file_name = strdup(curr_file_name.c_str());
     }
     
     PIN_UnlockClient();
         
+    // Analyze image information
+    string curr_image_name;
     if (IMG_Valid(img)) {
-        i.image_name = IMG_Name(img);
+        curr_image_name = IMG_Name(img);
         ADDRINT img_addr = IMG_LowAddress(img);
         // The string contains image name and the offset of 
         // the instruction
-        i.image_name+= ":" + hexstr(ip-img_addr);         
+        curr_image_name+= ":" + hexstr(ip-img_addr);  
+        curr_info.image_name = strdup(curr_image_name.c_str());
     }
-    else{
-        i.image_name =  "UNKNOWN IMAGE";
+    else {
+        curr_info.image_name =  (char*)("UNKNOWN IMAGE");
     }
-            
-    info = i;
-
-    _call_stack_info[ip] = i;
+    
+    // Add new information to our database        
+    info = curr_info;
+    _call_stack_info[ip] = curr_info;
+    
     PIN_ReleaseLock(&_lock);
 }
 
@@ -452,6 +504,18 @@ void CallStackManager::on_function_exit(CALL_STACK_HANDLER handler, const string
     if (use_ctxt) _use_ctxt = true;
 }
 
+void CallStackManager::on_function_ip_enter(CALL_STACK_HANDLER handler, ADDRINT func_ip, void* v, BOOL use_ctxt){
+    CallStackHandlerParams *params = new CallStackHandlerParams(handler,"",v,func_ip,FALSE);
+    _enter_func_handlers_map[func_ip].push_back(params);
+    if (use_ctxt) _use_ctxt = true;
+}
+
+void CallStackManager::on_function_ip_exit(CALL_STACK_HANDLER handler, ADDRINT func_ip, void* v, BOOL use_ctxt){
+    CallStackHandlerParams *params = new CallStackHandlerParams(handler,"",v,func_ip,FALSE);
+    _exit_func_handlers_map[func_ip].push_back(params);
+    if (use_ctxt) _use_ctxt = true;
+}
+
 // iterate each function in the loaded image and check the following:
 // 1. whether the function was registered in on_function_enter.
 //    if so store the ip of the interesting function with the relevant
@@ -473,14 +537,18 @@ void CallStackManager::Img(IMG img, void* v)
             ADDRINT ip = RTN_Address(rtn);
             //check if the function has a callback registered for enter_function
             for (UINT32 i = 0; i < mngr->_enter_func_handlers.size(); i++){
-                if (mngr->_enter_func_handlers[i]._function_name == name){
+                if (mngr->_enter_func_handlers[i]._function_name == name &&
+                    mngr->_enter_func_handlers[i]._name_handler){
+                    mngr->_enter_func_handlers[i]._first_ip = ip;
                     mngr->_enter_func_handlers_map[ip].push_back(&mngr->_enter_func_handlers[i]);
                 }
             }
 
             //check if the function has a callback registered for exit_function
-            for (UINT32 i = 0; i < mngr->_enter_func_handlers.size(); i++){
-                if (mngr->_enter_func_handlers[i]._function_name == name){
+            for (UINT32 i = 0; i < mngr->_exit_func_handlers.size(); i++){
+                if (mngr->_exit_func_handlers[i]._function_name == name &&
+                    mngr->_exit_func_handlers[i]._name_handler){
+                    mngr->_exit_func_handlers[i]._first_ip = ip;
                     mngr->_exit_func_handlers_map[ip].push_back(&mngr->_exit_func_handlers[i]);
                 }
             }
@@ -497,6 +565,7 @@ void CallStackManager::Img(IMG img, void* v)
 //    so later, when we roll back the call-stack beyond the recorded depth we will call the 
 //    registered handlers for on_function_exit
 void CallStackManager::on_call(THREADID tid, CONTEXT* ctxt, ADDRINT ip){
+
     //call all enter_function handlers
     //iter holds a tuple of (ip, list of handlers to be called)
     IpFuncHnadlersMap::iterator iter;
@@ -504,6 +573,7 @@ void CallStackManager::on_call(THREADID tid, CONTEXT* ctxt, ADDRINT ip){
     if (iter != _enter_func_handlers_map.end()){
         for (UINT32 i = 0 ; i < iter->second.size(); i++){
             CallStackHandlerParams *params = iter->second[i];
+            ASSERTX(params);
             params->_handler(ctxt, ip, tid, params->_args);
         }
     }
@@ -532,6 +602,8 @@ void CallStackManager::on_call(THREADID tid, CONTEXT* ctxt, ADDRINT ip){
 // the call-stack beyond the recorded depth.
 // if so,  we return 1 so the  Then instrumentation will be called
 BOOL CallStackManager::on_ret_should_fire(THREADID tid){
+
+    BOOL was_found = FALSE;
     UINT32 depth = get_stack(tid).depth();
     DepthFuncHandlersMap::iterator iter;
     DepthFuncHandlersMap& m = _depth_func_handlers_tid_vec[tid];
@@ -540,10 +612,12 @@ BOOL CallStackManager::on_ret_should_fire(THREADID tid){
     //find all handlers that should be called based on the stack depth
     for ( ; iter != m.end(); iter++){
         if (iter->first > depth){
-            return TRUE;
+            was_found = TRUE;
+            break;
         }
     }
-    return FALSE;
+
+    return was_found;
 }
 
 
@@ -554,6 +628,7 @@ BOOL CallStackManager::on_ret_should_fire(THREADID tid){
 //    1. we call all the registered handlers
 //    2. remove the 'depth' entry so it will not be call again later.
 void CallStackManager::on_ret_fire(THREADID tid, CONTEXT* ctxt, ADDRINT ip){
+
     UINT32 depth = get_stack(tid).depth();
     DepthFuncHandlersMap::iterator iter;
     DepthFuncHandlersMap::iterator earase_iter;
@@ -567,11 +642,12 @@ void CallStackManager::on_ret_fire(THREADID tid, CONTEXT* ctxt, ADDRINT ip){
             for (UINT32 i = 0 ; i < iter->second.size(); i++){
                 CallStackHandlerParams *params = iter->second[i];
                 params->_handler(ctxt, ip, tid, params->_args);
+                _marked_ip_for_exit.erase(params->_first_ip);
             }
             earase_iter = iter;
             iter++;
             m.erase(earase_iter);
-            _marked_ip_for_exit.erase(ip);
+            
 
         }
         else{

@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -426,7 +426,7 @@ private:
     void SetBuffer(const void *buf, size_t byteSizeIn, unsigned size)
     {
         if (!size)
-            size = 8*byteSizeIn;
+            size = static_cast<unsigned>(8*byteSizeIn);
         _size = size;
         size_t byteSize = (size + 7) >> 3;
 
@@ -463,7 +463,7 @@ private:
             //
             if ((byteSize <= byteSizeIn) && (size < 8*byteSize))
             {
-                unsigned numBitsLast = 8 - (8*byteSize - size);
+                unsigned numBitsLast = static_cast<unsigned>(8 - (8*byteSize - size));
                 UINT8 *last = &_bigValue->GetWritableBuf<UINT8>()[_bigValue->GetSize()-1];
                 UINT8 mask = UINT8(1);
                 *last &= ((mask << numBitsLast) - UINT8(1));

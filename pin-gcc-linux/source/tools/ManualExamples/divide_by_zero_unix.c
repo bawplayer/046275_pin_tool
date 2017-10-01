@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -28,11 +28,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 END_LEGAL */
-// features.h does not exist on FreeBSD
-#ifndef TARGET_BSD
 // features initializes the system's state, including the state of __USE_GNU
 #include <features.h>
-#endif
 
 // If __USE_GNU is defined, we don't need to do anything.
 // If we defined it ourselves, we need to undefine it later.
@@ -41,11 +38,7 @@ END_LEGAL */
     #define APP_UNDEF_USE_GNU
 #endif
 
-#if defined(TARGET_ANDROID) && !defined(TARGET_NDK64)
-#include "android_ucontext.h"
-#else
 #include <ucontext.h>
-#endif
 
 // If we defined __USE_GNU ourselves, we need to undefine it here.
 #ifdef APP_UNDEF_USE_GNU
@@ -59,9 +52,9 @@ END_LEGAL */
 #include <signal.h>
 
 #ifdef TARGET_IA32
-#define REG_IP REG_EIP
+# define REG_IP REG_EIP
 #else
-#define REG_IP REG_RIP
+# define REG_IP REG_RIP
 #endif
 
 void *DivideByZeroRetPoint;
@@ -72,7 +65,7 @@ int DivideByZero()
     fprintf(stderr, "Going to divide by zero\n");
     i  = 1 / zero;
     return i/i;
-} 
+}
 
 #define DIV_OPCODE 0xf7
 #define MODRM_REG   0xc0
@@ -84,11 +77,11 @@ int DivideByZero()
 #define IS_DISP32_MODE(modrmByte) ((modrmByte & MODRM_DISP32) == MODRM_DISP32)
 
 
-void div0_signal_handler(int signum, siginfo_t *siginfo, void *uctxt) 
+void div0_signal_handler(int signum, siginfo_t *siginfo, void *uctxt)
 {
     printf("Inside div0 handler\n");
     ucontext_t *frameContext = (ucontext_t *)uctxt;
-  
+
     unsigned char *bytes = (unsigned char *)frameContext->uc_mcontext.gregs[REG_IP];
     if (bytes[0] == DIV_OPCODE)
     {
@@ -112,7 +105,7 @@ void div0_signal_handler(int signum, siginfo_t *siginfo, void *uctxt)
             // set IP pointing to the next instruction
             frameContext->uc_mcontext.gregs[REG_IP] += 6;
             return;
-        }            
+        }
     }
     printf("Unexpected instruction at address 0x%lx\n", (unsigned long)frameContext->uc_mcontext.gregs[REG_IP]);
     exit(-1);
@@ -122,21 +115,21 @@ int main()
 {
     int ret;
     struct sigaction sSigaction;
-    
+
     /* Register the signal hander using the siginfo interface*/
     sSigaction.sa_sigaction = div0_signal_handler;
     sSigaction.sa_flags = SA_SIGINFO;
-    
+
     /* mask all other signals */
     sigfillset(&sSigaction.sa_mask);
-    
+
     ret = sigaction(SIGFPE, &sSigaction, NULL);
-    if(ret) 
+    if(ret)
     {
         perror("ERROR, sigaction failed");
         exit(-1);
     }
-    
+
     if(DivideByZero() != 1)
     {
         exit (-1);

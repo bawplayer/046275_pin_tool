@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -46,9 +46,7 @@ int main()
 {
     ostringstream os;
 
-#if defined(TARGET_ANDROID)
-    os << "builtin cat /proc/" << getpid() << "/maps";
-#elif defined(TARGET_LINUX)
+#if defined(TARGET_LINUX)
     os << "/bin/cat /proc/" << getpid() << "/maps";
 #elif defined(TARGET_MAC)
     os << "/usr/bin/vmmap " << getpid();

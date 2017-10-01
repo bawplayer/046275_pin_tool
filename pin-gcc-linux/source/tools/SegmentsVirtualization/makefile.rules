@@ -48,16 +48,6 @@ LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
 
-# Android
-ifeq ($(TARGET_OS),android)
-    TEST_ROOTS += modify_ldt load_far_pointer gcc_thread_local_vars
-    APP_ROOTS += modify_ldt load_far_pointer gcc_thread_local_vars_app
-    ifeq ($(TARGET),ia32)
-        TEST_ROOTS += set_thread_area1 set_thread_area2 set_thread_area3 fixed_base_reg
-        APP_ROOTS += set_thread_area1 set_thread_area2 set_thread_area3 fixed_base_reg
-    endif
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     TEST_ROOTS += modify_ldt load_far_pointer gcc_thread_local_vars

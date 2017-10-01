@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -56,6 +56,7 @@ public:
         _alarm_manager = manager;
         memset(_thread_count,0,sizeof(_thread_count));
         memset(_armed,0,sizeof(_armed));
+        _activate_late_handler = FALSE;
         PIN_InitLock(&_lock);
     }
 
@@ -77,12 +78,16 @@ public:
 protected:
     
     UINT32 GetInstrumentOrder();
+    UINT32 GetLateInstrumentOrder();
 
     //add if analysis function 
-    static VOID InsertIfCall_Count(IALARM* alarm, INS ins, UINT32 ninst);
+    static VOID InsertIfCall_Count(IALARM* alarm, INS ins, UINT32 ninst, IPOINT point = IPOINT_BEFORE);
     
     //add then analysis function
-    static VOID InsertThenCall_Fire(IALARM* alarm, INS ins);
+    static VOID InsertThenCall_Fire(IALARM* alarm, INS ins, IPOINT point = IPOINT_BEFORE);
+
+    //add late fire analysis functions
+    static VOID Insert_LateInstrumentation(IALARM* alarm, INS ins);
 
     //return True if: 1. the alarm is armed 
     //                2. we are in the correct tid
@@ -92,6 +97,18 @@ protected:
 
     //do fire 
     static VOID Fire(IALARM* ialarm, CONTEXT* ctxt, VOID * ip, UINT32 tid);
+
+    // Late handler analysis routines
+    static ADDRINT PIN_FAST_ANALYSIS_CALL ActivateLate(IALARM* ialarm);
+    static VOID LateFire(IALARM* ialarm, CONTEXT* ctxt, VOID * ip, UINT32 tid);
+
+    // Instrumentation routines for address alarms
+    static VOID TraceAddress(TRACE trace, VOID* v);
+    static VOID InsertIfCall_Target(IALARM* ialarm, INS ins);
+
+    // Analysis routines for address alarms
+    static ADDRINT PIN_FAST_ANALYSIS_CALL CheckTarget(IALARM* ialarm, UINT32 tid, ADDRINT branch_target);
+
 
     //whether we need context
     BOOL _need_context;
@@ -108,6 +125,12 @@ protected:
     BOOL _armed[PIN_MAX_THREADS];
 
     ALARM_MANAGER* _alarm_manager;
+
+    BOOL _activate_late_handler;
+
+    // Address value for address, symbol and image alarms
+    ADDRINT _address;
+
 private:
     
 #if defined(TARGET_WINDOWS)

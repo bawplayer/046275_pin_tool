@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -83,7 +83,7 @@ int main()
 #if defined(TARGET_WINDOWS)
     DoExplicitMemoryOps();
 #else
-# if defined(TARGET_IA32E) || defined(TARGET_MIC)
+# if defined(TARGET_IA32E)
     asm volatile ("lbl1: leaq %1, %%rax; leaq lbl1(%%rip), %%rax; movq %%rax, %0" : "=m"(lbl[0]): "m"(globalVar) : "%rax");
     asm volatile ("lbl2: leaq %1, %%rax; leaq lbl2(%%rip), %%rax; movq %%rax, %0" : "=m"(lbl[1]): "m"(autoVar) : "%rax");
     asm volatile ("lbl3: leaq %1, %%rax; leaq lbl3(%%rip), %%rax; movq %%rax, %0" : "=m"(lbl[2]): "m"(*dynVar) : "%rax");

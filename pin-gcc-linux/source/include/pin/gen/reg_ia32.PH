@@ -35,7 +35,7 @@ typedef enum
 # endif // not TARGET_DOXYGEN
 
     REG_GR_BASE = REG_RBASE,
-# if defined(TARGET_IA32E) || defined(TARGET_MIC)
+# if defined(TARGET_IA32E)
     // Context registers in the Intel(R) 64 architecture
     REG_RDI = REG_GR_BASE,  ///< rdi
     REG_GDI = REG_RDI,      ///< edi on a 32 bit machine, rdi on 64
@@ -76,7 +76,7 @@ typedef enum
     REG_GFLAGS=REG_RFLAGS,
     REG_RIP,
     REG_INST_PTR = REG_RIP,
-# else // not defined(TARGET_IA32E) || defined(TARGET_MIC)
+# else // not defined(TARGET_IA32E)
     // Context registers in the IA-32 architecture
     REG_EDI = REG_GR_BASE,
     REG_GDI = REG_EDI,
@@ -109,7 +109,7 @@ typedef enum
     REG_GFLAGS=REG_EFLAGS,
     REG_EIP,
     REG_INST_PTR = REG_EIP,
-# endif // not defined(TARGET_IA32E) || defined(TARGET_MIC)
+# endif // not defined(TARGET_IA32E)
 
 # if !defined(TARGET_DOXYGEN)
     REG_PHYSICAL_INTEGER_END = REG_INST_PTR,
@@ -140,7 +140,7 @@ typedef enum
     REG_FLAGS,
     REG_IP,
 
-# if defined(TARGET_IA32E) || defined(TARGET_MIC)
+# if defined(TARGET_IA32E)
     // partial registers in the Intel(R) 64 architecture
     REG_EDI,
     REG_DIL,
@@ -181,10 +181,9 @@ typedef enum
     REG_R15B,
     REG_R15W,
     REG_R15D,
-# endif // not defined(TARGET_IA32E) || defined(TARGET_MIC)
+# endif // not defined(TARGET_IA32E)
 
     REG_MM_BASE,
-# if !defined(TARGET_MIC)
     REG_MM0 = REG_MM_BASE,
     REG_MM1,
     REG_MM2,
@@ -194,29 +193,8 @@ typedef enum
     REG_MM6,
     REG_MM7,
     REG_MM_LAST = REG_MM7,
-# else // TARGET_MIC
-    REG_MM_LAST = REG_MM_BASE,
-# endif // TARGET_MIC
-
-    REG_EMM_BASE,
-# if !defined(TARGET_MIC)
-    REG_EMM0 = REG_EMM_BASE,
-    REG_EMM1,
-    REG_EMM2,
-    REG_EMM3,
-    REG_EMM4,
-    REG_EMM5,
-    REG_EMM6,
-    REG_EMM7,
-    REG_EMM_LAST = REG_EMM7,
-# else // TARGET_MIC
-    REG_EMM_LAST = REG_EMM_BASE,
-# endif // TARGET_MIC
 
     REG_XMM_BASE,
-
-    # if !defined(TARGET_MIC)
-    // for mic, REG_FIRST_FP_REG is defined below as REG_ZMM_BASE
     REG_FIRST_FP_REG = REG_XMM_BASE,
     REG_XMM0 = REG_XMM_BASE,
     REG_XMM1,
@@ -227,7 +205,7 @@ typedef enum
     REG_XMM6,
     REG_XMM7,
 
-#  if defined(TARGET_IA32E)
+# if defined(TARGET_IA32E)
     // additional xmm registers in the Intel(R) 64 architecture
     REG_XMM8,
     REG_XMM9,
@@ -259,18 +237,14 @@ typedef enum
     REG_XMM_AVX512_HI16_LAST = REG_XMM31,
     REG_XMM_AVX512_LAST = REG_XMM_AVX512_HI16_LAST,
     REG_XMM_LAST = REG_XMM_AVX512_LAST,
-#  else // not TARGET_IA32E
+# else // not TARGET_IA32E
     REG_XMM_SSE_LAST = REG_XMM7,
     REG_XMM_AVX_LAST = REG_XMM_SSE_LAST,
     REG_XMM_AVX512_LAST = REG_XMM_AVX_LAST,
     REG_XMM_LAST = REG_XMM_AVX512_LAST,
-#  endif // not TARGET_IA32E
-# else // TARGET_MIC
-    REG_XMM_LAST = REG_XMM_BASE,
-# endif // TARGET_MIC
+# endif // not TARGET_IA32E
 
     REG_YMM_BASE,
-# if !defined(TARGET_MIC)
     REG_YMM0 = REG_YMM_BASE,
     REG_YMM1,
     REG_YMM2,
@@ -280,7 +254,7 @@ typedef enum
     REG_YMM6,
     REG_YMM7,
 
-#  if defined(TARGET_IA32E)
+# if defined(TARGET_IA32E)
     // additional ymm registers in the Intel(R) 64 architecture
     REG_YMM8,
     REG_YMM9,
@@ -311,22 +285,13 @@ typedef enum
     REG_YMM_AVX512_HI16_LAST = REG_YMM31,
     REG_YMM_AVX512_LAST = REG_YMM_AVX512_HI16_LAST,
     REG_YMM_LAST = REG_YMM_AVX512_LAST,
-#  else // not TARGET_IA32E
+# else // not TARGET_IA32E
     REG_YMM_AVX_LAST = REG_YMM7,
     REG_YMM_AVX512_LAST = REG_YMM_AVX_LAST,
     REG_YMM_LAST = REG_YMM_AVX512_LAST,
-#  endif // not TARGET_IA32E
-# else // TARGET_MIC
-    REG_YMM_LAST = REG_YMM_BASE,
-# endif // TARGET_MIC
+# endif // not TARGET_IA32E
 
     REG_ZMM_BASE,
-
-# if defined(TARGET_MIC)
-    // for ia32 and ia32e, REG_FIRST_FP_REG is defined above as REG_XMM_BASE
-    REG_FIRST_FP_REG = REG_ZMM_BASE,
-# endif // TARGET_MIC
-
     REG_ZMM0 = REG_ZMM_BASE,
     REG_ZMM1,
     REG_ZMM2,
@@ -335,7 +300,7 @@ typedef enum
     REG_ZMM5,
     REG_ZMM6,
     REG_ZMM7,
-# if defined(TARGET_IA32E) || defined(TARGET_MIC)
+# if defined(TARGET_IA32E)
     REG_ZMM8,
     REG_ZMM9,
     REG_ZMM10,
@@ -365,11 +330,11 @@ typedef enum
     REG_ZMM_AVX512_HI16_LAST = REG_ZMM31,
     REG_ZMM_AVX512_LAST = REG_ZMM_AVX512_HI16_LAST,
     REG_ZMM_LAST = REG_ZMM_AVX512_LAST,
-# else // not defined(TARGET_IA32E) || defined(TARGET_MIC)
+# else // not defined(TARGET_IA32E)
     REG_ZMM_AVX512_SPLIT_LAST = REG_ZMM7,
     REG_ZMM_AVX512_LAST = REG_ZMM_AVX512_SPLIT_LAST,
     REG_ZMM_LAST = REG_ZMM_AVX512_LAST,
-# endif // not defined(TARGET_IA32E) || defined(TARGET_MIC)
+# endif // not defined(TARGET_IA32E)
 
     REG_K_BASE,
     REG_K0 = REG_K_BASE,
@@ -390,13 +355,13 @@ typedef enum
 
     // This corresponds to the "orig_eax" register that is visible
     // to some debuggers.
-# if defined(TARGET_IA32E) || defined(TARGET_MIC)
+# if defined(TARGET_IA32E)
     REG_ORIG_RAX,
     REG_ORIG_GAX = REG_ORIG_RAX,
-# else // not defined(TARGET_IA32E) || defined(TARGET_MIC)
+# else // not defined(TARGET_IA32E)
     REG_ORIG_EAX,
     REG_ORIG_GAX = REG_ORIG_EAX,
-# endif // not defined(TARGET_IA32E) || defined(TARGET_MIC)
+# endif // not defined(TARGET_IA32E)
 
     REG_FPST_BASE,
     REG_FPSTATUS_BASE = REG_FPST_BASE,
@@ -558,7 +523,7 @@ typedef enum
 
     REG_INST_SCRATCH_LAST = REG_BUF_LAST,
 
-# if defined(TARGET_IA32E) || defined(TARGET_MIC)
+# if defined(TARGET_IA32E)
     // DWORD versions of the above G0-G29 scratch regs
     REG_INST_G0D,                           ///< Scratch register used in pintools
     REG_INST_G1D,                           ///< Scratch register used in pintools
@@ -591,16 +556,18 @@ typedef enum
     REG_INST_G28D,                          ///< Scratch register used in pintools
     REG_INST_G29D,                          ///< Scratch register used in pintools
     REG_TOOL_LAST = REG_INST_G29D,
-# else // end of defined(TARGET_IA32E) || defined(TARGET_MIC)
+# else // end of defined(TARGET_IA32E)
     REG_TOOL_LAST = REG_BUF_LAST,
-# endif // end of !(defined(TARGET_IA32E) || defined(TARGET_MIC))
+# endif // end of !(defined(TARGET_IA32E))
 
 # if !defined(TARGET_DOXYGEN)
     REG_SPECIAL_BASE,
 
     // REG_X87 is a representative of the X87 fp state - it is NOT available for explicit use in ANY
-    // of the Pin APIs. It also MUST be check for reconciliation before the xmm,ymm and mxcsr register
-    // in order to ensure correct reconciliation order
+    // of the Pin APIs.
+    // This register is set/get internally using xsave/xrstor or fxsave/fxrstor.
+    // In order to allow proper work of xsave/xrstor, the size of this register includes all the legacy xfeatures
+    // and the extended header. see @ref REG_X87_SIZE.
     REG_X87 = REG_SPECIAL_BASE,
 
     REG_SPECIAL_LAST = REG_X87,
@@ -680,7 +647,7 @@ typedef enum
     REG_PIN_DI,
     REG_PIN_SP,
 
-#  if defined(TARGET_IA32E) || defined(TARGET_MIC)
+#  if defined(TARGET_IA32E)
     // Intel(R) 64 architecture specific pin gr regs
     REG_PIN_RDI,
     REG_PIN_GDI = REG_PIN_RDI,
@@ -745,7 +712,7 @@ typedef enum
     REG_PIN_R15B,
     REG_PIN_R15W,
     REG_PIN_R15D,
-#  endif // defined(TARGET_IA32E) || defined(TARGET_MIC)
+#  endif // defined(TARGET_IA32E)
 
     // Every thread is assigned an index so we can implement tls
     REG_PIN_THREAD_ID,
@@ -761,23 +728,34 @@ typedef enum
 
     // ISA-independent gr regs holding temporary values
     REG_PIN_T_BASE,
+#ifdef TARGET_IA32E
     REG_PIN_T0 = REG_PIN_T_BASE,
     REG_PIN_T1,
     REG_PIN_T2,
     REG_PIN_T3,
-    REG_PIN_T0L,    // lower 8 bits of temporary register
-    REG_PIN_T1L,
-    REG_PIN_T2L,
-    REG_PIN_T3L,
-    REG_PIN_T0W,    // lower 16 bits of temporary register
-    REG_PIN_T1W,
-    REG_PIN_T2W,
-    REG_PIN_T3W,
     REG_PIN_T0D,    // lower 32 bits of temporary register
     REG_PIN_T1D,
     REG_PIN_T2D,
     REG_PIN_T3D,
-    REG_PIN_T_LAST = REG_PIN_T3D,
+#else // not TARGET_IA32E
+    REG_PIN_T0 = REG_PIN_T_BASE,
+    REG_PIN_T0D = REG_PIN_T0,
+    REG_PIN_T1,
+    REG_PIN_T1D = REG_PIN_T1,
+    REG_PIN_T2,
+    REG_PIN_T2D = REG_PIN_T2,
+    REG_PIN_T3,
+    REG_PIN_T3D = REG_PIN_T3,
+#endif // not TARGET_IA32E
+    REG_PIN_T0W,    // lower 16 bits of temporary register
+    REG_PIN_T1W,
+    REG_PIN_T2W,
+    REG_PIN_T3W,
+    REG_PIN_T0L,    // lower 8 bits of temporary register
+    REG_PIN_T1L,
+    REG_PIN_T2L,
+    REG_PIN_T3L,
+    REG_PIN_T_LAST = REG_PIN_T3L,
     REG_PIN_THREAD_IDD,    // REG_PIN_THREAD_ID 32 half part
     REG_TO_SPILL_LAST = REG_PIN_THREAD_IDD,
     REG_PIN_INST_COND,     // for conditional instrumentation.
@@ -785,22 +763,33 @@ typedef enum
     // Used for memory rewriting, these are not live outside the region
     // but cannot use general purpose scratch registers, because they're
     // used during instrumentation generation, rather than region generation.
+#ifdef TARGET_IA32E
     REG_PIN_INST_T0,
-    REG_PIN_INST_T0L,                               /* Low  8 bits */
-    REG_PIN_INST_T0W,                               /* Low 16 bits */
-    REG_PIN_INST_T0D,                               /* Low 32 bits */
     REG_PIN_INST_T1,
-    REG_PIN_INST_T1L,                               /* Low  8 bits */
-    REG_PIN_INST_T1W,                               /* Low 16 bits */
-    REG_PIN_INST_T1D,                               /* Low 32 bits */
     REG_PIN_INST_T2,
-    REG_PIN_INST_T2L,                               /* Low  8 bits */
-    REG_PIN_INST_T2W,                               /* Low 16 bits */
-    REG_PIN_INST_T2D,                               /* Low 32 bits */
     REG_PIN_INST_T3,
-    REG_PIN_INST_T3L,                               /* Low  8 bits */
-    REG_PIN_INST_T3W,                               /* Low 16 bits */
-    REG_PIN_INST_T3D,                               /* Low 32 bits */
+    REG_PIN_INST_T0D,    // lower 32 bits of temporary register
+    REG_PIN_INST_T1D,
+    REG_PIN_INST_T2D,
+    REG_PIN_INST_T3D,
+#else // not TARGET_IA32E
+    REG_PIN_INST_T0,
+    REG_PIN_INST_T0D = REG_PIN_INST_T0,
+    REG_PIN_INST_T1,
+    REG_PIN_INST_T1D = REG_PIN_INST_T1,
+    REG_PIN_INST_T2,
+    REG_PIN_INST_T2D = REG_PIN_INST_T2,
+    REG_PIN_INST_T3,
+    REG_PIN_INST_T3D = REG_PIN_INST_T3,
+#endif // not TARGET_IA32E
+    REG_PIN_INST_T0W,    // lower 16 bits of temporary register
+    REG_PIN_INST_T1W,
+    REG_PIN_INST_T2W,
+    REG_PIN_INST_T3W,
+    REG_PIN_INST_T0L,    // lower 8 bits of temporary register
+    REG_PIN_INST_T1L,
+    REG_PIN_INST_T2L,
+    REG_PIN_INST_T3L,
 
     // Used to preserve the predicate value around repped string ops
     REG_PIN_INST_PRESERVED_PREDICATE,
@@ -852,7 +841,6 @@ typedef enum
     REG_PIN_FLAGS,
 
     REG_PIN_XMM_BASE,
-#  if !defined(TARGET_MIC)
     REG_PIN_XMM0 = REG_PIN_XMM_BASE,
     REG_PIN_XMM1,
     REG_PIN_XMM2,
@@ -861,7 +849,7 @@ typedef enum
     REG_PIN_XMM5,
     REG_PIN_XMM6,
     REG_PIN_XMM7,
-#   if defined(TARGET_IA32E)
+#  if defined(TARGET_IA32E)
     // additional xmm registers in the Intel(R) 64 architecture
     REG_PIN_XMM8,
     REG_PIN_XMM9,
@@ -893,18 +881,14 @@ typedef enum
     REG_PIN_XMM_AVX512_HI16_LAST = REG_PIN_XMM31,
     REG_PIN_XMM_AVX512_LAST = REG_PIN_XMM_AVX512_HI16_LAST,
     REG_PIN_XMM_LAST = REG_PIN_XMM_AVX512_LAST,
-#   else // not TARGET_IA32E
+#  else // not TARGET_IA32E
     REG_PIN_XMM_SSE_LAST = REG_PIN_XMM7,
     REG_PIN_XMM_AVX_LAST = REG_PIN_XMM_SSE_LAST,
     REG_PIN_XMM_AVX512_LAST = REG_PIN_XMM_AVX_LAST,
     REG_PIN_XMM_LAST = REG_PIN_XMM_AVX512_LAST,
-#   endif // TARGET_IA32E
-#  else // TARGET_MIC
-    REG_PIN_XMM_LAST = REG_PIN_XMM_BASE,
-#  endif // TARGET_MIC
+#  endif // TARGET_IA32E
 
     REG_PIN_YMM_BASE,
-#  if !defined(TARGET_MIC)
     REG_PIN_YMM0 = REG_PIN_YMM_BASE,
     REG_PIN_YMM1,
     REG_PIN_YMM2,
@@ -913,7 +897,7 @@ typedef enum
     REG_PIN_YMM5,
     REG_PIN_YMM6,
     REG_PIN_YMM7,
-#   if defined(TARGET_IA32E)
+#  if defined(TARGET_IA32E)
     // additional ymm registers in the Intel(R) 64 architecture
     REG_PIN_YMM8,
     REG_PIN_YMM9,
@@ -944,14 +928,11 @@ typedef enum
     REG_PIN_YMM_AVX512_HI16_LAST = REG_PIN_YMM31,
     REG_PIN_YMM_AVX512_LAST = REG_PIN_YMM_AVX512_HI16_LAST,
     REG_PIN_YMM_LAST = REG_PIN_YMM_AVX512_LAST,
-#   else // not TARGET_IA32E
+#  else // not TARGET_IA32E
     REG_PIN_YMM_AVX_LAST = REG_PIN_YMM7,
     REG_PIN_YMM_AVX512_LAST = REG_PIN_YMM_AVX_LAST,
     REG_PIN_YMM_LAST = REG_PIN_YMM_AVX512_LAST,
-#   endif // not TARGET_IA32E
-#  else // TARGET_MIC
-    REG_PIN_YMM_LAST = REG_PIN_YMM_BASE,
-#  endif // TARGET_MIC
+#  endif // not TARGET_IA32E
 
     REG_PIN_ZMM_BASE,
     REG_PIN_ZMM0 = REG_PIN_ZMM_BASE,
@@ -1144,7 +1125,7 @@ inline BOOL REG_is_br(REG reg)  { return FALSE; }
                                                                   /* DO NOT EDIT */
 inline BOOL REG_is_gr64(REG reg)
 {
-#if defined(TARGET_IA32E) || defined(TARGET_MIC)
+#if defined(TARGET_IA32E)
     // all gr on Intel(R) 64 architectures are 64-bits
     return REG_is_gr(reg);
 #else
@@ -1157,7 +1138,7 @@ inline BOOL REG_is_gr64(REG reg)
 inline BOOL REG_is_gr32(REG reg)
 {
 
-#if defined(TARGET_IA32E) || defined(TARGET_MIC)
+#if defined(TARGET_IA32E)
     return (_regClassBitMapTable[reg] == _REGCBIT(REG_CLASS_GRH32));
 #else
     return (_regClassBitMapTable[reg] == _REGCBIT(REG_CLASS_GR));
@@ -1168,7 +1149,7 @@ inline BOOL REG_is_gr32(REG reg)
 inline BOOL REG_is_pin_gr32(REG reg)
 {
 
-#if defined(TARGET_IA32E) || defined(TARGET_MIC)
+#if defined(TARGET_IA32E)
     return (_regClassBitMapTable[reg] == _REGCBIT(REG_CLASS_PIN_GRH32));
 #else
     return (_regClassBitMapTable[reg] == _REGCBIT(REG_CLASS_PIN_GR));
@@ -1200,25 +1181,7 @@ inline BOOL REG_is_seg(REG reg)
 inline BOOL REG_is_fr_for_get_context(REG reg)
 {
      const REG_CLASS_BITS  frClassMask =
-        (_REGCBIT(REG_CLASS_K) )                  |
         (_REGCBIT(REG_CLASS_FPST) )               |
-        (_REGCBIT(REG_CLASS_MXCSR))               |
-        (_REGCBIT(REG_CLASS_MXCSRMASK));
-
-    return ((_regClassBitMapTable[reg] & frClassMask) != 0);
-}
-
-                                                                  /* DO NOT EDIT */
-inline BOOL REG_is_fr_or_x87(REG reg)
-{
-    const REG_CLASS_BITS  frClassMask =
-        (_REGCBIT(REG_CLASS_XMM))                 |
-        (_REGCBIT(REG_CLASS_YMM))                 |
-        (_REGCBIT(REG_CLASS_ZMM) )                |
-        (_REGCBIT(REG_CLASS_K) )                  |
-        (_REGCBIT(REG_CLASS_FPST))                |
-        (_REGCBIT(REG_CLASS_ST))                  |
-        (_REGCBIT(REG_CLASS_X87))                 |
         (_REGCBIT(REG_CLASS_MXCSR))               |
         (_REGCBIT(REG_CLASS_MXCSRMASK));
 
@@ -1230,9 +1193,6 @@ inline BOOL REG_is_mxcsr(REG reg) { return (REG_MXCSR == reg); }
 
                                                                   /* DO NOT EDIT */
 inline BOOL REG_is_any_mxcsr(REG reg) { return (REG_MXCSR == reg || REG_PIN_MXCSR == reg); }
-
-                                                                  /* DO NOT EDIT */
-inline BOOL REG_is_any_x87(REG reg) { return (REG_X87 == reg || REG_PIN_X87 == reg); }
 
                                                                   /* DO NOT EDIT */
 inline BOOL REG_is_mm(REG reg)
@@ -1299,19 +1259,6 @@ inline BOOL REG_is_st(REG reg)
 }
 
                                                                   /* DO NOT EDIT */
-inline BOOL REG_is_fpst(REG reg)
-{
-    const REG_CLASS_BITS classMask = (_REGCBIT(REG_CLASS_ST)) | (_REGCBIT(REG_CLASS_FPST));
-    return ((_regClassBitMapTable[reg] & classMask) != 0);
-}
-
-                                                                  /* DO NOT EDIT */
-inline BOOL REG_is_in_X87(REG reg)
-{
-    return (REG_is_fpst(reg) | REG_is_mm(reg));
-}
-
-                                                                  /* DO NOT EDIT */
 inline BOOL REG_is_machine(REG reg)
 {
     return ((reg >= REG_MACHINE_BASE) && (reg <= REG_MACHINE_LAST));
@@ -1351,7 +1298,7 @@ inline BOOL REG_is_seg_base(REG reg)
 inline BOOL REG_valid_for_iarg_reg_value(REG reg)
 {
     const REG_CLASS_BITS allowedClassMask = ((_REGCBIT(REG_CLASS_GR)) | (_REGCBIT(REG_CLASS_PIN_GR)) | (_REGCBIT(REG_CLASS_SEG))
-                                            | (_REGCBIT(REG_CLASS_K)) | REGCBIT_PARTIAL | REGCBIT_APP_FLAGS | REGCBIT_PIN_FLAGS);
+                                            | REGCBIT_PARTIAL | REGCBIT_APP_FLAGS | REGCBIT_PIN_FLAGS);
     const REG_CLASS_BITS disallowedPartialRegs = ((_REGCBIT(REG_CLASS_FLAGS16)) | (_REGCBIT(REG_CLASS_FLAGS32))
                                         | (_REGCBIT(REG_CLASS_IP16)) | (_REGCBIT(REG_CLASS_IP32))
                                         | (_REGCBIT(REG_CLASS_DFLAG)) | (_REGCBIT(REG_CLASS_STATUS_FLAGS)));
@@ -1604,17 +1551,9 @@ inline BOOL REG_is_stackptr_type(REG reg)
                                                                   /* DO NOT EDIT */
 inline BOOL REG_is_representative_reg(REG reg)
 {
-    // currently the REG_X87 represents the whole X87 state used
-    // for passing the CONTEXT* for IARG_CONST_CONTEXT.
+    // The REG_X87 represents the FPST registers only
     const REG_CLASS_BITS  representativeClassMask = ((_REGCBIT(REG_CLASS_X87)) | (_REGCBIT(REG_CLASS_PIN_X87)));
     return ((_regClassBitMapTable[reg] & representativeClassMask) != 0);
-}
-
-                                                                  /* DO NOT EDIT */
-inline BOOL REG_is_x87_reg(REG reg)
-{
-    const REG_CLASS_BITS  x87ClassMask = ((_REGCBIT(REG_CLASS_X87)) | (_REGCBIT(REG_CLASS_PIN_X87)));
-    return ((_regClassBitMapTable[reg] & x87ClassMask) != 0);
 }
 
                                                                   /* DO NOT EDIT */

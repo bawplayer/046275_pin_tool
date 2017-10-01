@@ -30,7 +30,8 @@ TEST_ROOTS := nestmask altstack errcheck fatallog sigcont fastsigcheck sigprocma
               suspendmask fatal_block_sync simpleasync simplesync fpcheck movsbtest_$(TARGET) sigflowcheck2 syncasync \
               interceptsegv_for_regbindings_cache intercept sigflowcheck1 resetcont log inst-type blockingsyscall \
               then-stress faultcheck-pressure segv_on_fetch replay-signal bad-stack-noalt bad-stack-alt bad-stack-sigret \
-              call-app call-app-stress xmmcheck_$(TARGET) xmmfaultcheck_$(TARGET) alternate_stack_fork alternate_stack_thread
+              call-app call-app-stress xmmcheck_$(TARGET) xmmfaultcheck_$(TARGET) alternate_stack_fork alternate_stack_thread \
+              async_exceptions blocked_async_exceptions
 
 # This defines the tools which will be run during the the tests, and were not already defined in
 # TEST_TOOL_ROOTS.
@@ -44,7 +45,7 @@ APP_ROOTS := simple nestmask syncasyncapp fpcheck maskcheck segv blockloop exith
              sigenableapp sigprocmask_short sig64 fatalsync blockingsyscall futex asyncfpe fatal_block_sync suspendmask \
              efault shortmask segv_for_regbindings_cache_test resetsegv movsbtest_$(TARGET) resetcont handle-usr1 \
              inst-type-app then-stress-app segv_on_fetch replay-signal-app call-app call-app-stress xmmcheck_$(TARGET) \
-             xmmfaultcheck_$(TARGET) forktest_altstack threadtest_altstack
+             xmmfaultcheck_$(TARGET) forktest_altstack threadtest_altstack async_exceptions
 
 # This defines any additional object files that need to be compiled.
 OBJECT_ROOTS :=
@@ -72,29 +73,6 @@ endif
 
 ###### Place OS-specific definitions here ######
 
-# Android
-ifeq ($(TARGET_OS),android)
-    TEST_ROOTS += mtstress resetsegv efault async_multithreading asyncfpe shortmask
-    TOOL_ROOTS += raise-exception-tool
-    APP_ROOTS += async_multithreadingapp mtstress
-    ifeq ($(TARGET),ia32)
-        TEST_ROOTS += raise-exception-ia32 raise-exception-ia32-const-context handlerAlignment
-        APP_ROOTS += handlerAlignment
-        OBJECT_ROOTS += handlerAlignment_asm
-    endif
-    ifeq ($(TARGET),ia32)
-        ifeq ($(NDK_VERSION),10)
-           TEST_ROOTS += hlt_pie
-           APP_ROOTS += hlt_pie
-        endif
-    endif
-    ifeq ($(ATTACH),1)
-        TEST_TOOL_ROOTS += sigsegv_attach
-        APP_ROOTS += sigsegv_attach_app
-    endif
-
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     TEST_ROOTS += mtstress resetsegv efault async_multithreading asyncfpe shortmask
@@ -118,43 +96,7 @@ endif
 
 ###### Handle exceptions here ######
 
-# KNC does not support SSE, therefore don't test the following on that platform.
-ifeq ($(TARGET),mic)
-    TEST_ROOTS := $(filter-out xmmcheck_$(TARGET) xmmfaultcheck_$(TARGET), $(TEST_ROOTS))
-    APP_ROOTS := $(filter-out xmmcheck_$(TARGET) xmmfaultcheck_$(TARGET), $(APP_ROOTS))
-endif
-
 # TODO: These tests fail - fix and remove the following:
-# See Mantis 3087
-ifeq ($(TARGET),mic)
-    TEST_TOOL_ROOTS := $(filter-out action-pending interceptsegv deprecated-intercept, $(TEST_TOOL_ROOTS))
-    TEST_ROOTS := $(filter-out inst-type asyncfpe bad-stack-sigret maskcheck async_multithreading simpleasync resetcont \
-                               bad-stack-alt call-app sig64 log resetsegv altstack bad-stack-noalt fpcheck suspendmask \
-                               sigflowcheck2 faultcheck-pressure replay-signal futex movsbtest_mic fastsigcheck syncasync \
-                               then-stress nestmask mtstress sigflowcheck1 simplesync interceptsegv_for_regbindings_cache \
-                               blockingsyscall call-app-stress, $(TEST_ROOTS))
-endif
-
-# TODO: These tests fail - fix and remove the following:
-
-# These tests are disabled on Android:
-ifeq ($(TARGET_OS),android)
-    # intercept test hangs on Android because of a makefile issue - see Mantis 2877.
-    # fastsigcheck,interceptsegv,then-stress fails on Android because of makefile issues - see Mantis 2877.
-    # See Mantis 2907 for: suspendmask sigaltstack
-    # See mantis 2996 for call-app-stress
-    TEST_TOOL_ROOTS := $(filter-out interceptsegv deprecated-intercept, $(TEST_TOOL_ROOTS))
-    TEST_ROOTS := $(filter-out sigaltstack suspendmask intercept fastsigcheck then-stress async_multithreading \
-                               call-app-stress raise-exception-ia32 raise-exception-ia32-const-context, $(TEST_ROOTS))
-    TOOL_ROOTS := $(filter-out intercepttool then-stress-tool, $(TOOL_ROOTS))
-    APP_ROOTS := $(filter-out then-stress-app sigaltstack async_multithreadingapp, $(APP_ROOTS))
-    ifeq ($(TARGET),ia32)
-        ifeq ($(NDK_VERSION),10)
-           TEST_ROOTS := $(filter-out hlt, $(TEST_ROOTS))
-           APP_ROOTS := $(filter-out hlt, $(APP_ROOTS))
-        endif
-    endif
-endif
 
 # Windows does not have signals, therefore don't test this directory on that OS.
 ifeq ($(TARGET_OS),windows)
@@ -435,6 +377,12 @@ blockingsyscall.test: $(OBJDIR)blockingsyscall$(EXE_SUFFIX)
 futex.test: $(OBJDIR)futex$(EXE_SUFFIX)
 	$(PIN) -- $(OBJDIR)futex$(EXE_SUFFIX)
 
+async_exceptions.test: $(OBJDIR)async_exceptions$(EXE_SUFFIX)
+	$(PIN) -- $(OBJDIR)async_exceptions$(EXE_SUFFIX)
+
+blocked_async_exceptions.test: $(OBJDIR)async_exceptions$(EXE_SUFFIX)
+	$(PIN) -- $(OBJDIR)async_exceptions$(EXE_SUFFIX) 1
+
 fptags_ia32.test: $(OBJDIR)fptags_ia32$(EXE_SUFFIX)
 	$(PIN) -- $(OBJDIR)fptags_ia32$(EXE_SUFFIX)
 
@@ -495,8 +443,7 @@ shortmask.test: $(OBJDIR)shortmask$(EXE_SUFFIX)
 action-pending.test: $(OBJDIR)simple$(EXE_SUFFIX) $(OBJDIR)action-pending$(PINTOOL_SUFFIX)
 	$(PIN) -t $(OBJDIR)action-pending$(PINTOOL_SUFFIX) -- $(OBJDIR)simple$(EXE_SUFFIX)
 
-# Test the PIN_ReplayUnixSignal() API.  This test is disabled on IA64 because it uses IARG_CONTEXT,
-# which isn't implemented there.
+# Test the PIN_ReplayUnixSignal() API.
 #
 replay-signal.test: $(OBJDIR)replay-signal-app$(EXE_SUFFIX) $(OBJDIR)replay-signal-tool$(PINTOOL_SUFFIX)
 	$(PIN) -t $(OBJDIR)replay-signal-tool$(PINTOOL_SUFFIX) \
@@ -746,9 +693,6 @@ $(OBJDIR)movsbtest_$(TARGET)$(EXE_SUFFIX): movsbtest.c $(OBJDIR)movsbtest_asm$(O
 
 $(OBJDIR)hlt$(EXE_SUFFIX): hlt.c
 	$(APP_CC) $(APP_CXXFLAGS_NOOPT) $(COMP_EXE)$@ $< $(APP_LDFLAGS_NOOPT) $(LDFLAGS_DEFAULT_NO_PIE)
-
-$(OBJDIR)hlt_pie$(EXE_SUFFIX): hlt.c
-	$(APP_CC) $(APP_CXXFLAGS_NOOPT) $(COMP_EXE)$@ $< $(APP_LDFLAGS_NOOPT)
 
 $(OBJDIR)sigenableapp$(EXE_SUFFIX): sigenableapp.c sigenableapp2.c
 	$(APP_CC) $(APP_CXXFLAGS) $(COMP_EXE)$@ $^ $(APP_LDFLAGS) $(APP_LIBS)

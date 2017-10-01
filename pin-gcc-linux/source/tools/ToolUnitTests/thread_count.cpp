@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -35,7 +35,7 @@ END_LEGAL */
 using std::set;
 
 FILE * out;
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 INT32 threadCreated = 0;
 INT32 threadEnded = 0;
 
@@ -44,10 +44,10 @@ set<THREADID> appThreads;
 
 static VOID AppThreadStart(THREADID threadIndex)
 {
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
         threadCreated++;
         appThreads.insert(threadIndex);
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
@@ -91,7 +91,7 @@ static VOID InstrumentImg(IMG img, VOID *)
 
 int main(INT32 argc, CHAR **argv)
 {
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
 
     out = fopen("thread_count.out", "w");
 

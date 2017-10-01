@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -533,9 +533,9 @@ static XED_INLINE xed_bits_t xed3_operand_get_vexdest4(const xed_decoded_inst_t*
 
 static XED_INLINE void xed3_operand_set_vexdest4(xed_decoded_inst_t* d, xed_bits_t opval);
 
-void xed3_get_generic_operand(const xed_decoded_inst_t* d, xed_operand_enum_t operand, void* ret_arg);
+XED_DLL_EXPORT void xed3_get_generic_operand(const xed_decoded_inst_t* d, xed_operand_enum_t operand, void* ret_arg);
 
-void xed3_set_generic_operand(xed_decoded_inst_t* d, xed_operand_enum_t operand, xed_uint32_t val);
+XED_DLL_EXPORT void xed3_set_generic_operand(xed_decoded_inst_t* d, xed_operand_enum_t operand, xed_uint32_t val);
 
 static XED_INLINE xed_bits_t xed3_operand_get_sib(const xed_decoded_inst_t* d)
 {

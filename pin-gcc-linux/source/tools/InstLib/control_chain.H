@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -97,13 +97,19 @@ public:
     //registered control handlers
     VOID Fire(EVENT_TYPE eventID, CONTEXT* ctx, VOID * ip, 
         THREADID tid, BOOL bcast, UINT32 alarm_id);
-
+    VOID LateFire(EVENT_TYPE eventID, CONTEXT* ctx, VOID * ip, 
+        THREADID tid, BOOL bcast, UINT32 alarm_id);
+    
     EVENT_TYPE EventStringToType(const string& event_name);
 
     UINT32 GetInsOrder(){return _control_mngr->GetInsOrder();}
+    UINT32 GetLateInsOrder(){return _control_mngr->GetLateInsOrder();}
 
     INTERACTIVE_LISTENER* GetListener(){return _control_mngr->GetListener();}
       
+    // Late handler accessors
+    VOID SetLateHandler();
+
 private:
     //calculate the next alarm in the sequence and arm it
     VOID ArmNextAlarm(UINT32 alarm_id, UINT32 tid, BOOL bcast);

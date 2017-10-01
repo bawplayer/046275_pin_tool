@@ -5,9 +5,6 @@
 #
 ##############################################################
 
-# WRL does not have a native debugger, we don't test this directory on that OS.
-# See the exceptions section to see how that's done.
-
 ###### Additional includes that are specific to this directory ######
 
 include $(TOOLS_ROOT)/Config/makefile.debug.rules
@@ -74,7 +71,7 @@ ifeq ($(TARGET_OS),linux)
                   simultaneous-toolbreak_const_context xmm-$(TARGET)_with_set_xmm_scratch_regs_before_breakpoint_tool \
                   xmm-$(TARGET)_with_set_xmm_scratch_regs_before_breakpoint_tool_const_context \
                   xmm-$(TARGET)_with_set_xmm_scratch_regs_before_breakpoint_tool_and_set_xmm_reg \
-                  app-pause-in-app-thread app-pause-in-int-thread bphandler gdb-svr4-libraries-extension
+                  app-pause-in-app-thread app-pause-in-int-thread bphandler gdb-svr4-libraries-extension simple-pindb-attach
     TOOL_ROOTS += stack-debugger start-fini-callback simple-command-tool use-debugger-shell simultaneous-toolbreak \
                   breaktool int3-count action-pending-tool checkpoint watchpoint launch-gdb-tool intercept-tool \
                   pc-change-async-tool interpreter-remove mt-exit-tool debugger-type set-mode-tool invalidate-regs \
@@ -115,7 +112,7 @@ ifeq ($(TARGET_OS),windows)
                   pindb-win-continued-exception1 pindb-win-continued-exception2 pindb-win-software-exception \
                   pindb-win-cpp-exception pindb-win-squash-exception pindb-win-step-exception \
                   pindb-win-library-notifications pindb-win-step-library pindb-win-thread-stress \
-                  pindb-win-exception-after-exit app-pause-in-app-thread app-pause-in-int-thread
+                  pindb-win-exception-after-exit app-pause-in-app-thread app-pause-in-int-thread simple-pindb-attach
     TOOL_ROOTS += stack-debugger start-fini-callback simple-command-tool use-debugger-shell simultaneous-toolbreak \
                   invalidate-regs app-pause-in-app-thread-tool app-pause-in-int-thread-tool
     APP_ROOTS += simple-pindb simple win-unhandled-exception win-handled-exception win-continued-exception1 \
@@ -129,6 +126,9 @@ ifeq ($(TARGET_OS),windows)
 endif
 
 ###### Handle exceptions here ######
+
+# This test is disabled until Mantis 1839 is fixed.
+TEST_ROOTS := $(filter-out simple-pindb-attach, $(TEST_ROOTS))
 
 # These two tests trigger a compiler bug when building on 32-bit Windows with ICC versions 11.x.  It's difficult
 # to disable the tests only for those compiler versions, so we disable them whenever we build with ICC.  These
@@ -175,32 +175,6 @@ ifeq ($(TARGET_OS),linux)
         TOOL_ROOTS := $(filter-out library-load-tool, $(TOOL_ROOTS))
         APP_ROOTS := $(filter-out dlopen-dlclose, $(APP_ROOTS))
     endif
-endif
-
-# WRL does not have a native debugger, therefore don't test this directory on that OS.
-osrel := $(shell uname -r)
-ifeq ($(findstring WR,$(osrel)),WR)
-    TEST_TOOL_ROOTS :=
-    TEST_ROOTS :=
-    TOOL_ROOTS :=
-    SA_TOOL_ROOTS :=
-    APP_ROOTS :=
-    OBJECT_ROOTS :=
-    DLL_ROOTS :=
-    LIB_ROOTS :=
-endif
-
-# TODO: Debugger integration is not yet supported on MIC
-# See Mantis 2925
-ifeq ($(TARGET),mic)
-    TEST_TOOL_ROOTS :=
-    TEST_ROOTS :=
-    TOOL_ROOTS :=
-    SA_TOOL_ROOTS :=
-    APP_ROOTS :=
-    OBJECT_ROOTS :=
-    DLL_ROOTS :=
-    LIB_ROOTS :=
 endif
 
 ###### Define the sanity subset ######
@@ -545,11 +519,10 @@ thread-static.test: $(OBJDIR)thread-static$(EXE_SUFFIX)
 	$(RM) -f $(OBJDIR)$(@:.test=.out) $(OBJDIR)$(@:.test=.gdbin) $(OBJDIR)$(@:.test=.gdbout)
 
 # Simple test of the 'pindb' debugger.  We launch Pin separatly and pindb attaches.
-# TODO: This is disabled until Mantis #1839 is fixed.
 #
 simple-pindb-attach.test: $(OBJDIR)simple-pindb$(EXE_SUFFIX) $(OBJDIR)stack-debugger$(PINTOOL_SUFFIX)
 	$(OBJDIR)simple-pindb$(EXE_SUFFIX) basic $(OBJDIR)$(@:.test=.pindbin) $(OBJDIR)$(@:.test=.compare)
-	$(PYTHON) launch-pin-attach-debugger.py --pin=$(PIN_NOFLAGS) --pin-exe=$(BARE_PIN) \
+	$(PYTHON) launch-pin-attach-debugger.py --pin=$(BARE_PIN) --pin-exe=$(BARE_PIN) \
 	    --pindb=$(PINDB) --pindb-libpath=$(PINDB_LIBPATH) \
 	    --tool=$(OBJDIR)stack-debugger$(PINTOOL_SUFFIX) --app=$(OBJDIR)simple-pindb$(EXE_SUFFIX) \
 	    --cpu=$(TARGET) --timeout=$(TLIMIT) \

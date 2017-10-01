@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -36,6 +36,7 @@ END_LEGAL */
 #include <vector>
 #include <map>
 #include <set>
+#include <list>
 #include "pin.H"
 extern "C"{
 #include "xed-interface.h"
@@ -75,13 +76,20 @@ public:
     
     // return the ip target of the latest call
     ADDRINT top_target();
-    
+ 
+    // return the ip target of call per depth
+    ADDRINT depth_target(UINT32 depth);
+
     // capture the info for each ip in the call stack
     // see CallStackInfo 
     void save_all_ips_info();
 
     void process_call(ADDRINT current_sp, ADDRINT target);
     void process_return(ADDRINT current_sp, ADDRINT ip);
+
+    // print the call stack, emit only 'depth' entries
+    void get_targets(list<ADDRINT>& out);
+
 private:
     typedef std::vector<CallEntry> CallVec;
     CallVec _call_vec;
@@ -93,27 +101,35 @@ private:
 typedef void (*CALL_STACK_HANDLER)(CONTEXT* ctxt, ADDRINT ip, THREADID tid, VOID *v);
 class CallStackHandlerParams{
 public:
-    CallStackHandlerParams(CALL_STACK_HANDLER h, const string& func_name, void* v){
+    CallStackHandlerParams(CALL_STACK_HANDLER h, const string& func_name, void* v,
+        ADDRINT func_ip = 0, BOOL name_handler = TRUE){
         _handler = h;
         _function_name = func_name;
+        _name_handler = name_handler;
         _args = v;
+        _first_ip = 0;
     }
     
     CALL_STACK_HANDLER _handler;
     string _function_name;
+    string _function_ip;
+    BOOL _name_handler;
     void* _args;
+    ADDRINT _first_ip; //the first ip of the function, used for recursive function call
 };
 
 
 // this struct holds the informations need for emitting the call stack
 // we hold a map of ip->CallStackInfo so we will no 
 // generate info for the same ip more than once
-typedef struct {
-    string func_name;
-    string image_name;
-    string file_name;
+typedef struct CallStackInfoStruct {
+    char * func_name;
+    char * image_name;
+    char * file_name;
+    UINT32 rtn_id;
     INT32 line;
     INT32 column;
+    CallStackInfoStruct() : func_name(0), image_name(0), file_name(0), rtn_id(0), line(0), column(0) {}
 } CallStackInfo;
 
 
@@ -139,6 +155,20 @@ public:
     //register a callback the will be called when returning from function: func_name
     void on_function_exit(CALL_STACK_HANDLER handler, const string& func_name, void* v, BOOL use_ctxt);
 
+    // Register a callback that will be called when entering function: function_ip
+    // The parameters are: function handler
+    //                     function ip address
+    //                     parameter to the function
+    //                     flag if the function uses PIN context
+    void on_function_ip_enter(CALL_STACK_HANDLER handler, ADDRINT func_ip, void* v, BOOL use_ctxt);
+
+    // Register a callback that will be called when exiting function: function_ip
+    // The parameters are: function handler
+    //                     function ip address
+    //                     parameter to the function
+    //                     flag if the function uses PIN context    
+    void on_function_ip_exit(CALL_STACK_HANDLER handler, ADDRINT func_ip, void* v, BOOL use_ctxt);
+
     //// internal use ////
     void on_call(THREADID tid, CONTEXT* ctxt, ADDRINT ip);
     void on_ret_fire(THREADID tid, CONTEXT* ctxt, ADDRINT ip);
@@ -161,6 +191,7 @@ private:
     //a map to threadid -> CallStack*
     typedef std::map<THREADID, CallStack*> CallStackMap;
     CallStackMap _call_stack_map;
+    PIN_LOCK _map_lock;
 
     //map of ip to its info(file, func, line, ...)
     //used to prevent collecting info about the same ip multiple times 

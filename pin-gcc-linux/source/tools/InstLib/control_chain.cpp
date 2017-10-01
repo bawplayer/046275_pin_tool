@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -51,10 +51,10 @@ CONTROL_CHAIN::CONTROL_CHAIN(CONTROL_MANAGER* control_mngr){
 }
 
 
-VOID CONTROL_CHAIN::Fire(EVENT_TYPE eventID, CONTEXT* ctx, VOID * ip, 
+VOID CONTROL_CHAIN::Fire(EVENT_TYPE eventID, CONTEXT* ctx, VOID * ip,
     THREADID tid, BOOL bcast, UINT32 alarm_id)
 {
-    //roll the event to the tool only if it is not a precondition 
+    //roll the event to the tool only if it is not a precondition
     if (eventID != EVENT_PRECOND){
         _control_mngr->Fire(eventID, ctx, ip, tid, bcast);
     }
@@ -62,6 +62,14 @@ VOID CONTROL_CHAIN::Fire(EVENT_TYPE eventID, CONTEXT* ctx, VOID * ip,
         ArmNextAlarm(alarm_id, tid, bcast);
     }
 }
+
+// Late fire event
+VOID CONTROL_CHAIN::LateFire(EVENT_TYPE eventID, CONTEXT* ctx, VOID * ip,
+                         THREADID tid, BOOL bcast, UINT32 alarm_id)
+{
+    _control_mngr->LateFire(eventID, ctx, ip, tid, bcast);
+}
+
 
 VOID CONTROL_CHAIN::Activate(){
     //activate the first alarm in the chain only if the chain does not "wait"
@@ -89,7 +97,7 @@ VOID CONTROL_CHAIN::Arm(UINT32 tid, BOOL bcast, UINT32 alarm_id){
 VOID CONTROL_CHAIN::Parse(const string& chain_str)
 {
     vector<string> control_str;
-    
+
     PARSER::SplitArgs(",",chain_str,control_str);
     for (UINT32 i=0; i<control_str.size(); i++){
         if (PARSER::ConfigToken(control_str[i])){
@@ -99,7 +107,8 @@ VOID CONTROL_CHAIN::Parse(const string& chain_str)
         else {
             //generate the alarm
             ALARM_MANAGER* alarm_mngr = new ALARM_MANAGER(control_str[i],
-                                                          this,i);
+                                                          this,i,
+                                                          _control_mngr->HasLateHandler());
             _alarms.push_back(alarm_mngr);
         }
     }
@@ -190,4 +199,11 @@ VOID CONTROL_CHAIN::SetUniformAlarm(ALARM_MANAGER* uniform_alarm){
 
 EVENT_TYPE CONTROL_CHAIN::EventStringToType(const string& event_name){
     return _control_mngr->EventStringToType(event_name);
+}
+
+// Set late handler in all alarms
+VOID CONTROL_CHAIN::SetLateHandler(){
+    for (UINT32 i = 0; i < _alarms.size(); i++){
+        _alarms[i]->SetLateHandler();
+    }
 }

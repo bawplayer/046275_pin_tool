@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -93,7 +93,7 @@ PIN_RWMUTEX RWMutex;
 PIN_SEMAPHORE Sem1;
 PIN_SEMAPHORE Sem2;
 
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 
 THREADID HasLock = INVALID_THREADID;
 REG RegThreadInfo;
@@ -140,7 +140,7 @@ int main(int argc, char * argv[])
     PIN_Init(argc, argv);
     PIN_InitSymbols();
 
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
 
     RegThreadInfo = PIN_ClaimToolRegister();
     if (RegThreadInfo == REG_INVALID())
@@ -248,9 +248,9 @@ static VOID AppThreadStart(THREADID tid, PIN_REGISTER* regval)
     //
     static unsigned workerCount = 0;
     regval->qword[0] = (UINT64)(reinterpret_cast<ADDRINT>(new THREAD_INFO(workerCount++)));
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
     appThreads.insert(tid);
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 

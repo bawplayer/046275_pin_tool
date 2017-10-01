@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -28,6 +28,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 END_LEGAL */
+#include "asm_macros.h"
 
 .data
 .extern xsaveArea
@@ -39,12 +40,8 @@ END_LEGAL */
 # This function calls xsave and stores the FP state in the given dst area.
 # The caller is expected to allocate enough space for the xsave area.
 # The function expects the given dst pointer to be properly aligned for the xsave instruction.
-#ifndef TARGET_MAC
-.type DoXsave,  @function
-#endif
-.global DoXsave
+DECLARE_FUNCTION_AS(DoXsave)
 DoXsave:
-
     lea     flags(%rip), %rcx
     mov     (%rcx), %eax
     lea     xsaveArea(%rip), %rcx
@@ -59,12 +56,8 @@ DoXsave:
 # This function calls xsaveopt and stores the FP state in the given dst area.
 # The caller is expected to allocate enough space for the xsaveopt area.
 # The function expects the given dst pointer to be properly aligned for the xsaveopt instruction.
-#ifndef TARGET_MAC
-.type DoXsaveOpt,  @function
-#endif
-.global DoXsaveOpt
+DECLARE_FUNCTION_AS(DoXsaveOpt)
 DoXsaveOpt:
-
     lea     flags(%rip), %rcx
     mov     (%rcx), %eax
     lea     xsaveArea(%rip), %rcx
@@ -79,12 +72,8 @@ DoXsaveOpt:
 # void DoXrstor();
 # This function calls xrstor and restores the specified thetures from the xsave dst area.
 # The function expects the given dst pointer to be properly aligned
-#ifndef TARGET_MAC
-.type DoXrstor,  @function
-#endif
-.global DoXrstor
+DECLARE_FUNCTION_AS(DoXrstor)
 DoXrstor:
-
     lea     flags(%rip), %rcx
     mov     (%rcx), %eax
     lea     xsaveArea(%rip), %rcx
@@ -95,3 +84,27 @@ DoXrstor:
 
     ret
 
+# void DoFxsave();
+# This function calls fxsave and stores the legacy FP state in the given dst area.
+# The caller is expected to allocate enough space for the fxsave area.
+# The function expects the given dst pointer to be properly aligned for the xsave instruction.
+DECLARE_FUNCTION_AS(DoFxsave)
+DoFxsave:
+    lea     xsaveArea(%rip), %rcx
+
+    # Do fxsave
+    fxsave   (%rcx)
+
+    ret
+
+# void DoFxrstor();
+# This function calls fxrstor and restores the legacy FP state fxsave dst area.
+# The function expects the given dst pointer to be properly aligned
+DECLARE_FUNCTION_AS(DoFxrstor)
+DoFxrstor:
+    lea     xsaveArea(%rip), %rcx
+
+    # Do fxrstor
+    fxrstor   (%rcx)
+
+    ret

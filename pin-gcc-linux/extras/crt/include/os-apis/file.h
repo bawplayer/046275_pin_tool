@@ -9,6 +9,8 @@
 #ifndef OS_APIS_FILE_H
 #define OS_APIS_FILE_H
 
+#include <sys/types.h>
+
 
 /*! @ingroup OS_APIS_FILE
  * File open modes
@@ -479,6 +481,23 @@ OS_RETURN_CODE OS_FileUniqueID(NATIVE_FD fd, OS_FILE_UNIQUE_ID* uniqueId);
  *   @b CPU:   All \n
  */
 OS_RETURN_CODE OS_DuplicateFD(NATIVE_FD fd, BOOL_T dupCloseOnExec, NATIVE_FD* outFd);
+
+/*! @ingroup OS_APIS_FILE
+ * Truncates a file referenced by fd to a size of length bytes.
+ * If the original file size is bigger than length, the extra data is lost.
+ * If the original file size is smaller than length,the file extended.
+ *
+ * @param[in]  fd             File descriptor to change his size.
+ * @param[in]  length         File new length.
+ *
+ * @retval     OS_RETURN_CODE_NO_ERROR              If the operation succeeded
+ * @retval     OS_RETURN_CODE_FILE_OPERATION_FAILED If the operation failed
+ *
+ * @par Availability:
+ *   @b O/S:   Windows & Linux & OS X* \n
+ *   @b CPU:   All \n
+ */
+OS_RETURN_CODE OS_Ftruncate(NATIVE_FD fd, INT64 length);
 
 /*! @ingroup OS_APIS_FILE
  * Record a file descriptor as opened by OS-APIs.

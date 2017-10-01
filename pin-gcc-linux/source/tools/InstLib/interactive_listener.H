@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -57,9 +57,11 @@ public:
                 : "memory");
           return value;
     }
+    inline UINT32 GetClearSignal() {return _signaled;}
 #else
     VOID Active(){}
     inline UINT32 CheckClearSignal(){ return 0; }
+    inline UINT32 GetClearSignal() {return 0;}
 #endif
 
 

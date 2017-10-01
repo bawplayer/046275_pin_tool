@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -29,15 +29,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 END_LEGAL */
 /*
- * This test verifies the flags are correctly delivered at exceptions 
+ * This test verifies the flags are correctly delivered at exceptions
  */
 #define _GNU_SOURCE
 #include <signal.h>
-#ifdef TARGET_ANDROID
-#include "android_ucontext.h"
-#else
 #include <sys/ucontext.h>
-#endif
 #include <stdio.h>
 #include <setjmp.h>
 #include <assert.h>
@@ -77,7 +73,7 @@ void PrintEflagsAtSignal(int sig, const siginfo_t *info, void *vctxt)
 {
     ucontext_t *ctxt = vctxt;
     // note that the resume flag is turned on when exception occurs,
-    // but if pin needs to retrieve the flags from memory then the 
+    // but if pin needs to retrieve the flags from memory then the
     // resume flag will not be there - so we test only the lower 16 bits
 #if defined(TARGET_MAC)
     unsigned long flags = (unsigned long)ctxt->uc_mcontext->__ss.__eflags&0xffff;
@@ -106,7 +102,7 @@ int main()
         fprintf(stderr, "Unable handle SIGSEGV\n");
         return 1;
     }
-    
+
     if (sigaction(SIGBUS, &sigact, 0) == -1)
     {
         fprintf(stderr, "Unable handle SIGBUS\n");
@@ -114,7 +110,7 @@ int main()
     }
 
     sigsetjmp(JumpBuffer, 1);
-    
+
     for (;;)
     {
         if (!DoTest(TestNumber))
@@ -126,7 +122,7 @@ int main()
         TestNumber++;
     }
 
-    
+
     return 0;
 }
 

@@ -22,6 +22,9 @@ class TRACE_CLASS;
 typedef TRACE_CLASS * TRACE;
 
                                                                   /* DO NOT EDIT */
+typedef VOID * PIN_CONFIGURATION_INFO;
+
+                                                                  /* DO NOT EDIT */
 class COMPLEX_CALLBACKVAL_BASE;
 
                                                                   /* DO NOT EDIT */
@@ -189,9 +192,6 @@ extern INT32 CALLBACK_GetExecutionPriority(PIN_CALLBACK callback);
 extern PIN_CALLBACK TRACE_AddInstrumentFunction(TRACE_INSTRUMENT_CALLBACK fun, VOID *val);
 
                                                                   /* DO NOT EDIT */
-extern PIN_CALLBACK CODECACHE_AddTraceInsertedFunction(TRACE_INSTRUMENT_CALLBACK fun, VOID *val);
-
-                                                                  /* DO NOT EDIT */
 extern PIN_CALLBACK INS_AddInstrumentFunction(INS_INSTRUMENT_CALLBACK fun, VOID *val);
 
                                                                   /* DO NOT EDIT */
@@ -290,19 +290,30 @@ extern PIN_CALLBACK PIN_AddForkFunction(FPOINT point, FORK_CALLBACK fun, VOID *v
 extern VOID PIN_RemoveInstrumentation();
 
                                                                   /* DO NOT EDIT */
+extern VOID PIN_RemoveInstrumentationInRange(ADDRINT start, ADDRINT end);
+
+                                                                  /* DO NOT EDIT */
 extern VOID PIN_RemoveFiniFunctions();
 
                                                                   /* DO NOT EDIT */
 extern VOID PIN_Detach();
 
                                                                   /* DO NOT EDIT */
-extern VOID PIN_Attach(ATTACH_CALLBACK fun, VOID *val);
+enum ATTACH_STATUS
+{
+    ATTACH_INITIATED,       ///< Attach request was delivered successfully to PIN
+    ATTACH_FAILED_DETACH    ///< Attach request was not delivered to Pin
+                            ///< since detach session hasn't completed yet.
+};
+
+                                                                  /* DO NOT EDIT */
+extern ATTACH_STATUS PIN_Attach(ATTACH_CALLBACK fun, VOID *val);
 
                                                                   /* DO NOT EDIT */
 extern VOID PIN_DetachProbed();
 
                                                                   /* DO NOT EDIT */
-extern VOID PIN_AttachProbed(ATTACH_PROBED_CALLBACK fun, VOID *val);
+extern ATTACH_STATUS PIN_AttachProbed(ATTACH_PROBED_CALLBACK fun, VOID *val);
 
                                                                   /* DO NOT EDIT */
 extern VOID INS_InsertPredicatedCall(INS ins, IPOINT ipoint, AFUNPTR funptr, ...);
@@ -323,7 +334,16 @@ extern VOID INS_InsertIfPredicatedCall(INS ins, IPOINT action, AFUNPTR funptr, .
 extern VOID INS_InsertThenPredicatedCall(INS ins, IPOINT action, AFUNPTR funptr, ...);
 
                                                                   /* DO NOT EDIT */
-extern VOID PIN_StartProgram();
+extern PIN_CONFIGURATION_INFO PIN_CreateDefaultConfigurationInfo();
+
+                                                                  /* DO NOT EDIT */
+extern VOID PIN_SetAllowedConcurrentCallbacks(PIN_CONFIGURATION_INFO options, PIN_CALLBACK_TYPE callbackType);
+
+                                                                  /* DO NOT EDIT */
+extern VOID PIN_StartProgram(PIN_CONFIGURATION_INFO options=PIN_CreateDefaultConfigurationInfo());
+
+                                                                  /* DO NOT EDIT */
+extern VOID PIN_StartProgram(PIN_CONFIGURATION_INFO options);
 
                                                                   /* DO NOT EDIT */
 extern VOID PIN_StartProgramProbed();
@@ -367,9 +387,6 @@ extern BBL TRACE_BblHead(TRACE trace);
 extern BBL TRACE_BblTail(TRACE trace);
 
                                                                   /* DO NOT EDIT */
-extern BOOL TRACE_Original(TRACE trace);
-
-                                                                  /* DO NOT EDIT */
 extern ADDRINT TRACE_Address(TRACE trace);
 
                                                                   /* DO NOT EDIT */
@@ -386,9 +403,6 @@ extern UINT32 TRACE_NumBbl(TRACE trace);
 
                                                                   /* DO NOT EDIT */
 extern UINT32 TRACE_NumIns(TRACE trace);
-
-                                                                  /* DO NOT EDIT */
-extern USIZE TRACE_StubSize(TRACE trace);
 
                                                                   /* DO NOT EDIT */
 extern VOID BBL_InsertCall(BBL bbl, IPOINT action, AFUNPTR funptr, ...);

@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -81,7 +81,8 @@ void CheckToolModifiedValues(CONTEXT * ctxt, void* /* ostream* */ ostptr)
     }
 }
 
-void ToolSaveAppPointers(void * gprptr, void * stptr, void * fpptr1, void * fpptr2, void* /* ostream* */ ostptr)
+void ToolSaveAppPointers(void* gprptr, void* stptr, void* xmmptr, void* ymmptr, void* zmmptr, void* opmaskptr,
+                         void* /* ostream* */ ostptr)
 {
     const vector<REG>& regs = GetTestRegs();
     int numberOfTestRegs = regs.size();
@@ -95,23 +96,21 @@ void ToolSaveAppPointers(void * gprptr, void * stptr, void * fpptr1, void * fppt
         {
             applicationStoredValues[regs[r]] = stptr;
         }
-#ifdef TARGET_MIC
-        else if (REG_is_zmm(regs[r]))
-        {
-            applicationStoredValues[regs[r]] = fpptr1;
-        }
-        else if (REG_is_k_mask(regs[r]))
-        {
-            applicationStoredValues[regs[r]] = fpptr2;
-        }
-#endif
         else if (REG_is_xmm(regs[r]))
         {
-            applicationStoredValues[regs[r]] = fpptr1;
+            applicationStoredValues[regs[r]] = xmmptr;
         }
         else if (REG_is_ymm(regs[r]))
         {
-            applicationStoredValues[regs[r]] = fpptr2;
+            applicationStoredValues[regs[r]] = ymmptr;
+        }
+        else if (REG_is_zmm(regs[r]))
+        {
+            applicationStoredValues[regs[r]] = zmmptr;
+        }
+        else if (REG_is_k_mask(regs[r]))
+        {
+            applicationStoredValues[regs[r]] = opmaskptr;
         }
         else
         {

@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -34,11 +34,7 @@ END_LEGAL */
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
-#if defined(TARGET_ANDROID)
-#include <sys/syscall.h>
-#else
 #include <syscall.h>
-#endif
 #include <linux/unistd.h>
 #include <asm/ldt.h>
 #include <errno.h>
@@ -99,7 +95,7 @@ const unsigned int value2 = 18;
 
 void CallTestCallback()
 {
-    printf("The \"CallTest\" test PASSED successfully\n");    
+    printf("The \"CallTest\" test PASSED successfully\n");
 }
 
 int main (int argc, char *argv[])
@@ -143,15 +139,15 @@ int main (int argc, char *argv[])
     	printf("The \"movs\" test PASSED successfully\n");
 
     /* ======== MaskMovqTest =========== */
-    
+
     MaskMovqTest(4, 0x9966);
     if (((UserInfo*)(tr.base_addr))->d2 != 0x9966)
     	printf("The \"maskmovq\" test FAILED\n");
     else
     	printf("The \"maskmovq\" test PASSED successfully\n");
-    
+
     /* ======== PushPopTest =========== */
-    
+
     if (PushPopTest(0, 0x7788) != 0x7788)
     {
         printf("The \"PushPopTest\" test FAILED\n");
@@ -160,11 +156,11 @@ int main (int argc, char *argv[])
     {
         printf("The \"PushPopTest\" test PASSED successfully\n");
     }
-    
+
     /* ======== CallTest =========== */
     ((UserInfo*)(tr.base_addr))->d1 = (unsigned int)CallTestCallback;
     CallTest(0);
-    
+
 
     return 0;
 

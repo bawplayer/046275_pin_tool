@@ -128,11 +128,6 @@ endif
 
 DONT_RUN :=
 
-# No need to do anything for WRL.
-ifdef WRL_BUILD # This is defined on the WRL build system.
-    DONT_RUN := 1
-endif
-
 # The tests are supported only in the kit environment.
 ifneq ($(KIT),1)
     DONT_RUN := 1
@@ -171,6 +166,19 @@ ifeq ($(TARGET_OS),windows)
     TEST_ROOTS := $(filter-out cross_32_64_early_termination_debugged cross_32_64_early_termination_probed_debugged \
                                cross_64_32_early_termination_debugged cross_64_32_early_termination_probed_debugged, \
                                $(TEST_ROOTS))
+endif
+
+# See Mantis #4211
+ifeq ($(TARGET_OS),windows)
+    ifeq ($(TARGET),intel64)
+        ifeq ($(VisualStudioVersion),15.0)
+            TEST_ROOTS := $(filter-out cross_32_64_32 cross_64_32_64 cross_32_64_32_probe cross_64_64_32_log cross_32_32_64_probe_log \
+                                       cross_32_64_32_sym cross_64_32_64_sym cross_32_64_32_probe_sym cross_64_32_64_probe_sym \
+                                       cross_64_32_early_termination cross_64_32_early_termination_probed \
+                                       cross_32_64_early_termination cross_32_64_early_termination_probed \
+                                       win_app32_tool_arch_mismatch win_app64_tool_arch_mismatch, $(TEST_ROOTS))
+        endif
+    endif
 endif
 
 ###### Define the sanity subset ######

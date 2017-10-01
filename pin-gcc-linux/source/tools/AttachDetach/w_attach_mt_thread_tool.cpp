@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -47,7 +47,7 @@ KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool",
 
 
 ofstream TraceFile;
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 
 volatile BOOL jitOrProbeBegan = FALSE;
 
@@ -126,7 +126,7 @@ INT32 Usage()
 int main(INT32 argc, CHAR **argv)
 {
     // Initialize the pin lock
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
 
     // Initialize pin
     if (PIN_Init(argc, argv)) return Usage();

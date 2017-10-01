@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -32,21 +32,14 @@ END_LEGAL */
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
-#if defined(TARGET_ANDROID)
-#include <sys/syscall.h>
-#else
 #include <syscall.h>
-#endif
-#include <linux/unistd.h> 
-#include <asm/ldt.h> 
+#include <linux/unistd.h>
+#include <asm/ldt.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
 
 
-#if defined(TARGET_ANDROID)
-#define SYS_modify_ldt __NR_modify_ldt
-#endif
 #define NTHREADS 4
 
 typedef struct {
@@ -74,7 +67,7 @@ typedef struct {
 struct LDT_TABLE_ENTRY
 {
     LDT_TABLE_ENTRY(): _val1(0), _val2(0) {}
-        
+
     unsigned int _val1;
     unsigned int _val2;
 };
@@ -88,7 +81,7 @@ void * thread_func (void *arg)
 
     unsigned int gs_value = TLS_GET_GS_REG();
     sprintf(buf[thread_no-1],"gs value for thread %ld is 0x%x\n", thread_no, gs_value );
-    
+
     LDT_TABLE_ENTRY ldtEntries[FILL_ENTRIES];
     unsigned int sizeInBytes = sizeof(LDT_TABLE_ENTRY)*FILL_ENTRIES;
     int res = syscall(SYS_modify_ldt, LDT_GET, ldtEntries, sizeInBytes);
@@ -126,7 +119,7 @@ int main (int argc, char *argv[])
     UserDesc tr[FILL_ENTRIES];
     int res;
 
-    
+
     memset(tr, 0, sizeof(UserDesc)*FILL_ENTRIES);
 
     unsigned long num = pthread_self();
@@ -152,8 +145,8 @@ int main (int argc, char *argv[])
     for (unsigned int i = 1; i < FILL_ENTRIES; i++)
     {
         printf("ldt entry %d 0x%x \n", i, ldtEntries[i]._val1);
-    }           
-    
+    }
+
     printf("Original GS for the main thread is 0x%x\n", TLS_GET_GS_REG() );
 
     for (unsigned long i = 0; i < NTHREADS; i++)

@@ -48,23 +48,9 @@ LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
 
-# Android
-ifeq ($(TARGET_OS),android)
-    ifeq ($(TARGET),intel64)
-        TEST_ROOTS += rwm_pushpopcall_riprelative1 rwm_pushpopcall_riprelative2
-        TOOL_ROOTS += rewritememop1
-        APP_ROOTS += pushpopcall_riprelative
-    endif
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     ifeq ($(TARGET),intel64)
-        TEST_ROOTS += rwm_pushpopcall_riprelative1 rwm_pushpopcall_riprelative2
-        TOOL_ROOTS += rewritememop1
-        APP_ROOTS += pushpopcall_riprelative
-    endif
-    ifeq ($(TARGET),mic)
         TEST_ROOTS += rwm_pushpopcall_riprelative1 rwm_pushpopcall_riprelative2
         TOOL_ROOTS += rewritememop1
         APP_ROOTS += pushpopcall_riprelative

@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -57,7 +57,7 @@ KNOB<BOOL> KnobEnumerate(KNOB_MODE_WRITEONCE, "pintool",
 /* Global Variables and Declerations */
 /* ===================================================================== */
 
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 
 typedef VOID (* BEFORE_BBL)(ADDRINT ip);
 typedef int (* INIT_F)(bool enumerate);
@@ -80,12 +80,12 @@ extern "C" __declspec( dllimport ) VOID Fini1();
 // This function is called before every basic block
 VOID PIN_FAST_ANALYSIS_CALL BeforeBBL(ADDRINT ip) 
 {
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
     BeforeBBL1(ip);
 #if defined(DYN_LOAD)
     pBeforeBBL2(ip);
 #endif
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 /* ===================================================================== */
@@ -104,22 +104,22 @@ VOID Trace(TRACE trace, VOID *v)
 
 VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
     BeforeBBL1(0);
 #if defined(DYN_LOAD)
     pBeforeBBL2(0);
 #endif
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 VOID ThreadFini(THREADID threadid, const CONTEXT *ctxt, INT32 code, VOID *v)
 {
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
     BeforeBBL1(0);
 #if defined(DYN_LOAD)
     pBeforeBBL2(0);
 #endif
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 /* ===================================================================== */
@@ -150,7 +150,7 @@ int main(int argc, char * argv[])
     // Initialize pin
     PIN_Init(argc, argv);
 
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
 
     // Register Trace() to be called to instrument traces
     TRACE_AddInstrumentFunction(Trace, 0);

@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -226,11 +226,20 @@ static void ParseImageLoadLine(string &imageName,  ADDRINT *startAddr, USIZE* si
         if (!endOfList)
         {
             char* name = (char*)malloc(strlen(line) + 1);
-            itemsRead = sscanf(line, "\t'%[^']' %llx\n", name, &addrBuf);
-            if (2 != itemsRead)
+            bool parse_ok = false;
+            do {
+                const char* delim_1 = strchr(line, '\'');
+                const char* delim_2 = strrchr(line, '\'');
+                if ((delim_1 == NULL) || (delim_1 == NULL)) break;
+                if (sscanf(delim_2, "' %llx\n", &addrBuf) != 1) break;
+                name[0] = '\0';
+                strncat(name, delim_1+1, delim_2-delim_1-1);
+                parse_ok = true;
+            } while (0);
+            if (!parse_ok)
             {
                 fprintf(trace, "'%s'\n", line);
-                fprintf (trace, "ParseImageLoadLine (rtn names): Failed to parse; parsed %d expected to parse 2\n", itemsRead);
+                fprintf (trace, "ParseImageLoadLine (rtn names): Failed to parse line;\n");
                 exit(1);
             }
 
@@ -400,7 +409,29 @@ static VOID PrintRTNs(IMG img)
             {
                 continue;
             }
+
             fprintf(trace, "Function '%s' loaded at %llx\n", RTN_Name(rtn).c_str(), (unsigned long long)RTN_Address(rtn));
+
+            // check that both RTN_InsHeadOnly and RTN_InsHead correctly look at the
+            // fetched region and either both fetch valid instruction or both fetch
+            // invalid instructions
+
+            if (!IMG_IsMainExecutable(img))
+                continue;
+
+            RTN_Open(rtn);
+            INS headonly = RTN_InsHeadOnly(rtn);
+            BOOL valid_headonly = INS_Valid(headonly);
+            RTN_Close(rtn);
+
+            RTN_Open(rtn);
+            INS head = RTN_InsHead(rtn);
+            BOOL valid_head = INS_Valid(head);
+            RTN_Close(rtn);
+
+            if (valid_headonly != valid_head) {
+                fprintf(trace, "Failed to fetch RTN instruction for %s\n", RTN_Name(rtn).c_str());
+            }
         }
     }
 }

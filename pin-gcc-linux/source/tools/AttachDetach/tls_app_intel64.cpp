@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -94,13 +94,13 @@ void * thread_func (void *arg)
     
     if (fsBase != fsBaseAfterDetach)
     {
-        fprintf(stderr, "ERROR in thread %d: FS_BASE before detach 0x%lx; after detach 0x%lx\n",
+        fprintf(stderr, "ERROR in thread %lu: FS_BASE before detach 0x%lx; after detach 0x%lx\n",
                 thread_no, fsBase, fsBaseAfterDetach);
         return (void*)1;
     }
     else
     {
-        fprintf(stderr, "fs base in thread %d: 0x%lx\n", thread_no, fsBase);
+        fprintf(stderr, "fs base in thread %lu: 0x%lx\n", thread_no, fsBase);
     }
     return 0;
 }
@@ -150,7 +150,7 @@ int main (int argc, char *argv[])
         fprintf(stderr, "ERROR in the main thread: FS_BASE before detach 0x%lx; after detach 0x%lx\n",
                 fsBase, fsBaseAfterDetach);
         return -1;
-    }    
+    }
     fprintf(stderr, "TEST PASSED\n");
     return 0;
 }

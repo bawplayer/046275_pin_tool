@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -140,14 +140,14 @@ list<const BBLSTATS*> statsList;
 
 //////////////////////////////////////////////////////////
 
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 UINT32 numThreads = 0;
 
 VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
-    PIN_GetLock(&lock, threadid+1);
+    PIN_GetLock(&pinLock, threadid+1);
     numThreads++;
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
     
     ASSERT(numThreads <= MaxNumThreads, "Maximum number of threads exceeded\n");
 }
@@ -338,7 +338,7 @@ int main(int argc, CHAR *argv[])
         return Usage();
     }
 
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
 
     MaxNumThreads = KnobMaxThreads.Value();
     out = new std::ofstream(KnobOutputFile.Value().c_str());

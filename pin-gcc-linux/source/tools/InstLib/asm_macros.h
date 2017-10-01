@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -72,9 +72,17 @@ END_LEGAL */
  * PARAM2                    - The second argument to a function.
  *                             Note that this macro is valid only after building a
  *                             stack frame
+ * SCRATCH_REG*              - Taken from Calling Convention:
+ *                             Scratch register are registers that can be used for temporary storage without
+ *                             restrictions (no need to save before using them and restore after using them)
+ * SCRATCH_REG1              - Scratch register eax/rax depending on the architecture
+ * SCRATCH_REG2              - Scratch register ecx/rcx depending on the architecture
+ * SCRATCH_REG2              - Scratch register edx/rdx depending on the architecture
  * RETURN_REG                - The register that holds the return value
+ * GAX_REG                   - eax/rax depending on the architecture
  * GBX_REG                   - ebx/rbx depending on the architecture
  * GCX_REG                   - ecx/rcx depending on the architecture
+ * GDX_REG                   - edx/rdx depending on the architecture
  * STACK_PTR                 - The stack pointer register
  * PIC_VAR(v)                - Reference memory at 'v' in PIC notation (not supported in 32 bit mode)
  * SYSCALL_PARAM1            - The first argument to a system call
@@ -100,7 +108,7 @@ END_LEGAL */
 # define GAX_REG %eax
 # define GBX_REG %ebx
 # define GCX_REG %ecx
-# define CL_REG  %cl 
+# define CL_REG  %cl
 # define GDX_REG %edx
 # define STACK_PTR %esp
 # define PIC_VAR(a) a
@@ -120,7 +128,7 @@ END_LEGAL */
 #  define SYSCALL_PARAM1 %ebx
 #  define INVOKE_SYSCALL int $0x80
 # endif
-#elif defined(TARGET_IA32E) || defined(TARGET_MIC)
+#elif defined(TARGET_IA32E)
 # define BEGIN_STACK_FRAME \
              push %rbp; \
              mov %rsp, %rbp
@@ -133,7 +141,7 @@ END_LEGAL */
 # define GAX_REG %rax
 # define GBX_REG %rbx
 # define GCX_REG %rcx
-# define CL_REG  %cl 
+# define CL_REG  %cl
 # define GDX_REG %rdx
 # define STACK_PTR %rsp
 # define PIC_VAR(a) a(%rip)
@@ -146,3 +154,10 @@ END_LEGAL */
 #  define PREPARE_UNIX_SYSCALL(num) mov num, %rax
 # endif
 #endif
+
+/*
+ * Common
+ */
+#define SCRATCH_REG1 GAX_REG
+#define SCRATCH_REG2 GCX_REG
+#define SCRATCH_REG3 GDX_REG

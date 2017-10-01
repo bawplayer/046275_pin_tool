@@ -31,6 +31,16 @@ static inline void OS_SigSetEmpty(SIGSET_T* set)
 }
 
 /*!
+* Return true if the specified signal set doesn't contain any signals, false otherwise.
+*
+*  @param[in] set     The Set
+*/
+static inline int OS_SigIsEmpty(SIGSET_T* set)
+{
+    return (*set == 0);
+}
+
+/*!
 * Add Signal to the set
 *
 *  @param[in] set     The Set
@@ -57,6 +67,19 @@ static inline int OS_SigSetIsMember(const SIGSET_T* set, int signal)
 }
 
 /*!
+* Check if at least one signal in \a other is part of the \a set
+*
+*  @param[in] set   The Set
+*
+*  @param[in] other Another signals set
+*/
+static inline int OS_SigSetAnyMember(const SIGSET_T* set, const SIGSET_T* other)
+{
+    return ((*set & *other) != 0);
+}
+
+
+/*!
 * Add all signals from \a other to this set.
 *
 *  @param[in] set      The Set
@@ -78,6 +101,18 @@ static inline void OS_SigSetAddSet(SIGSET_T* set, const SIGSET_T* other)
 static inline void OS_SigSetRemoveSet(SIGSET_T* set, const SIGSET_T* other)
 {
     *set &= ~*other;
+}
+
+/*!
+* Remove signals from \a set which don't exist in \a other (Intersection of \a set and \a other into set)
+*
+*  @param[in] set      The Set
+*
+*  @param[in] other    The signal set.
+*/
+static inline void OS_SigIntersect(SIGSET_T* set, const SIGSET_T* other)
+{
+    *set &= *other;
 }
 
 /*!

@@ -1,6 +1,6 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html><head><meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1">
-<title>Pin: Pin 3.2 User Guide</title>
+<title>Pin: Pin 3.4 User Guide</title>
 <link href="doxygen.css" rel="stylesheet" type="text/css">
 <link href="tabs.css" rel="stylesheet" type="text/css">
 </head><body>
@@ -22,17 +22,17 @@
       </form>
     </li>
   </ul></div>
-<h1>Pin 3.2 User Guide</h1>
+<h1>Pin 3.4 User Guide</h1>
 <p>
 ======================================================================================== <h2><a class="anchor" name="INTRO">
 Introduction</a></h2>
 ========================================================================================<p>
-Pin is a tool for the instrumentation of programs. It supports the Android*, Linux*, OS X* and Windows* operating systems and executables for the IA-32, Intel(R) 64 and Intel(R) Many Integrated Core architectures.<p>
+Pin is a tool for the instrumentation of programs. It supports the Linux*, OS X* and Windows* operating systems and executables for the IA-32, Intel(R) 64 and Intel(R) Many Integrated Core architectures.<p>
 Pin allows a tool to insert arbitrary code (written in C or C++) in arbitrary places in the executable. The code is added dynamically while the executable is running. This also makes it possible to attach Pin to an already running process.<p>
 Pin provides a rich API that abstracts away the underlying instruction set idiosyncracies and allows context information such as register contents to be passed to the injected code as parameters. Pin automatically saves and restores the registers that are overwritten by the injected code so the application continues to work. Limited access to symbol and debug information is available as well.<p>
 Pin includes the source code for a large number of example instrumentation tools like basic block profilers, cache simulators, instruction trace generators, etc. It is easy to derive new tools using the examples as a template.<p>
 Tutorial Sections<ul>
-<li><a class="el" href="index.html#INSTRUMENTING">How to Instrument With Pin</a></li><li><a class="el" href="index.html#EXAMPLES">Examples</a></li><li><a class="el" href="index.html#CALLBACK">Callbacks</a></li><li><a class="el" href="index.html#MODIFYING">Modifying Application Instructions</a></li><li><a class="el" href="index.html#APPDEBUG">The Pin Advanced Debugging Extensions</a></li><li><a class="el" href="index.html#EX">Applying a Pintool to an Application</a></li><li><a class="el" href="index.html#DEBUGGING">Debugging Tips for Debugging a Pintool</a></li><li><a class="el" href="index.html#LOGGING">Recording Messages from a Pintool</a></li><li><a class="el" href="index.html#PERFORMANCE">Performance Considerations</a></li><li><a class="el" href="index.html#MEMORY">Memory management</a></li><li><a class="el" href="index.html#RESTRICTIONS">PinTools Information and Restrictions</a></li><li><a class="el" href="index.html#WINDOWS_TOOLS">Building Tools on windows</a></li><li><a class="el" href="index.html#WINLIBRARIES">Libraries for Windows</a></li><li><a class="el" href="index.html#LIBRARIES">Libraries for Linux</a></li><li><a class="el" href="index.html#INSTALLATION">Installation</a></li><li><a class="el" href="index.html#XEONPHIUSAGE">Usage Instructions for Intel(R) Xeon Phi(TM)</a></li><li><a class="el" href="index.html#BUILDINGTOOLS">Building Your Own Tool</a></li><li><a class="el" href="index.html#MAKEFILES">Pin's makefile Infrastructure</a></li><li><a class="el" href="index.html#FEEDBACK">Feedback</a></li><li><a class="el" href="index.html#LEGAL">Disclaimer and Legal Information</a></li></ul>
+<li><a class="el" href="index.html#INSTRUMENTING">How to Instrument With Pin</a></li><li><a class="el" href="index.html#EXAMPLES">Examples</a></li><li><a class="el" href="index.html#CALLBACK">Callbacks</a></li><li><a class="el" href="index.html#MODIFYING">Modifying Application Instructions</a></li><li><a class="el" href="index.html#APPDEBUG">The Pin Advanced Debugging Extensions</a></li><li><a class="el" href="index.html#EX">Applying a Pintool to an Application</a></li><li><a class="el" href="index.html#DEBUGGING">Debugging Tips for Debugging a Pintool</a></li><li><a class="el" href="index.html#LOGGING">Recording Messages from a Pintool</a></li><li><a class="el" href="index.html#PERFORMANCE">Performance Considerations</a></li><li><a class="el" href="index.html#MEMORY">Memory management</a></li><li><a class="el" href="index.html#RESTRICTIONS">PinTools Information and Restrictions</a></li><li><a class="el" href="index.html#WINDOWS_TOOLS">Building Tools on windows</a></li><li><a class="el" href="index.html#WINLIBRARIES">Libraries for Windows</a></li><li><a class="el" href="index.html#LIBRARIES">Libraries for Linux</a></li><li><a class="el" href="index.html#INSTALLATION">Installation</a></li><li><a class="el" href="index.html#BUILDINGTOOLS">Building Your Own Tool</a></li><li><a class="el" href="index.html#MAKEFILES">Pin's makefile Infrastructure</a></li><li><a class="el" href="index.html#FEEDBACK">Feedback</a></li><li><a class="el" href="index.html#LEGAL">Disclaimer and Legal Information</a></li></ul>
 <p>
 Reference Sections<ul>
 <li><a class="el" href="group__API__REF.html">Pin API reference</a></li><li><a class="el" href="group__KNOBS.html">Pin Command Line Switches</a></li><li><a class="el" href="group__INSTLIB.html">Instrumentation Library</a></li></ul>
@@ -256,7 +256,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, 0);
     
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -336,7 +336,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, 0);
     
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -453,7 +453,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, 0);
 
     <span class="comment">// Never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -551,7 +551,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, 0);
     
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -625,7 +625,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, 0);
     
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -782,7 +782,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, 0);
     
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -881,7 +881,7 @@ INT32 Usage()
     <a class="code" href="group__INS__INST__API.html#gad5fd5cdd6c1cd37e57a1264e93b0435">INS_AddInstrumentFunction</a>(EmulateLoad, 0);
 
     <span class="comment">// Never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     <span class="keywordflow">return</span> 0;
 }
 </pre></div><h3><a class="anchor" name="Invocation">
@@ -1011,7 +1011,7 @@ INT32 Usage()
     OutFile.setf(ios::showbase);
     
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -1163,7 +1163,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, 0);
 
     <span class="comment">// Never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -1315,7 +1315,7 @@ VOID Fini(INT32 code, VOID *v)
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, 0);
 
     <span class="comment">// Never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -1356,7 +1356,7 @@ KNOB&lt;string&gt; KnobOutputFile(<a class="code" href="group__KNOB__BASIC.html#
 
 <span class="comment">// lock serializes access to the output file.</span>
 FILE * out;
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 
 <span class="comment">// Note that opening a file in a callback is only supported on Linux systems.</span>
 <span class="comment">// See buffer-win.cpp for how to work around this issue on Windows.</span>
@@ -1364,28 +1364,28 @@ PIN_LOCK lock;
 <span class="comment">// This routine is executed every time a thread is created.</span>
 VOID ThreadStart(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675eba0be607f41464eeb31c">THREADID</a> threadid, <a class="code" href="group__CONTEXT__API.html#g70a3022fd8834c783509c028ffcd07cb">CONTEXT</a> *ctxt, INT32 flags, VOID *v)
 {
-    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;lock, threadid+1);
+    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;pinLock, threadid+1);
     fprintf(out, <span class="stringliteral">"thread begin %d\n"</span>,threadid);
     fflush(out);
-    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;lock);
+    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;pinLock);
 }
 
 <span class="comment">// This routine is executed every time a thread is destroyed.</span>
 VOID ThreadFini(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675eba0be607f41464eeb31c">THREADID</a> threadid, <span class="keyword">const</span> <a class="code" href="group__CONTEXT__API.html#g70a3022fd8834c783509c028ffcd07cb">CONTEXT</a> *ctxt, INT32 code, VOID *v)
 {
-    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;lock, threadid+1);
+    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;pinLock, threadid+1);
     fprintf(out, <span class="stringliteral">"thread end %d code %d\n"</span>,threadid, code);
     fflush(out);
-    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;lock);
+    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;pinLock);
 }
 
 <span class="comment">// This routine is executed each time malloc is called.</span>
 VOID BeforeMalloc( <span class="keywordtype">int</span> size, <a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675eba0be607f41464eeb31c">THREADID</a> threadid )
 {
-    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;lock, threadid+1);
+    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;pinLock, threadid+1);
     fprintf(out, <span class="stringliteral">"thread %d entered malloc(%d)\n"</span>, threadid, size);
     fflush(out);
-    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;lock);
+    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;pinLock);
 }
 
 
@@ -1434,7 +1434,7 @@ INT32 Usage()
 <span class="keywordtype">int</span> main(INT32 argc, CHAR **argv)
 {
     <span class="comment">// Initialize the pin lock</span>
-    <a class="code" href="group__LOCK.html#ga07949dcd22a1c5d8fe209767b4dd490">PIN_InitLock</a>(&amp;lock);
+    <a class="code" href="group__LOCK.html#ga07949dcd22a1c5d8fe209767b4dd490">PIN_InitLock</a>(&amp;pinLock);
     
     <span class="comment">// Initialize pin</span>
     <span class="keywordflow">if</span> (<a class="code" href="group__PIN__CONTROL.html#g078bed712e6822f3b42a7b4815ba5c0a">PIN_Init</a>(argc, argv)) <span class="keywordflow">return</span> Usage();
@@ -1453,7 +1453,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, 0);
     
     <span class="comment">// Never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -1476,7 +1476,6 @@ Count[9]= 209223
 The example can be found in source/tools/ManualExamples/inscount_tls.cpp<p>
 <div class="fragment"><pre class="fragment"><span class="preprocessor">#include &lt;iostream&gt;</span>
 <span class="preprocessor">#include &lt;fstream&gt;</span>
-<span class="preprocessor">#include &lt;map&gt;</span>
 <span class="preprocessor">#include "pin.H"</span>
 
 KNOB&lt;string&gt; KnobOutputFile(<a class="code" href="group__KNOB__BASIC.html#gg7cca44bfaca0b4c0f4a6a469ae5b9d67f0336979b5a81ce10e8a3d8f2345d606">KNOB_MODE_WRITEONCE</a>, <span class="stringliteral">"pintool"</span>,
@@ -1502,79 +1501,11 @@ ostream* OutFile = NULL;
 <span class="comment">// key for accessing TLS storage in the threads. initialized once in main()</span>
 <span class="keyword">static</span>  <a class="code" href="group__PIN__THREAD__API.html#g48422bbc491485657227fe94386b964c">TLS_KEY</a> tls_key = <a class="code" href="group__PIN__THREAD__API.html#g967820d5034d9a4a14576114bd8af5e3">INVALID_TLS_KEY</a>;
 
-<span class="comment">// A map to store the data attached for each thread, and a lock to protect the map</span>
-std::map&lt;THREADID, thread_data_t*&gt; threads_data;
-PIN_LOCK lock;
-
-<span class="comment">// function to access thread-specific data</span>
-thread_data_t* get_tls(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675eba0be607f41464eeb31c">THREADID</a> threadid)
-{
-    thread_data_t* tdata = static_cast&lt;thread_data_t*&gt;(<a class="code" href="group__DEPRECATED__PIN__API.html#g428ab4182b5fec58ee34b21362774d5f">PIN_GetThreadData</a>(tls_key, threadid));
-    <span class="keywordflow">if</span> (tdata == NULL)
-    {
-        cerr &lt;&lt; <span class="stringliteral">"PIN_GetThreadData("</span> &lt;&lt; tls_key &lt;&lt; <span class="stringliteral">","</span> &lt;&lt; threadid &lt;&lt; <span class="stringliteral">") Failed"</span> &lt;&lt; endl;
-        <a class="code" href="group__PIN__PROCESS__API.html#ga2093202206f08d8faa12baa4392962e">PIN_ExitProcess</a>(1);
-    }
-
-    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;lock, threadid);
-    std::map&lt;THREADID, thread_data_t*&gt;::const_iterator it = threads_data.find(threadid);
-    <span class="keywordflow">if</span> ((it == threads_data.end()) || (it-&gt;second != tdata))
-    {
-        cerr &lt;&lt; <span class="stringliteral">"PIN_GetThreadData("</span> &lt;&lt; tls_key &lt;&lt; <span class="stringliteral">","</span> &lt;&lt; threadid &lt;&lt; <span class="stringliteral">") returned the wrong thread data"</span> &lt;&lt; endl;
-        <a class="code" href="group__PIN__PROCESS__API.html#ga2093202206f08d8faa12baa4392962e">PIN_ExitProcess</a>(1);
-    }
-    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;lock);
-    <span class="keywordflow">return</span> tdata;
-}
-
 <span class="comment">// This function is called before every block</span>
 VOID <a class="code" href="group__INST__ARGS.html#gf3202cd2f4be9bf9d4fa7a035ece147b">PIN_FAST_ANALYSIS_CALL</a> docount(UINT32 c, <a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675eba0be607f41464eeb31c">THREADID</a> threadid)
 {
-    thread_data_t* tdata = get_tls(threadid);
+    thread_data_t* tdata = static_cast&lt;thread_data_t*&gt;(<a class="code" href="group__DEPRECATED__PIN__API.html#g428ab4182b5fec58ee34b21362774d5f">PIN_GetThreadData</a>(tls_key, threadid));
     tdata-&gt;_count += c;
-}
-
-<span class="comment">// This function tests operations with illegal TLS keys.</span>
-VOID TestIllegalTLSOPerations(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675eba0be607f41464eeb31c">THREADID</a> threadid)
-{
-    <span class="keyword">static</span> <span class="keywordtype">bool</span> tested = <span class="keyword">false</span>;
-    <span class="keywordflow">if</span> (tested)
-        <span class="keywordflow">return</span>;
-    tested = <span class="keyword">true</span>;
-
-    <span class="comment">// start with an invalid key</span>
-    <a class="code" href="group__PIN__THREAD__API.html#g48422bbc491485657227fe94386b964c">TLS_KEY</a> temp_tls_key = <a class="code" href="group__PIN__THREAD__API.html#g967820d5034d9a4a14576114bd8af5e3">INVALID_TLS_KEY</a>;
-    <span class="comment">// Try to get thread data - expected to fail</span>
-    <span class="keywordflow">if</span> (<a class="code" href="group__DEPRECATED__PIN__API.html#g428ab4182b5fec58ee34b21362774d5f">PIN_GetThreadData</a>(temp_tls_key, threadid) != NULL)
-    {
-        cerr &lt;&lt; <span class="stringliteral">"PIN_GetThreadData("</span> &lt;&lt; tls_key &lt;&lt; <span class="stringliteral">","</span> &lt;&lt; threadid &lt;&lt; <span class="stringliteral">") should have failed"</span> &lt;&lt; endl;
-        <a class="code" href="group__PIN__PROCESS__API.html#ga2093202206f08d8faa12baa4392962e">PIN_ExitProcess</a>(1);
-    }
-    <span class="comment">// Create a key</span>
-    temp_tls_key = <a class="code" href="group__PIN__THREAD__API.html#g36b79c1845d1874b1d6fbe7c8e7f3e91">PIN_CreateThreadDataKey</a>(NULL);
-    <span class="keywordflow">if</span> (temp_tls_key == <a class="code" href="group__PIN__THREAD__API.html#g967820d5034d9a4a14576114bd8af5e3">INVALID_TLS_KEY</a>)
-    {
-        cerr &lt;&lt; <span class="stringliteral">"number of already allocated keys reached the MAX_CLIENT_TLS_KEYS limit"</span> &lt;&lt; endl;
-        <a class="code" href="group__PIN__PROCESS__API.html#ga2093202206f08d8faa12baa4392962e">PIN_ExitProcess</a>(1);
-    }
-    <span class="comment">// Delete the key</span>
-    <span class="keywordflow">if</span> (<a class="code" href="group__PIN__THREAD__API.html#g947459b197106638a20232298b51acf1">PIN_DeleteThreadDataKey</a>(temp_tls_key) == FALSE)
-    {
-        cerr &lt;&lt; <span class="stringliteral">"PIN_DeleteThreadDataKey failed"</span> &lt;&lt; endl;
-        <a class="code" href="group__PIN__PROCESS__API.html#ga2093202206f08d8faa12baa4392962e">PIN_ExitProcess</a>(1);
-    }
-    <span class="comment">// Delete it again - expected to fail</span>
-    <span class="keywordflow">if</span> (<a class="code" href="group__PIN__THREAD__API.html#g947459b197106638a20232298b51acf1">PIN_DeleteThreadDataKey</a>(temp_tls_key) == TRUE)
-    {
-        cerr &lt;&lt; <span class="stringliteral">"PIN_DeleteThreadDataKey should have failed"</span> &lt;&lt; endl;
-        <a class="code" href="group__PIN__PROCESS__API.html#ga2093202206f08d8faa12baa4392962e">PIN_ExitProcess</a>(1);
-    }
-    <span class="comment">// Try to use the deleted key - expected to fail</span>
-    <span class="keywordflow">if</span> (<a class="code" href="group__DEPRECATED__PIN__API.html#g1aa594f2e2588a78829ad0c608a55048">PIN_SetThreadData</a>(temp_tls_key, <span class="keyword">new</span> thread_data_t, threadid) != FALSE)
-    {
-        cerr &lt;&lt; <span class="stringliteral">"PIN_SetThreadData should have failed"</span> &lt;&lt; endl;
-        <a class="code" href="group__PIN__PROCESS__API.html#ga2093202206f08d8faa12baa4392962e">PIN_ExitProcess</a>(1);
-    }
 }
 
 VOID ThreadStart(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675eba0be607f41464eeb31c">THREADID</a> threadid, <a class="code" href="group__CONTEXT__API.html#g70a3022fd8834c783509c028ffcd07cb">CONTEXT</a> *ctxt, INT32 flags, VOID *v)
@@ -1586,11 +1517,6 @@ VOID ThreadStart(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675
         cerr &lt;&lt; <span class="stringliteral">"PIN_SetThreadData failed"</span> &lt;&lt; endl;
         <a class="code" href="group__PIN__PROCESS__API.html#ga2093202206f08d8faa12baa4392962e">PIN_ExitProcess</a>(1);
     }
-    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;lock, threadid+1);
-    threads_data.insert(std::make_pair(threadid, tdata));
-    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;lock);
-
-    TestIllegalTLSOPerations(threadid);
 }
 
 
@@ -1611,8 +1537,9 @@ VOID Trace(<a class="code" href="group__TRACE__BASIC__API.html#g72dbbb83ae9ca627
 <span class="comment">// This function is called when the thread exits</span>
 VOID ThreadFini(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675eba0be607f41464eeb31c">THREADID</a> threadIndex, <span class="keyword">const</span> <a class="code" href="group__CONTEXT__API.html#g70a3022fd8834c783509c028ffcd07cb">CONTEXT</a> *ctxt, INT32 code, VOID *v)
 {
-    thread_data_t* tdata = get_tls(threadIndex);
+    thread_data_t* tdata = static_cast&lt;thread_data_t*&gt;(<a class="code" href="group__DEPRECATED__PIN__API.html#g428ab4182b5fec58ee34b21362774d5f">PIN_GetThreadData</a>(tls_key, threadIndex));
     *OutFile &lt;&lt; <span class="stringliteral">"Count["</span> &lt;&lt; <a class="code" href="group__MISC__PRINT.html#gc6fa0ac95dc5a5baf1093baa1efc6b6c">decstr</a>(threadIndex) &lt;&lt; <span class="stringliteral">"] = "</span> &lt;&lt; tdata-&gt;_count &lt;&lt; endl;
+    <span class="keyword">delete</span> tdata;
 }
 
 <span class="comment">// This function is called when the application exits</span>
@@ -1645,9 +1572,6 @@ INT32 Usage()
 
     OutFile = KnobOutputFile.Value().empty() ? &amp;cout : <span class="keyword">new</span> std::ofstream(KnobOutputFile.Value().c_str());
 
-    <span class="comment">// Initialize the pin lock</span>
-    <a class="code" href="group__LOCK.html#ga07949dcd22a1c5d8fe209767b4dd490">PIN_InitLock</a>(&amp;lock);
-
     <span class="comment">// Obtain  a key for TLS storage.</span>
     tls_key = <a class="code" href="group__PIN__THREAD__API.html#g36b79c1845d1874b1d6fbe7c8e7f3e91">PIN_CreateThreadDataKey</a>(NULL);
     <span class="keywordflow">if</span> (tls_key == <a class="code" href="group__PIN__THREAD__API.html#g967820d5034d9a4a14576114bd8af5e3">INVALID_TLS_KEY</a>)
@@ -1669,13 +1593,13 @@ INT32 Usage()
     <a class="code" href="group__TRACE__BASIC__API.html#g0261da0abe384db4e2f97cd31cf986f7">TRACE_AddInstrumentFunction</a>(Trace, NULL);
 
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
 
     <span class="keywordflow">return</span> 1;
 }
 </pre></div><h3><a class="anchor" name="Buffering">
 Using the Fast Buffering APIs</a></h3>
-Pin provides support for buffering data for processing. If all that your analysis callback does is to store its arguments into a buffer, then you should be able to use the buffering API instead, with some performance benefit. <a class="el" href="group__BUFFER__API.html#g16f88ae475a2539bfec3c7ce8b9eb16e">PIN_DefineTraceBuffer()</a> defines the buffer that will be used. The buffer is allocated by each thread when it starts up, and deallocated when the thread exits. <a class="el" href="group__INS__INST__API.html#g4b68e6136fdec6a50269edfa4ff4c977">INS_InsertFillBuffer()</a> writes the requested data directly to the given buffer. The callback delineated in the <a class="el" href="group__BUFFER__API.html#g16f88ae475a2539bfec3c7ce8b9eb16e">PIN_DefineTraceBuffer()</a> call is used to process the buffer when the buffer is nearly full, and when the thread exits. Pin does <b>not</b> serialize the calls to this callback, so it is the tool writers responsibilty to make sure this function is thread safe. This example records the PC of all instructions that access memory, and the effective address accessed by the instruction. Note that IARG_REG_REFERENCE, IARG_REG_CONST_REFERENCE and IARG_CONTEXT can NOT be used in the Fast Buffering APIs<p>
+Pin provides support for buffering data for processing. If all that your analysis callback does is to store its arguments into a buffer, then you should be able to use the buffering API instead, with some performance benefit. <a class="el" href="group__BUFFER__API.html#g16f88ae475a2539bfec3c7ce8b9eb16e">PIN_DefineTraceBuffer()</a> defines the buffer that will be used. The buffer is allocated by each thread when it starts up, and deallocated when the thread exits. <a class="el" href="group__INS__INST__API.html#g4b68e6136fdec6a50269edfa4ff4c977">INS_InsertFillBuffer()</a> writes the requested data directly to the given buffer. The callback delineated in the <a class="el" href="group__BUFFER__API.html#g16f88ae475a2539bfec3c7ce8b9eb16e">PIN_DefineTraceBuffer()</a> call is used to process the buffer when the buffer is nearly full, and when the thread exits. Pin does <b>not</b> serialize the calls to this callback, so it is the tool writers responsibilty to make sure this function is thread safe. This example records the PC of all instructions that access memory, and the effective address accessed by the instruction. Note that IARG_REG_REFERENCE, IARG_REG_CONST_REFERENCE, IARG_CONTEXT, IARG_CONST_CONTEXT and IARG_PARTIAL_CONTEXT can NOT be used in the Fast Buffering APIs<p>
 <div class="fragment"><pre class="fragment">$ ../../../pin -t obj-ia32/buffer_linux.so -- obj-ia32/thread_lin
 $ tail buffer.out.*.*
 3263df   330108
@@ -1938,7 +1862,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#gc3f2c06e525bd0f23e8aa55f801989df">PIN_AddThreadFiniFunction</a>(ThreadFini, 0);
 
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
 
     <span class="keywordflow">return</span> 0;
 }
@@ -2013,7 +1937,7 @@ INT32 Usage()
     <a class="code" href="group__IMG__BASIC__API.html#g4867c865fcf260951b7d750aaaaa0007">IMG_AddInstrumentFunction</a>(ImageLoad, 0);
 
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -2082,7 +2006,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#g4c85e2907788d57d10241d4f8b86a170">PIN_AddDetachFunction</a>(ByeWorld, 0);
     
     <span class="comment">// Never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -2138,27 +2062,34 @@ VOID ImageLoad( IMG img, VOID *v )
     
     <span class="keywordflow">if</span> (<a class="code" href="group__RTN__BASIC__API.html#g2883b22d046e8c6c5ac303465dfa4ed6">RTN_Valid</a>(rtn))
     {
-        cout &lt;&lt; <span class="stringliteral">"Replacing malloc in "</span> &lt;&lt; <a class="code" href="group__IMG__BASIC__API.html#g491b26d161526b35498839f5cdf30a76">IMG_Name</a>(img) &lt;&lt; endl;
-        
-        <span class="comment">// Define a function prototype that describes the application routine</span>
-        <span class="comment">// that will be replaced.</span>
-        <span class="comment">//</span>
-        <a class="code" href="group__PROTO__API.html#gaa40d7e36e9ad7a07ee68adb5b312377">PROTO</a> proto_malloc = <a class="code" href="group__PROTO__API.html#g49300accd53f8e574af0b706ee553625">PROTO_Allocate</a>( <a class="code" href="group__PROTO__API.html#gae8aea17c700049aa39c32c370874f47">PIN_PARG</a>(<span class="keywordtype">void</span> *), CALLINGSTD_DEFAULT,
-                                             <span class="stringliteral">"malloc"</span>, <a class="code" href="group__PROTO__API.html#gae8aea17c700049aa39c32c370874f47">PIN_PARG</a>(<span class="keywordtype">int</span>), <a class="code" href="group__PROTO__API.html#gb8a98de8d0939ae762c9b890097a350b">PIN_PARG_END</a>() );
-        
-        <span class="comment">// Replace the application routine with the replacement function.</span>
-        <span class="comment">// Additional arguments have been added to the replacement routine.</span>
-        <span class="comment">//</span>
-        <a class="code" href="group__RTN__BASIC__API.html#g5cc8019660f41cae2449c826a878afe0">RTN_ReplaceSignatureProbed</a>(rtn, AFUNPTR(NewMalloc),
-                                   <a class="code" href="group__INST__ARGS.html#gg7e2c955c99fa84246bb2bce1525b5681f007683926859b1cfd7c10c66a3555e2">IARG_PROTOTYPE</a>, proto_malloc,
-                                   <a class="code" href="group__INST__ARGS.html#gg7e2c955c99fa84246bb2bce1525b56812a8d49dccc99d1dfaeb26d8b3e583505">IARG_ORIG_FUNCPTR</a>,
-                                   <a class="code" href="group__INST__ARGS.html#gg7e2c955c99fa84246bb2bce1525b5681c82efb4d44af4401e73fc01b7ac1c3c3">IARG_FUNCARG_ENTRYPOINT_VALUE</a>, 0,
-                                   <a class="code" href="group__INST__ARGS.html#gg7e2c955c99fa84246bb2bce1525b5681a9f63b1e494a1c86d00e4836f845c0c5">IARG_RETURN_IP</a>,
-                                   IARG_END);
+        <span class="keywordflow">if</span> (<a class="code" href="group__RTN__BASIC__API.html#g7ea1c8fd47cf2ef8f97f30b9d228c9a3">RTN_IsSafeForProbedReplacement</a>(rtn))
+        {
+            cout &lt;&lt; <span class="stringliteral">"Replacing malloc in "</span> &lt;&lt; <a class="code" href="group__IMG__BASIC__API.html#g491b26d161526b35498839f5cdf30a76">IMG_Name</a>(img) &lt;&lt; endl;
 
-        <span class="comment">// Free the function prototype.</span>
-        <span class="comment">//</span>
-        <a class="code" href="group__PROTO__API.html#g0affd7dbe19f86b3b3ffb260540d37e4">PROTO_Free</a>( proto_malloc );
+            <span class="comment">// Define a function prototype that describes the application routine</span>
+            <span class="comment">// that will be replaced.</span>
+            <span class="comment">//</span>
+            <a class="code" href="group__PROTO__API.html#gaa40d7e36e9ad7a07ee68adb5b312377">PROTO</a> proto_malloc = <a class="code" href="group__PROTO__API.html#g49300accd53f8e574af0b706ee553625">PROTO_Allocate</a>(<a class="code" href="group__PROTO__API.html#gae8aea17c700049aa39c32c370874f47">PIN_PARG</a>(<span class="keywordtype">void</span> *), CALLINGSTD_DEFAULT,
+                <span class="stringliteral">"malloc"</span>, <a class="code" href="group__PROTO__API.html#gae8aea17c700049aa39c32c370874f47">PIN_PARG</a>(<span class="keywordtype">int</span>), <a class="code" href="group__PROTO__API.html#gb8a98de8d0939ae762c9b890097a350b">PIN_PARG_END</a>());
+
+            <span class="comment">// Replace the application routine with the replacement function.</span>
+            <span class="comment">// Additional arguments have been added to the replacement routine.</span>
+            <span class="comment">//</span>
+            <a class="code" href="group__RTN__BASIC__API.html#g5cc8019660f41cae2449c826a878afe0">RTN_ReplaceSignatureProbed</a>(rtn, AFUNPTR(NewMalloc),
+                <a class="code" href="group__INST__ARGS.html#gg7e2c955c99fa84246bb2bce1525b5681f007683926859b1cfd7c10c66a3555e2">IARG_PROTOTYPE</a>, proto_malloc,
+                <a class="code" href="group__INST__ARGS.html#gg7e2c955c99fa84246bb2bce1525b56812a8d49dccc99d1dfaeb26d8b3e583505">IARG_ORIG_FUNCPTR</a>,
+                <a class="code" href="group__INST__ARGS.html#gg7e2c955c99fa84246bb2bce1525b5681c82efb4d44af4401e73fc01b7ac1c3c3">IARG_FUNCARG_ENTRYPOINT_VALUE</a>, 0,
+                <a class="code" href="group__INST__ARGS.html#gg7e2c955c99fa84246bb2bce1525b5681a9f63b1e494a1c86d00e4836f845c0c5">IARG_RETURN_IP</a>,
+                IARG_END);
+
+            <span class="comment">// Free the function prototype.</span>
+            <span class="comment">//</span>
+            <a class="code" href="group__PROTO__API.html#g0affd7dbe19f86b3b3ffb260540d37e4">PROTO_Free</a>(proto_malloc);
+        }
+        <span class="keywordflow">else</span>
+        {
+            cout &lt;&lt; <span class="stringliteral">"Skip replacing malloc in "</span> &lt;&lt; <a class="code" href="group__IMG__BASIC__API.html#g491b26d161526b35498839f5cdf30a76">IMG_Name</a>(img) &lt;&lt; <span class="stringliteral">" since it is not safe."</span> &lt;&lt; endl;
+        }
     }
 }
 
@@ -2232,7 +2163,7 @@ BOOL FollowChild(<a class="code" href="group__CHILD__PROCESS__API.html#g104e2b5e
 
     <a class="code" href="group__PIN__CONTROL.html#g4f667d78b5533ec07b15ef4df0d7a78e">PIN_AddFollowChildProcessFunction</a>(FollowChild, 0);
 
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
 
     <span class="keywordflow">return</span> 0;
 }
@@ -2272,21 +2203,21 @@ INT32 Usage()
 
 
 pid_t parent_pid;
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 
 VOID BeforeFork(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675eba0be607f41464eeb31c">THREADID</a> threadid, <span class="keyword">const</span> <a class="code" href="group__CONTEXT__API.html#g70a3022fd8834c783509c028ffcd07cb">CONTEXT</a>* ctxt, VOID * arg)
 {
-    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;lock, threadid+1);
+    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;pinLock, threadid+1);
     cerr &lt;&lt; <span class="stringliteral">"TOOL: Before fork."</span> &lt;&lt; endl;
-    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;lock);
+    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;pinLock);
     parent_pid = <a class="code" href="group__PIN__PROCESS__API.html#ga49549dfe3363154368aa80038463078">PIN_GetPid</a>();
 }
 
 VOID AfterForkInParent(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675eba0be607f41464eeb31c">THREADID</a> threadid, <span class="keyword">const</span> <a class="code" href="group__CONTEXT__API.html#g70a3022fd8834c783509c028ffcd07cb">CONTEXT</a>* ctxt, VOID * arg)
 {
-    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;lock, threadid+1);
+    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;pinLock, threadid+1);
     cerr &lt;&lt; <span class="stringliteral">"TOOL: After fork in parent."</span> &lt;&lt; endl;
-    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;lock);
+    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;pinLock);
 
     <span class="keywordflow">if</span> (<a class="code" href="group__PIN__PROCESS__API.html#ga49549dfe3363154368aa80038463078">PIN_GetPid</a>() != parent_pid)
     {
@@ -2297,9 +2228,9 @@ VOID AfterForkInParent(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c
 
 VOID AfterForkInChild(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c874675eba0be607f41464eeb31c">THREADID</a> threadid, <span class="keyword">const</span> <a class="code" href="group__CONTEXT__API.html#g70a3022fd8834c783509c028ffcd07cb">CONTEXT</a>* ctxt, VOID * arg)
 {
-    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;lock, threadid+1);
+    <a class="code" href="group__LOCK.html#gc7b6e6ed4fb7e14452b85b96d5c42c10">PIN_GetLock</a>(&amp;pinLock, threadid+1);
     cerr &lt;&lt; <span class="stringliteral">"TOOL: After fork in child."</span> &lt;&lt; endl;
-    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;lock);
+    <a class="code" href="group__LOCK.html#g85d4faf75e968d46ca52986058ebd8c7">PIN_ReleaseLock</a>(&amp;pinLock);
     
     <span class="keywordflow">if</span> ((<a class="code" href="group__PIN__PROCESS__API.html#ga49549dfe3363154368aa80038463078">PIN_GetPid</a>() == parent_pid) || (getppid() != parent_pid))
     {
@@ -2317,7 +2248,7 @@ VOID AfterForkInChild(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c8
     }
     
     <span class="comment">// Initialize the pin lock</span>
-    <a class="code" href="group__LOCK.html#ga07949dcd22a1c5d8fe209767b4dd490">PIN_InitLock</a>(&amp;lock);
+    <a class="code" href="group__LOCK.html#ga07949dcd22a1c5d8fe209767b4dd490">PIN_InitLock</a>(&amp;pinLock);
     
     <span class="comment">// Register a notification handler that is called when the application</span>
     <span class="comment">// forks a new process.</span>
@@ -2326,7 +2257,7 @@ VOID AfterForkInChild(<a class="code" href="group__PIN__THREAD__API.html#g3bc3c8
     <a class="code" href="group__PIN__CONTROL.html#ga141366d36aec81e19f4576de1c3f2e4">PIN_AddForkFunction</a>(<a class="code" href="group__PIN__CONTROL.html#ggb6974c15e664605870435c05a1bf33bd35c7c8f0fae3a1a1cbe29d6d79045c88">FPOINT_AFTER_IN_CHILD</a>, AfterForkInChild, 0);
     
     <span class="comment">// Never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -2502,7 +2433,7 @@ VOID Fini(INT32 code, VOID *v)
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, NULL);
 
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
 
     <span class="keywordflow">return</span> 0;
 }
@@ -2632,7 +2563,7 @@ VOID Fini(INT32 code, VOID *v)
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, NULL);
 
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
 
     <span class="keywordflow">return</span> 0;
 }
@@ -2888,24 +2819,23 @@ As before, you can either continue the application and let it terminate, or you 
 The program is running.  Exit anyway? (y or n) y
 </pre></div><h3><a class="anchor" name="APPDEBUG_WINDOWS">
 Advanced Debugging Extensions on Windows</a></h3>
-On Windows, the advanced debugging extensions work with Microsoft Visual Studio 2012. There is no support for earlier versions of Visual Studio, so make sure you have that version installed. Also, the Express edition of Visual Studio doesn't support IDE extensions, so it will not work with the Pin debugger extensions. Therefore, you must install the Professional edition (or greater). If you are a student, you may be able to get the Professional edition for free. Check the Microsoft web site or with your school's IT department for details.<p>
+On Windows, the advanced debugging extensions work with Microsoft Visual Studio 2012 or greater. There is no support for earlier versions of Visual Studio, so make sure you have that version installed. Also, the Express edition of Visual Studio doesn't support IDE extensions, so it will not work with the Pin debugger extensions. Therefore, you must install the Professional edition (or greater). If you are a student, you may be able to get the Professional edition for free. Check the Microsoft web site or with your school's IT department for details.<p>
 After you have installed Visual Studio, you must also install the Pin extension for Visual Studio. Look for an installer named "pinadx-vsextension-X.Y.Z.msi" in the root of the Pin kit.<p>
-If you are developing a Pintool, you must also use Visual Studio to build the tool. However, there is not yet support for building Pintools with Visual Studio 2012. As a result, you must also install either Visual Studio 2010 or 2008 in order to build your tool. You can use any edition to build a Pintool, even the free Express edition.<p>
 The remainder of this section assumes that you are able to build the "stack-debugger" tool, so if you want to follow along, you must have the following software installed:<p>
 <ul>
-<li>Visual Studio 2012, Professional edition (or greater).</li><li>The Pin debugger extension for Visual Studio 2012 (pinadx-vsextension-X.Y.Z.msi).</li><li>Either Visual Studio 2010 or 2008, any edition.</li></ul>
+<li>Visual Studio 2012, Professional edition (or greater).</li><li>The Pin debugger extension for Visual Studio 2012 (pinadx-vsextension-X.Y.Z.msi).</li></ul>
 <p>
 In order to start this tutorial, you will probably want to build the example tool "stack-debugger.cpp", which is available in the directory "source\tools\ManualExamples". To do this, open a Visual Studio command shell and type the following commands. (Use "TARGET=intel64" instead, if you want to build a 64-bit version of the tool.)<p>
 <div class="fragment"><pre class="fragment">C:\&gt; cd source\tools\ManualExamples
 C:\&gt; make TARGET=ia32 obj-ia32/stack-debugger.dll
 </pre></div><p>
-After you have done this, start Visual Studio 2012 and open the sample solution file at "source\tools\ManualExamples\stack-debugger-tutorial.sln". Then build the sample application "fibonacci" by pressing F7. Make sure you can run the application natively by pressing CTRL-F5.<p>
+After you have done this, start Visual Studio and open the sample solution file at "source\tools\ManualExamples\stack-debugger-tutorial.sln". Then build the sample application "fibonacci" by pressing F7. Make sure you can run the application natively by pressing CTRL-F5.<p>
 Now let's try running the "fibonacci" application under Pin with the "stack-debugger" tool. To do this, you must first set the "Pin Kit Directory" from TOOLS-&gt;Options-&gt;Pin Debugger.<p>
 <div align="center">
 <img src="pin-debugger-option-pages-properties.png" alt="pin-debugger-option-pages-properties.png">
 </div>
 <p>
-Then you have to adjust the "fibonacci" project properties in Visual Studio 2012: right-click on the "fibonacci" project in the Solution Explorer, choose Properties, and then click on Debugging. Change the drop-down titled "Debugger to launch" to "Pin Debugger" as shown in the figure below.<p>
+Then you have to adjust the "fibonacci" project properties in Visual Studio: right-click on the "fibonacci" project in the Solution Explorer, choose Properties, and then click on Debugging. Change the drop-down titled "Debugger to launch" to "Pin Debugger" as shown in the figure below.<p>
 <div align="center">
 <img src="pin-debugger-project-properties1.png" alt="pin-debugger-project-properties1.png">
 </div>
@@ -2917,13 +2847,13 @@ Then, set the "Pin Tool Path" property by browsing to the "stack-debugger.dll". 
 <p>
 Visual Studio is now configured to run the "fibonacci" application under your Pintool. However, before you continue, set a breakpoint in "main()" so that execution stops in the debugger. Then press F5 to start debugging.<p>
 You should now see a normal-looking debugger session, although your application is really running under control of Pin. All of the debugger features still work as you would expect. You can set breakpoints, continue execution, display the values of variables, and even view the disassembled code. All of the information that you observe in the debugger shows the application's "pure" state. The details of Pin and the tool's instrumentation are hidden. For example, the disassembly view shows only the application's instructions, not any of the instructions inserted by the tool. However, when you continue execution (e.g. with F5 or F10), the application executes along with your tool's instrumentation code.<p>
-Now, let's see an alternative way to debug the "fibonacci" application under Pin with the "stack-debugger" tool in Visual Studio 2012. After you have built the "stack-debugger" tool, open a command shell and start the application with the debugging extensions enabled. This will cause Pin to stop immediately before the first instruction.<p>
+Now, let's see an alternative way to debug the "fibonacci" application under Pin with the "stack-debugger" tool in Visual Studio. After you have built the "stack-debugger" tool, open a command shell and start the application with the debugging extensions enabled. This will cause Pin to stop immediately before the first instruction.<p>
 <div class="fragment"><pre class="fragment">C:\&gt; cd source\tools\ManualExamples
 C:\&gt; ..\..\..\pin -appdebug -t obj-ia32\stack-debugger.dll -- debug\fibonacci.exe 1000
 Application stopped until continued from debugger.
 Pin ready to accept debugger connection on port 30840
 </pre></div><p>
-Open the source.cpp in Visual Studio 2012 and set a breakpoint to stop the execution in the debugger. To attach with Visual Studio to the process that is running under Pin, select "Attach to Pin Process" on the DEBUG menu. Select from the Available Processes table the "fibonacci" process, enter the port number that Pin printed and click Attach.<p>
+Open the source.cpp in Visual Studio and set a breakpoint to stop the execution in the debugger. To attach with Visual Studio to the process that is running under Pin, select "Attach to Pin Process" on the DEBUG menu. Select from the Available Processes table the "fibonacci" process, enter the port number that Pin printed and click Attach.<p>
 <div align="center">
 <img src="pin-debugger-attach.png" alt="pin-debugger-attach.png">
 </div>
@@ -3370,7 +3300,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, 0);
     
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -3483,7 +3413,7 @@ INT32 Usage()
     <a class="code" href="group__PIN__CONTROL.html#g49a870141067fb2a4ae0c8fd09a04ccb">PIN_AddFiniFunction</a>(Fini, 0);
     
     <span class="comment">// Start the program, never returns</span>
-    <a class="code" href="group__PIN__CONTROL.html#gdfaa67ec042ca4a007869b9d2cc080b9">PIN_StartProgram</a>();
+    <a class="code" href="group__PIN__CONTROL.html#g474cc78614d1a6e2dec7fe139dd3b7c6">PIN_StartProgram</a>();
     
     <span class="keywordflow">return</span> 0;
 }
@@ -3681,8 +3611,8 @@ mode</a></h3>
 In JIT mode, Pin needs to manage memory for the code cache in addition to the dynamically allocated memory. This means that the memory regions specified by -pin_memory-range restricts both the dynamically allocated memory and the code cache blocks allocated by Pin.<p>
 In order to limit the code cache memory allocation, one can specify the -cc_memory_size knob in Pin's command line. Note that the specified limit must be a multiple of the code cache block size (specified with -cache_block_size).<h3><a class="anchor" name="Pin">
 Pin</a></h3>
-Another component that requires memory while running Pin on an application is the images of Pin, tool, and their shared libraries (aka dynamic link libraries). The shared libraries are usually built as position independent code and hence can be loaded anywhere in the memory space of the Pined process. On the other hand, the Pin executable is currently built as position independent code only on Linux. Note that Pin executable is injected to the Pined process memory space on the operating systems: OS X*, Android, and Linux. This means that on OS X* and Android Pin executable must be injected to a fixed address in the memory space and cannot be relocated.<p>
-In order to restrict the memory that Pin image loader will use (while considering the limitation stated above), one can use the -restrict_memory knob in Pin's command line to specify memory region where Pin loader should not use. Note that the logic of the -restrict_memory knob is reversed from all the other memory range knobs for Pin - as it specifies which memory regions the Pin loader should *NOT* use.<p>
+Another component that requires memory while running Pin on an application is the images of Pin, tool, and their shared libraries (aka dynamic link libraries).<p>
+In order to restrict the memory that Pin image loader will use when placing the images mentioned above, one can use the -restrict_memory knob in Pin's command line. This will specify memory regions that the Pin loader should not use. Note that the logic of the -restrict_memory knob is reversed from all the other memory range knobs for Pin - as it specifies which memory regions the Pin loader should *NOT* use.<p>
 ======================================================================================== <h2><a class="anchor" name="RESTRICTIONS">
 Pintool Information and Restrictions</a></h2>
 ========================================================================================<h3><a class="anchor" name="PinCRT">
@@ -3747,51 +3677,11 @@ If you need to change the directory structure or copy pin to a different directo
 Installing Pin</a></h2>
 ========================================================================================<p>
 To install a kit, unpack a kit and change to the directory.<p>
-Linux / OS X* / Android: <div class="fragment"><pre class="fragment">$ tar zxf pin-3.0-76226-gcc-linux.tar.gz
-$ cd pin-3.0-76226-gcc-linux
-</pre></div> Use the OS X* / Android kit names respectively.<p>
-Windows: Unzip the installation files, extracting all files in the kit. <div class="fragment"><pre class="fragment">$ cd  pin-3.0-74555-msvc-windows.zip
+Linux / OS X*: <div class="fragment"><pre class="fragment">$ tar zxf pin-3.2-81205-gcc-linux.tar.gz
+$ cd pin-3.2-81205-gcc-linux
+</pre></div> Use the OS X* kit names respectively.<p>
+Windows: Unzip the installation files, extracting all files in the kit. <div class="fragment"><pre class="fragment">$ cd  pin-3.2-81205-msvc-windows
 </pre></div><p>
-======================================================================================== <h2><a class="anchor" name="XEONPHIUSAGE">
-Usage Instructions for Intel(R) Xeon Phi(TM)</a></h2>
-========================================================================================<p>
-Table of Contents<ul>
-<li><a class="el" href="index.html#InstallPinOnDevice">Installing Pin on the Device</a></li><li><a class="el" href="index.html#InstallEntireDirectory">Building and Installing an Entire Test Directory</a></li><li><a class="el" href="index.html#InstallSingleTool">Building and Installing a Single Tool</a></li><li><a class="el" href="index.html#RunningEntireDirectory">Running All the Tests in a Directory</a></li><li><a class="el" href="index.html#RunningSingleTestFromHost">Running a Single Test on the Device - Launched from the Host</a></li><li><a class="el" href="index.html#RunningTestNatively">Running a Single Test on the Device - Launched from the Device</a></li></ul>
-<h3><a class="anchor" name="InstallPinOnDevice">
-Installing Pin on the Device</a></h3>
-<ul>
-<li>Copy the mic-install.tar.gz tarball (located at the kit's root) to your preferred location on the device and unpack it. This will create a directory structure similar to that found on the host.</li><li>Make sure the following libraries are present on the device (copy manually if necessary):<br>
- libimf.so libintlc.so libintlc.so.5 libirng.so libsvml.so</li></ul>
-<h3><a class="anchor" name="InstallEntireDirectory">
-Building and Installing an Entire Test Directory</a></h3>
-Perform the following on the host: <div class="fragment"><pre class="fragment">cd source/tools/ManualExamples
-make CC=icc CXX=icpc TARGET=mic REMOTE_DEVICE=mic0 REMOTE_ROOT=pin install
-</pre></div><p>
-Notes:<ul>
-<li>The above will build all the tools and test applications in the ManualExamples library and pack them in a tarball. Then, the tarball will be copied to the device and will be unpacked.</li><li>The device is identified by the REMOTE_DEVICE flag.</li><li>The install location on the device is specified by the REMOTE_ROOT flag. REMOTE_ROOT should be the same location where the mic-install.tar.gz tarball was unpacked.</li><li>The makefile will automatically add the "-mmic" directive to the compilation flags when TARGET=mic is specified.</li></ul>
-<h3><a class="anchor" name="InstallSingleTool">
-Building and Installing a Single Tool</a></h3>
-Compile the tool on the host as follows: <div class="fragment"><pre class="fragment">make CC=icc CXX=icpc TARGET=mic obj-mic/MyPinTool.so
-</pre></div> Copy the tool to your preferred location on the device.<p>
-Notes:<ul>
-<li>The makefile will automatically add the "-mmic" directive to the compilation flags when TARGET=mic is specified.</li></ul>
-<h3><a class="anchor" name="RunningEntireDirectory">
-Running All the Tests in a Directory</a></h3>
-Perform the following on the host: <div class="fragment"><pre class="fragment">cd source/tools/ManualExamples
-make TARGET=mic REMOTE_DEVICE=mic0 REMOTE_ROOT=pin test
-</pre></div><p>
-Notes:<ul>
-<li>The above will run all tests in the ManualExamples library.</li><li>The directory should be installed prior to running the tests (follow the directions in <a class="el" href="index.html#InstallEntireDirectory">Building and Installing an Entire Test Directory</a>).</li><li>See <a class="el" href="index.html#InstallEntireDirectory">Building and Installing an Entire Test Directory</a> for details of the flags used in the make command.</li></ul>
-<h3><a class="anchor" name="RunningSingleTestFromHost">
-Running a Single Test on the Device - Launched from the Host</a></h3>
-Copy the tool, application and any other dependencies of the test (as they appear in the makefile) to the device. Make sure to keep the same directory structure as on the host (this is expected by the makefile). Run the following: <div class="fragment"><pre class="fragment">cd source/tools/ManualExamples
-make REMOTE_DEVICE=mic0 REMOTE_ROOT=pin inscount0.wrap
-</pre></div><p>
-Notes:<ul>
-<li>The ".wrap" suffix should be used instead of the ".test" suffix. This will result in running the ".test" make target on the device. The ".wrap" make target is automatically generated by Pin's make configuration. It's purpose is to set the environment for launching the test on the device.</li><li>See <a class="el" href="index.html#InstallEntireDirectory">Building and Installing an Entire Test Directory</a> for details of the flags used in the make command.</li></ul>
-<h3><a class="anchor" name="RunningTestNatively">
-Running a Single Test on the Device - Launched from the Device</a></h3>
-Copy Pin, tool and application to the device. Then simply log in to the device and launch Pin regularly.<p>
 ======================================================================================== <h2><a class="anchor" name="BUILDINGTOOLS">
 Building Your Own Tool</a></h2>
 ========================================================================================<p>
@@ -3885,13 +3775,13 @@ The information in this manual is subject to change without notice and Intel Cor
 EXCEPT AS PROVIDED IN INTEL'S TERMS AND CONDITIONS OF SALE FOR SUCH PRODUCTS, INTEL ASSUMES NO LIABILITY WHATSOEVER, AND INTEL DISCLAIMS ANY EXPRESS OR IMPLIED WARRANTY, RELATING TO SALE AND/OR USE OF INTEL PRODUCTS INCLUDING LIABILITY OR WARRANTIES RELATING TO FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR INFRINGEMENT OF ANY PATENT, COPYRIGHT OR OTHER INTELLECTUAL PROPERTY RIGHT. Intel products are not intended for use in medical, life saving, life sustaining, critical control or safety systems, or in nuclear facility applications.<p>
 Designers must not rely on the absence or characteristics of any features or instructions marked "reserved" or "undefined." Intel reserves these for future definition and shall have no responsibility whatsoever for conflicts or incompatibilities arising from future changes to them.<p>
 The software described in this document may contain software defects which may cause the product to deviate from published specifications. Current characterized software defects are available on request.<p>
-Copyright (c) 2004-2016, Intel Corporation. All rights reserved.<p>
+Copyright (c) 2004-2017, Intel Corporation. All rights reserved.<p>
 Intel, Xeon, and Intel Xeon Phi are trademarks of Intel Corporation in the U.S. and/or other countries.<p>
 Microsoft, Windows, and the Windows logo are trademarks, or registered trademarks of Microsoft Corporation in the United States and/or other countries.<p>
 Java is a registered trademark of Oracle and/or its affiliates.<p>
 Other names and brands may be claimed as the property of others.<p>
 Copyright Intel Corporation. All rights reserved. Intel Corporation, 2200 Mission College Blvd., Santa Clara, CA 95052-8119, USA.<p>
-======================================================================================== <hr size="1"><address style="align: right;"><small>Generated on Thu Feb 2 21:56:15 2017 for Pin by&nbsp;
+======================================================================================== <hr size="1"><address style="align: right;"><small>Generated on Sun Aug 27 14:28:10 2017 for Pin by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.4.6 </small></address>
 </body>

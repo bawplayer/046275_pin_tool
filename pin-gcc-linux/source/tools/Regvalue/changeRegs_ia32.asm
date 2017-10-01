@@ -1,7 +1,7 @@
 ; BEGIN_LEGAL 
 ; Intel Open Source License 
 ; 
-; Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+; Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
 ;  
 ; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are
@@ -45,6 +45,12 @@ IFDEF CONTEXT_USING_AVX
 extern ymmval:ymmword
 extern aymmval:ymmword
 ENDIF
+IFDEF CONTEXT_USING_AVX512F
+extern zmmval:zmmword
+extern azmmval:zmmword
+extern opmaskval:qword
+extern aopmaskval:qword
+ENDIF
 extern fpSaveArea:dword
 
 .code
@@ -62,14 +68,22 @@ extern fpSaveArea:dword
 ; edx   - used (implicitly) by xsave
 ; st0   - used (implicitly) for loading a value to the FPU stack
 ; st2   - used for testing the FPU values
-; xmm0  - used for testing the sse values
-; ymm1  - used for testing the avx values
+; xmm0  - used for testing the sse (xmm) values
+; ymm1  - used for testing the avx (ymm) values
+; zmm5  - used for testing the avx512 (zmm) values
+; k3    - used for testing the opmask register values
 ChangeRegsWrapper PROC
     ; Save the necessary GPRs
     push    eax
     push    ebx
     push    ecx
     push    edx
+
+IFDEF CONTEXT_USING_AVX512F
+    ; Save the necessary mask registers
+    kmovw   eax, k3
+    push    eax
+ENDIF
 
     ; Allign the fpSaveArea
     lea     ecx, fpSaveArea
@@ -105,6 +119,12 @@ ELSE
     fxrstor [ecx]
 ENDIF
 
+IFDEF CONTEXT_USING_AVX512F
+    ; Restore the mask registers
+    pop     eax
+    kmovw   k3, eax
+ENDIF
+
     ; Restore the GPRs
     pop     edx
     pop     ecx
@@ -127,6 +147,12 @@ ChangeRegs PROC
 IFDEF CONTEXT_USING_AVX
     ; TEST: load the new value to ymm1
     vmovdqu ymm1, ymmword ptr ymmval
+ENDIF
+IFDEF CONTEXT_USING_AVX512F
+    ; TEST: load the new value to zmm5
+    vmovdqu32 zmm5, zmmword ptr zmmval
+    ; TEST: load the new value to k3
+    kmovw   k3, opmaskval
 ENDIF
     ret
 ChangeRegs ENDP
@@ -152,6 +178,12 @@ SaveRegsToMem PROC
 IFDEF CONTEXT_USING_AVX
     ; TEST: store the new value of ymm1
     vmovdqu ymmword ptr aymmval, ymm1
+ENDIF
+IFDEF CONTEXT_USING_AVX512F
+    ; TEST: store the new value of zmm5
+    vmovdqu32 zmmword ptr azmmval, zmm5
+    ; TEST: store the new value of k3
+    kmovw   aopmaskval, k3
 ENDIF
     ret
 SaveRegsToMem ENDP

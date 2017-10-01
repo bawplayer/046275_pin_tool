@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -724,7 +724,7 @@ VOID ThreadFini(THREADID threadid, const CONTEXT *ctxt, INT32 code, VOID *v)
     }
 }
 
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 THREADID myThread = INVALID_THREADID;
 
 VOID ThreadStartUtil(THREADID threadid, CONTEXT *ctxt)
@@ -761,9 +761,9 @@ VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
 
 VOID AppThreadStart(THREADID threadid, CONTEXT *ctxt)
 {
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
     ThreadStartUtil(threadid, ctxt);
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 //Instrument the app thread rtn
@@ -784,7 +784,7 @@ int main(int argc, char *argv[])
     PIN_Init(argc, argv);
     PIN_InitSymbols();
     
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
     
     tls_key = PIN_CreateThreadDataKey(NULL);
     if (tls_key == INVALID_TLS_KEY)

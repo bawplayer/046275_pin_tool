@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -45,9 +45,7 @@ END_LEGAL */
 #include <string.h>
 #include <string>
 #include <list>
-#if defined(TARGET_ANDROID) && !defined(TARGET_NDK64)
-#include "android_ucontext.h"
-#elif defined(TARGET_MAC)
+#if defined(TARGET_MAC)
 #include <sys/ucontext.h>
 #else
 #include <ucontext.h>
@@ -160,23 +158,23 @@ void SetXmmRegInMctxt(mcontext_t* mctxt, int xmmIdx, long val)
 #endif
 
 void SigUsr1Handler(int signum, siginfo_t *siginfo, void *uctxt)
-{    
+{
     AttachAndInstrument();
-    
-    // Give enough time for all threads to get started 
+
+    // Give enough time for all threads to get started
     while (!ThreadsReady(1))
     {
         sched_yield();
     }
     mcontext_t *mContext = &reinterpret_cast<ucontext_t*>(uctxt)->uc_mcontext;
-    
+
     long appContextXmm1 = GetXmmRegFromMctxt(mContext, 1);
     long appContextXmm2 = GetXmmRegFromMctxt(mContext, 2);
     long appContextXmm3 = GetXmmRegFromMctxt(mContext, 3);
-    
+
     if ((appContextXmm1 != xmm1_app) || (appContextXmm2 != xmm2_app) || (appContextXmm3 != xmm3_app))
     {
-        cerr << "Unexpected xmm values in signal handler: " << hex << endl; 
+        cerr << "Unexpected xmm values in signal handler: " << hex << endl;
         cerr << "xmm1 = " << appContextXmm1 << ", Expected " << xmm1_app << endl;
         cerr << "xmm2 = " << appContextXmm2 << ", Expected " << xmm1_app << endl;
         cerr << "xmm3 = " << appContextXmm3 << ", Expected " << xmm1_app << endl;
@@ -186,15 +184,15 @@ void SigUsr1Handler(int signum, siginfo_t *siginfo, void *uctxt)
     SetXmmRegInMctxt(mContext, 1, xmm1_sig);
     SetXmmRegInMctxt(mContext, 2, xmm2_sig);
     SetXmmRegInMctxt(mContext, 3, xmm3_sig);
-            
+
     sigHandled = true;
 }
 
 void SigUsr2Handler(int signum)
-{    
+{
     AttachAndInstrument();
-    
-    // Give enough time for all threads to get started 
+
+    // Give enough time for all threads to get started
     while (!ThreadsReady(1))
     {
         sched_yield();
@@ -227,14 +225,14 @@ void AttachAndInstrument()
     pinArgIt++;
 
     pid_t parent_pid = getpid();
-    
+
     pid_t child = fork();
 
-    if (child) 
+    if (child)
     {
         fprintf(stderr, "Pin injector pid %d\n", child);
         // inside parent
-        return;  
+        return;
     }
     else
     {
@@ -243,8 +241,8 @@ void AttachAndInstrument()
         char **inArgv = new char*[pinArgs.size()+10];
 
         unsigned int idx = 0;
-        inArgv[idx++] = (char *)pinBinary.c_str(); 
-        inArgv[idx++] = (char*)"-pid"; 
+        inArgv[idx++] = (char *)pinBinary.c_str();
+        inArgv[idx++] = (char*)"-pid";
         inArgv[idx] = (char *)malloc(10);
         sprintf(inArgv[idx++], "%d", parent_pid);
 
@@ -253,13 +251,13 @@ void AttachAndInstrument()
             inArgv[idx++]= (char *)pinArgIt->c_str();
         }
         inArgv[idx] = 0;
-        
+
         PrintArguments(inArgv);
 
         execvp(inArgv[0], inArgv);
         fprintf(stderr, "ERROR: execv %s failed\n", inArgv[0]);
         kill(parent_pid, 9);
-        return; 
+        return;
     }
 }
 
@@ -302,7 +300,7 @@ int main(int argc, char *argv[])
 {
     unsigned int testNo = 0;
     ParseCommandLine(argc, argv, &pinArgs, &testNo);
-    
+
     if (testNo == 0)
     {
         return TestRtSigframe();
@@ -313,20 +311,20 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
-   
+
 int TestRtSigframe()
 {
     struct sigaction sSigaction;
-    
+
     /* Register the signal hander using the siginfo interface*/
     sSigaction.sa_sigaction = SigUsr1Handler;
     sSigaction.sa_flags = SA_SIGINFO;
-    
+
     /* mask all other signals */
     sigfillset(&sSigaction.sa_mask);
-    
+
     int ret = sigaction(SIGUSR1, &sSigaction, NULL);
-    if(ret) 
+    if(ret)
     {
         perror("ERROR, sigaction failed");
         exit(-1);
@@ -334,18 +332,18 @@ int TestRtSigframe()
 
     SetXmmRegs(xmm1_app, xmm2_app, xmm3_app);
     kill(getpid(), SIGUSR1);
-    
+
     while (!sigHandled)
     {
         sched_yield();
     }
-    
+
     long xmm1, xmm2, xmm3;
     GetXmmRegs(&xmm1, &xmm2, &xmm3);
-    
+
     if ((xmm1 != xmm1_sig) || (xmm2 != xmm2_sig) || (xmm3 != xmm3_sig))
     {
-        cerr << "Unexpected xmm values after return from signal handler: " << hex << endl; 
+        cerr << "Unexpected xmm values after return from signal handler: " << hex << endl;
         cerr << "xmm1 = " << xmm1 << ", Expected " << xmm1_sig << endl;
         cerr << "xmm2 = " << xmm2 << ", Expected " << xmm2_sig << endl;
         cerr << "xmm3 = " << xmm3 << ", Expected " << xmm3_sig << endl;
@@ -359,26 +357,26 @@ int TestRtSigframe()
 int TestSigframe()
 {
     signal(SIGUSR2, SigUsr2Handler);
-    
+
     SetXmmRegs(xmm1_app, xmm2_app, xmm3_app);
     kill(getpid(), SIGUSR2);
-    
+
     while (!sigHandled)
     {
         sched_yield();
     }
     long xmm1, xmm2, xmm3;
     GetXmmRegs(&xmm1, &xmm2, &xmm3);
-    
+
     if ((xmm1 != xmm1_app) || (xmm2 != xmm2_app) || (xmm3 != xmm3_app))
     {
-        cerr << "Unexpected xmm values after return from signal handler: " << hex << endl; 
+        cerr << "Unexpected xmm values after return from signal handler: " << hex << endl;
         cerr << "xmm1 = " << xmm1 << ", Expected " << xmm1_app << endl;
         cerr << "xmm2 = " << xmm2 << ", Expected " << xmm2_app << endl;
         cerr << "xmm3 = " << xmm3 << ", Expected " << xmm3_app << endl;
         return -1;
     }
-    
+
     cout << "All xmm values are correct" << endl;
 
     return 0;

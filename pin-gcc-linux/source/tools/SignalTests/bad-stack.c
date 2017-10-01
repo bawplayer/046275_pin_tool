@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -48,22 +48,20 @@ END_LEGAL */
 // If __USE_GNU is defined, we don't need to do anything.
 // If we defined it ourselves, we need to undefine it later.
 #ifndef __USE_GNU
-    #define __USE_GNU
-    #define APP_UNDEF_USE_GNU
+# define __USE_GNU
+# define APP_UNDEF_USE_GNU
 #endif
 
 #if defined(TARGET_MAC)
-#include <sys/ucontext.h>
-#elif defined(TARGET_ANDROID) && !defined(TARGET_NDK64)
-#include "android_ucontext.h"
+# include <sys/ucontext.h>
 #else
-#include <ucontext.h>
+# include <ucontext.h>
 #endif
 
 // If we defined __USE_GNU ourselves, we need to undefine it here.
 #ifdef APP_UNDEF_USE_GNU
-    #undef __USE_GNU
-    #undef APP_UNDEF_USE_GNU
+# undef __USE_GNU
+# undef APP_UNDEF_USE_GNU
 #endif
 
 

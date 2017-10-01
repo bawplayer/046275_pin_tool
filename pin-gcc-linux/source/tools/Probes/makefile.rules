@@ -51,38 +51,6 @@ LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
 
-# Android
-ifeq ($(TARGET_OS),android)
-    TEST_TOOL_ROOTS += symbolnames replace_exit unix_parent_tool proto1 proto2 proto3 proto4 probe2 probe3 probe5 probe8 \
-                       probe10 sectest context_probe malloctrace_locktest init remove_probe probe_err1 probe_err2 \
-                       probe_err4 probe_err5 probe_err6 remove_probe2 insert1 insert2 insert3  insert4 insert5 insert6 \
-                       insert7 insert8 insert9 insert10 insert11 insert12 code_range spinlock_replsig spinlock_repl \
-                       spinlock_insert sempost_repl svcraw_repl exit_repl relocate_rtn load_map insert_call_probed \
-                       error-unix-probe error-unix-jit exception_in_dll_tool probesafetest exception_in_probed_call_after \
-                       exception_in_probed_call_sig pthread_exit_tool probe_close exception_in_probe_on_probe \
-                       exception_in_probe_on_probe_sig tpss_lin_libdl tpss_lin_libncurses \
-                       tpss_lin_libpthread tpss_lin_librt tpss_lin_libc exception_in_mt_attach
-    TEST_ROOTS += insert1_no_xmm follow_execv_with_config1 malloctrace2and
-    TOOL_ROOTS += malloctrace2
-    APP_ROOTS += probesafetest_app replacecall err_call replacefun err_replace bad_jump good_jump fall_thru \
-                 bad_call high_target protofoo simplefoo thd_malloc spin_lock_app sempost_app svcraw_app exit_app \
-                 relocate_app insert_call_probed_app load_map_app exception_in_dll_app pthread_exit_c_app dltest-tp \
-                 pthread_exit_cpp_app exception_in_mt_attach_app child_process parent_process
-    OBJECT_ROOTS += probe_safe_test_asm do_nothing_asm simplesp relocate_asm
-    DLL_ROOTS += mallocwrappers exc
-    ifeq ($(TARGET),ia32)
-        TEST_TOOL_ROOTS += signals
-        APP_ROOTS += signals_app
-        LIB_ROOTS += libarglist
-    endif
-    # There is no redzone in the stack according to the IA32 ABI so no need to test it
-    ifeq ($(TARGET),intel64)
-        TEST_TOOL_ROOTS += redzone
-        APP_ROOTS += redzone_app
-        OBJECT_ROOTS := redzone_app_asm
-    endif
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     TEST_TOOL_ROOTS += malloctrace2 symbolnames replace_exit unix_parent_tool proto1 proto2 proto3 proto4 probe2 \
@@ -169,26 +137,10 @@ endif
 
 ###### Handle exceptions here ######
 
-# Android
-# See Mantis 3082 for the following tests (compilation errors):
-#   spinlock_replsig spinlock_repl spinlock_insert tpss_lin_libc tpss_lin_libpthread tpss_lin_librt
-#   exception_in_mt_attach svcraw_repl
-# See Mantis 3085 for the following tests (runtime errors):
-#   exception_in_probed_call_after init exception_in_probed_call_sig load_map exception_in_dll_tool
-#   exception_in_probe_on_probe exception_in_probe_on_probe_sig pthread_exit_tool
-# See Mantis 3091 for the following tests:
-#   remove_probe, remove_probe2
-# See mantis 3356 for relocate_rtn.
-ifeq ($(TARGET_OS),android)
-    TEST_TOOL_ROOTS := $(filter-out spinlock_replsig spinlock_repl spinlock_insert tpss_lin_libc tpss_lin_libpthread \
-                                    tpss_lin_librt exception_in_mt_attach svcraw_repl exception_in_probed_call_after init \
-                                    exception_in_probed_call_sig exception_in_probe_on_probe load_map pthread_exit_tool \
-                                    exception_in_dll_tool exception_in_probe_on_probe_sig, $(TEST_TOOL_ROOTS))
-    APP_ROOTS := $(filter-out spin_lock_app svcraw_app exception_in_mt_attach_app, $(APP_ROOTS))
-    ifeq ($(NDK_VERSION),10)
-        ifeq ($(TARGET),ia32)
-            TEST_TOOL_ROOTS := $(filter-out relocate_rtn, $(TEST_TOOL_ROOTS))
-        endif
+# See Mantis #4210
+ifeq ($(TARGET_OS),windows)
+    ifeq ($(VisualStudioVersion),15.0)
+        TEST_TOOL_ROOTS := $(filter-out malloctrace2win, $(TEST_TOOL_ROOTS))
     endif
 endif
 
@@ -647,11 +599,6 @@ malloctrace2.test: $(OBJDIR)malloctrace2$(PINTOOL_SUFFIX) $(OBJDIR)dltest$(EXE_S
 	  -- $(OBJDIR)dltest$(EXE_SUFFIX) > $(OBJDIR)malloctrace2.out 2>&1
 	$(QGREP) Allocated $(OBJDIR)malloctrace2.out
 	$(RM) $(OBJDIR)malloctrace2.out
-
-# Some version of android linker lack the necessary symbols (dlopen and dlsym). If this is the case we return without error from test.
-malloctrace2and.test: $(OBJDIR)malloctrace2$(PINTOOL_SUFFIX) $(OBJDIR)dltest$(EXE_SUFFIX) $(OBJDIR)$(DLL_PREFIX)mallocwrappers$(DLL_SUFFIX) $(OBJDIR)$(DLL_PREFIX)one$(DLL_SUFFIX) $(OBJDIR)$(DLL_PREFIX)two$(DLL_SUFFIX)
-	$(SET_DLL_PATH) ./malloctrace2and.sh "$(PIN)" "$(OBJDIR)malloctrace2$(PINTOOL_SUFFIX)" \
-	  "$(OBJDIR)dltest$(EXE_SUFFIX)" "$(OBJDIR)malloctrace2.out" "$(QGREP)" "$(RM)"
 
 symbolnames.test: $(OBJDIR)symbolnames$(PINTOOL_SUFFIX) $(OBJDIR)dltest$(EXE_SUFFIX) $(OBJDIR)dltest-tp$(EXE_SUFFIX) $(OBJDIR)$(DLL_PREFIX)one$(DLL_SUFFIX) $(OBJDIR)$(DLL_PREFIX)two$(DLL_SUFFIX)
 	$(SET_DLL_PATH) $(PIN) -t $(OBJDIR)symbolnames$(PINTOOL_SUFFIX) \
@@ -1189,24 +1136,24 @@ $(OBJDIR)ins_fetch_overrun_app$(EXE_SUFFIX): ins_fetch_overrun_app.c $(OBJDIR)in
 # is copy the pre-built application (and its corresponding .pdb file) to the proper directory.
 # The original build rule depended on $(OBJDIR)getesp_asm$(OBJ_SUFFIX).
 $(OBJDIR)probestdcall_app$(EXE_SUFFIX):
-	cp probestdcall_app$(EXE_SUFFIX).zi $(OBJDIR)probestdcall_app$(EXE_SUFFIX)
-	cp probestdcall_app.pdb.zi $(OBJDIR)probestdcall_app.pdb
+	cp probestdcall_app$(EXE_SUFFIX) $(OBJDIR)probestdcall_app$(EXE_SUFFIX)
+	cp probestdcall_app$(DBG_SUFFIX) $(OBJDIR)probestdcall_app$(DBG_SUFFIX)
 
 $(OBJDIR)before_after_stdcall_app$(EXE_SUFFIX):
-	cp before_after_stdcall_app$(EXE_SUFFIX).zi.$(TARGET) $(OBJDIR)before_after_stdcall_app$(EXE_SUFFIX)
-	cp before_after_stdcall_app.pdb.zi.$(TARGET) $(OBJDIR)before_after_stdcall_app.pdb
+	cp before_after_stdcall_app_$(TARGET)$(EXE_SUFFIX) $(OBJDIR)before_after_stdcall_app$(EXE_SUFFIX)
+	cp before_after_stdcall_app_$(TARGET)$(DBG_SUFFIX) $(OBJDIR)before_after_stdcall_app$(DBG_SUFFIX)
 
 $(OBJDIR)probefastcall_app$(EXE_SUFFIX):
-	cp probefastcall_app$(EXE_SUFFIX).zi $(OBJDIR)probefastcall_app$(EXE_SUFFIX)
-	cp probefastcall_app.pdb.zi $(OBJDIR)probefastcall_app.pdb
+	cp probefastcall_app$(EXE_SUFFIX) $(OBJDIR)probefastcall_app$(EXE_SUFFIX)
+	cp probefastcall_app$(DBG_SUFFIX) $(OBJDIR)probefastcall_app$(DBG_SUFFIX)
 
 $(OBJDIR)before_after_defaultcall_app$(EXE_SUFFIX):
-	cp before_after_defaultcall_app$(EXE_SUFFIX).zi.$(TARGET) $(OBJDIR)before_after_defaultcall_app$(EXE_SUFFIX)
-	cp before_after_defaultcall_app.pdb.zi.$(TARGET) $(OBJDIR)before_after_defaultcall_app.pdb
+	cp before_after_defaultcall_app_$(TARGET)$(EXE_SUFFIX) $(OBJDIR)before_after_defaultcall_app$(EXE_SUFFIX)
+	cp before_after_defaultcall_app_$(TARGET)$(DBG_SUFFIX) $(OBJDIR)before_after_defaultcall_app$(DBG_SUFFIX)
 
 $(OBJDIR)before_after_fastcall_app$(EXE_SUFFIX):
-	cp before_after_fastcall_app$(EXE_SUFFIX).zi.$(TARGET) $(OBJDIR)before_after_fastcall_app$(EXE_SUFFIX)
-	cp before_after_fastcall_app.pdb.zi.$(TARGET) $(OBJDIR)before_after_fastcall_app.pdb
+	cp before_after_fastcall_app_$(TARGET)$(EXE_SUFFIX) $(OBJDIR)before_after_fastcall_app$(EXE_SUFFIX)
+	cp before_after_fastcall_app_$(TARGET)$(DBG_SUFFIX) $(OBJDIR)before_after_fastcall_app$(DBG_SUFFIX)
 
 $(OBJDIR)redzone_app$(EXE_SUFFIX): redzone_app.c $(OBJDIR)redzone_app_asm$(OBJ_SUFFIX)
 	$(APP_CC) $(APP_CXXFLAGS_NOOPT) $(COMP_EXE)$@ $^ $(APP_LDFLAGS_NOOPT) $(APP_LIBS)

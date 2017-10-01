@@ -43,7 +43,6 @@ typedef void(*OS_SIGTRAP_PTR)(void *, unsigned int, int, void *, void *);
 
 void OS_SigReturn(void *uctx, int infostyle);
 
-void OS_SetInternalSignalTrampoline(OS_SIGTRAP_PTR mytramp);
 #endif
 
 /*! @ingroup OS_APIS_SIGNALS
@@ -60,6 +59,24 @@ struct SIGACTION {
 
  void (*sa_restorer)(void);                      //! Signal restorer.
 };
+
+#ifdef TARGET_MAC
+struct SIGACTION_WITH_TRAMP {
+    struct SIGACTION act;
+    void(*sa_tramp)(void *, unsigned int, int, void *, void *);
+ };
+#endif
+
+
+
+#ifdef TARGET_MAC
+/**
+ *  Same as OS_SigAction but the specified act contains a trampoline (meaning don't use the default Pin trampoline
+ *  but the the one that is exists in act)
+ */
+OS_RETURN_CODE OS_SigActionWithTrampoline(INT signum, const struct SIGACTION_WITH_TRAMP *actWithTramp, struct SIGACTION *oldact);
+#endif
+
 
 /*! @ingroup OS_APIS_SIGNALS
  * Change the action taken by a process on receipt of a specific signal.

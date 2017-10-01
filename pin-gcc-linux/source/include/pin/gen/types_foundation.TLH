@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -75,7 +75,7 @@ using ::ADDRINT;
 
 #else // !PIN_CRT
 #if !defined(VOID)
-typedef void VOID; 
+typedef void VOID;
 #endif
 
 typedef char            CHAR;
@@ -123,15 +123,15 @@ typedef int64_t INT64;
  * This quantity can be converted to and from an OADDR/IADDR
  *
  * There is an option of overflow and underflow when using ADDRDELTA.
- * For example, let's look at a 32 bit address. 
- * 32 bit address is 32 bit unsigned int number. 
+ * For example, let's look at a 32 bit address.
+ * 32 bit address is 32 bit unsigned int number.
  * This means that the maximum delta between two addresses is (2^32 - 1), which means that the ADDRDELTA which is signed may overflow.
  */
 #if defined(TARGET_IA32)
 typedef UINT32 ADDRINT;
 typedef INT32 ADDRDELTA;
 
-#elif (defined(TARGET_IA32E) || defined(TARGET_MIC))
+#elif defined(TARGET_IA32E)
 typedef UINT64 ADDRINT;
 typedef INT64 ADDRDELTA;
 
@@ -161,7 +161,7 @@ typedef xxx ADDRDELTA;
 
 #if defined(HOST_IA32)
 typedef UINT32 VOIDINT;
-#elif defined(HOST_IA32E) || defined(HOST_MIC)
+#elif defined(HOST_IA32E)
 typedef UINT64 VOIDINT;
 #else
 typedef ADDRINT VOIDINT;

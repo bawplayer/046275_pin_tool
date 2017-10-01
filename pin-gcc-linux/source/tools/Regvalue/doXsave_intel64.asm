@@ -1,7 +1,7 @@
 ; BEGIN_LEGAL 
 ; Intel Open Source License 
 ; 
-; Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+; Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
 ;  
 ; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are
@@ -85,10 +85,38 @@ DoXrstor PROC
     lea     rcx, xsaveArea
     xor     rdx, rdx
 
-    ; Do xsaveopt
+    ; Do xrstor
     xrstor   [rcx]
 
     ret
 DoXrstor ENDP
+
+; void DoFxsave();
+; This function calls fxsave and stores the legacy FP state in the given dst area.
+; The caller is expected to allocate enough space for the xsave area.
+; The function expects the given dst pointer to be properly aligned for the fxsave instruction.
+DoFxsave PROC
+
+    lea     rcx, xsaveArea
+
+    ; Do fxsave
+    fxsave   [rcx]
+
+    ret
+DoFxsave ENDP
+
+; void Dofxrstor();
+; This function calls fxrstor and restores legacy state from the xsave dst area.
+; The function expects the given dst pointer to be properly aligned
+DoFxrstor PROC
+
+    lea     rcx, xsaveArea
+
+    ; Do fxrstor
+    fxrstor   [rcx]
+
+    ret
+DoFxrstor ENDP
+
 
 end

@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -50,10 +50,19 @@ static size_t lastBytes = 0;
 static BOOL lastIsPrefetch = 0;
 static BOOL lastIsRmw = 0;
 static BOOL lastIsAtomic = 0;
+static volatile THREADID myThread = INVALID_THREADID;
+
+VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
+{
+    if (INVALID_THREADID == myThread) myThread = threadid;
+}
 
 VOID PIN_FAST_ANALYSIS_CALL readXmmMemoryFunc(
     ADDRINT memea_callback, UINT32 bytes, string *dis, ADDRINT ip)
 {
+    // case of multithreading - we care just about the main thread
+    if (PIN_ThreadId() != myThread) return;
+    
     // Check xmm size
     if (16 != lastBytes || bytes != lastBytes)
     {
@@ -65,6 +74,9 @@ VOID PIN_FAST_ANALYSIS_CALL readXmmMemoryFunc(
 VOID PIN_FAST_ANALYSIS_CALL verifyPrefetchFunc(
     ADDRINT memea_callback, UINT32 bytes, string *dis, ADDRINT ip)
 {
+    // case of multithreading - we care just about the main thread
+    if (PIN_ThreadId() != myThread) return;
+    
     if (!lastIsPrefetch)
     {
         OutFile << "Prefetch flag not set: "  << *dis << endl;
@@ -75,6 +87,9 @@ VOID PIN_FAST_ANALYSIS_CALL verifyPrefetchFunc(
 VOID PIN_FAST_ANALYSIS_CALL verifyRmwFunc(
     ADDRINT memea_callback, UINT32 bytes, string *dis, ADDRINT ip)
 {
+    // case of multithreading - we care just about the main thread
+    if (PIN_ThreadId() != myThread) return;
+    
     if (!lastIsRmw)
     {
         OutFile << "RMW flag not set: "  << *dis << endl;
@@ -85,6 +100,9 @@ VOID PIN_FAST_ANALYSIS_CALL verifyRmwFunc(
 VOID PIN_FAST_ANALYSIS_CALL verifyAtomicFunc(
     ADDRINT memea_callback, UINT32 bytes, string *dis, ADDRINT ip)
 {
+    // case of multithreading - we care just about the main thread
+    if (PIN_ThreadId() != myThread) return;
+    
     if (!lastIsAtomic)
     {
         OutFile << "Atomic flag not set: "  << *dis << endl;
@@ -95,7 +113,9 @@ VOID PIN_FAST_ANALYSIS_CALL verifyAtomicFunc(
 VOID PIN_FAST_ANALYSIS_CALL readMemoryFunc(
     ADDRINT memea_orig,ADDRINT memea_callback,THREADID threadIndex, string *dis, ADDRINT ip)
 {
-
+    // case of multithreading - we care just about the main thread
+    if (PIN_ThreadId() != myThread) return;
+    
     if (ip != lastIp)
     {
         OutFile << "read analysis missing: "  << hex << ip << " " << *dis << endl;
@@ -128,6 +148,9 @@ VOID PIN_FAST_ANALYSIS_CALL read2MemoryFunc(ADDRINT memea_orig,ADDRINT memea_cal
                                             THREADID threadIndex, string *dis,
                                             CONTEXT *ctxt, ADDRINT ip)
 {
+    // case of multithreading - we care just about the main thread
+    if (PIN_ThreadId() != myThread) return;
+    
     if (ip != lastIp)
     {
         OutFile << "read2 analysis missing: "  << " " << *dis << endl;
@@ -164,7 +187,9 @@ VOID PIN_FAST_ANALYSIS_CALL read2MemoryFunc(ADDRINT memea_orig,ADDRINT memea_cal
 VOID PIN_FAST_ANALYSIS_CALL writeMemoryFunc(
     THREADID threadIndex,ADDRINT memea_orig,ADDRINT memea_callback,ADDRINT ip, string *dis)
 {
-
+    // case of multithreading - we care just about the main thread
+    if (PIN_ThreadId() != myThread) return;
+    
     if (ip != lastIp)
     {
         OutFile << "write analysis missing: " << " " << *dis << endl;
@@ -195,6 +220,8 @@ VOID PIN_FAST_ANALYSIS_CALL writeMemoryFunc(
 VOID PIN_FAST_ANALYSIS_CALL opMemoryFunc(
     ADDRINT memea_orig,ADDRINT memea_callback, UINT32 bytes, ADDRINT ip, string *dis)
 {
+    // case of multithreading - we care just about the main thread
+    if (PIN_ThreadId() != myThread) return;
 
     if (ip != lastIp)
     {
@@ -237,17 +264,19 @@ ADDRINT PIN_FAST_ANALYSIS_CALL memoryCallback(PIN_MEM_TRANS_INFO* memTransInfo, 
         // PIN Internal memory dereference
         return memTransInfo->addr;
     }
-    icountMemCall++;
-
-    lastIp = memTransInfo->ip;
-    lastBytes = memTransInfo->bytes;
-    lastIsAtomic = memTransInfo->flags.bits.isAtomic;
-    lastIsPrefetch = memTransInfo->flags.bits.isPrefetch;
-    lastIsRmw = memTransInfo->flags.bits.isRmw;
+    if (PIN_ThreadId() == myThread)
+    {
+        icountMemCall++;
+        lastIp = memTransInfo->ip;
+        lastBytes = memTransInfo->bytes;
+        lastIsAtomic = memTransInfo->flags.bits.isAtomic;
+        lastIsPrefetch = memTransInfo->flags.bits.isPrefetch;
+        lastIsRmw = memTransInfo->flags.bits.isRmw;
+    }
 
     if (memTransInfo->memOpType == PIN_MEMOP_STORE )
     {
-        lastWriteAddr = memTransInfo->addr;
+        if (PIN_ThreadId() == myThread)  lastWriteAddr = memTransInfo->addr;
 
         // Verify that we can call PIN API functions inside PIN
         PIN_SafeCopy((void*)memTransInfo->addr,
@@ -255,7 +284,7 @@ ADDRINT PIN_FAST_ANALYSIS_CALL memoryCallback(PIN_MEM_TRANS_INFO* memTransInfo, 
             memTransInfo->bytes);
     }
     else
-        lastReadAddr = memTransInfo->addr;
+        if (PIN_ThreadId() == myThread) lastReadAddr = memTransInfo->addr;
 
     // Check void parameter
     if ((ADDRINT)v != 0xa5a5a5a5)
@@ -454,8 +483,11 @@ int main(int argc, char * argv[])
 
     // Initialize pin
     if (PIN_Init(argc, argv)) return Usage();
+    
+    PIN_AddThreadStartFunction(ThreadStart, NULL);
 
     OutFile.open(KnobOutputFile.Value().c_str());
+    
 
     // Register Instruction to be called to instrument instructions
     INS_AddInstrumentFunction(Instruction, 0);

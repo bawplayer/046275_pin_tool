@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -48,6 +48,9 @@ KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool",
 ofstream outFile; // The tool's output file for printing the loaded images.
 BOOL beforeTimeOfDayCalled = false;
 BOOL unload_vsdo = false;
+BOOL vdsoUsed = false; // True if one of the functions below are fetched
+ADDRINT vdsoGetTimeOfDayAddress = 0; // Address of __vdso_gettimeofday function
+ADDRINT kernelVsyscallAddress = 0; // Address of __kernel_vsyscall function
 
 /* ===================================================================== */
 /* Analysis routines                                                     */
@@ -65,6 +68,20 @@ VOID kernelVSyscallRtnBefore(ADDRINT l_eax)
     {
         outFile << "Before __kernel_vsyscall with EAX equal to __NR_gettimeofday" << endl;
         beforeTimeOfDayCalled = true;
+    }
+}
+
+VOID Trace(TRACE trace, VOID *v)
+{
+    ADDRINT traceAddress = TRACE_Address(trace);
+    ADDRINT traceLastAddress = traceAddress + TRACE_Size(trace) - 1;
+
+    if (((vdsoGetTimeOfDayAddress >= traceAddress) &&  (vdsoGetTimeOfDayAddress <= traceLastAddress))
+        || ((kernelVsyscallAddress >= traceAddress) &&  (kernelVsyscallAddress <= traceLastAddress)))
+
+    {
+        outFile << "vdso used" << endl;
+        vdsoUsed = true;
     }
 }
 
@@ -94,6 +111,8 @@ static VOID ImageLoad(IMG img, VOID *v)
     // (no easy switch). So just catching any of them will satisfy the test.
     if (RTN_Valid(getTimeOfDayRtn))
     {
+        vdsoGetTimeOfDayAddress = RTN_Address(getTimeOfDayRtn);
+
         // Instrumenting __vdso_gettimeofday() will satisfy the test
         RTN_Open(getTimeOfDayRtn);
         RTN_InsertCall(getTimeOfDayRtn, IPOINT_BEFORE, (AFUNPTR)timeOfDayBefore, IARG_END);
@@ -101,6 +120,8 @@ static VOID ImageLoad(IMG img, VOID *v)
     }
     if (RTN_Valid(kernelVSyscallRtn))
     {
+        kernelVsyscallAddress = RTN_Address(kernelVSyscallRtn);
+
         // Instrumenting __kernel_vsyscall() with EAX equal to __NR_gettimeofday will satisfy the test
         RTN_Open(kernelVSyscallRtn);
         RTN_InsertCall(kernelVSyscallRtn, IPOINT_BEFORE, (AFUNPTR)kernelVSyscallRtnBefore,
@@ -124,9 +145,11 @@ static VOID Fini(INT32 code, VOID *v)
 {
     ASSERT(unload_vsdo,
             "Error, VDSO wasn't unloaded");
-    ASSERT(beforeTimeOfDayCalled,
+    ASSERT(!vdsoUsed || beforeTimeOfDayCalled,
                 "Error, VDSO gettimeofday service was not instrumented "
                 "(__vdso_gettimeofday() or __kernel_vsyscall with __NR_gettimeofday)");
+    // sanity check: A situation where VDSO was not used but the analysis was called shouldn't happen
+    ASSERTX( !(!vdsoUsed && beforeTimeOfDayCalled) );
     outFile.close();
 }
 
@@ -147,6 +170,7 @@ int main( INT32 argc, CHAR *argv[] )
 
     IMG_AddInstrumentFunction(ImageLoad, 0);
     IMG_AddUnloadFunction(ImageUnload, 0);
+    TRACE_AddInstrumentFunction(Trace, 0);
     PIN_AddFiniFunction(Fini, 0);
 
     // Start the program.

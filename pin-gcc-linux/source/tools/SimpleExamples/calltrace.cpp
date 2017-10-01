@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -132,7 +132,7 @@ VOID Trace(TRACE trace, VOID *v)
                 if( print_args )
                 {
                     INS_InsertPredicatedCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_args),
-                                             IARG_PTR, Target2String(target), IARG_G_ARG0_CALLER, IARG_END);
+                                             IARG_PTR, Target2String(target), IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_END);
                 }
                 else
                 {
@@ -146,7 +146,7 @@ VOID Trace(TRACE trace, VOID *v)
                 if( print_args )
                 {
                     INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_args_indirect),
-                                   IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,  IARG_G_ARG0_CALLER, IARG_END);
+                                   IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,  IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_END);
                 }
                 else
                 {
@@ -168,7 +168,7 @@ VOID Trace(TRACE trace, VOID *v)
                 if( print_args )
                 {
                     INS_InsertCall(tail, IPOINT_BEFORE, AFUNPTR(do_call_args_indirect),
-                                   IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,  IARG_G_ARG0_CALLER, IARG_END);
+                                   IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN,  IARG_FUNCARG_CALLSITE_VALUE, 0, IARG_END);
                 }
                 else
                 {

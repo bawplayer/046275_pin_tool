@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -133,7 +133,7 @@ typedef INT32 ADDRDELTA;
 #define ADDRINT_SIZE_IN_BITS 32
 
 
-#elif (defined(TARGET_IA32E) || defined(TARGET_MIC))
+#elif defined(TARGET_IA32E)
 typedef UINT64 ADDRINT;
 typedef INT64 ADDRDELTA;
 #define ADDRINT_SIZE_IN_BITS 64
@@ -152,14 +152,14 @@ typedef ADDRINT    USIZE;
 typedef UINT32 VOIDINT;
 typedef UINT32 PTRINT;
 #define PTRINT_SIZE 32
-#elif defined(HOST_IA32E) || defined(HOST_MIC)
+#elif defined(HOST_IA32E)
 typedef UINT64 VOIDINT;
 typedef UINT64 PTRINT;
 #define PTRINT_SIZE 64
 #else
 typedef ADDRINT VOIDINT;
 typedef ADDRINT PTRINT;
-#define PTRINT_SIZE ADDRINT_SIZE_IN_BITS 
+#define PTRINT_SIZE ADDRINT_SIZE_IN_BITS
 #endif
 
 typedef UINT64 REG_CLASS_BITS;
@@ -186,17 +186,15 @@ typedef ADDRINT NATIVE_FD;
  * Data type that can hold a process ID.
  * On OS-APIs all processes can be refered to by their PIDs.
  */
-typedef ADDRINT NATIVE_PID;
+typedef UINT32 NATIVE_PID;
 
 /*! @ingroup OS_APIS_TYPES
  * Data type that can hold a thread ID.
  * On OS-APIs all threads can be refered to by their TIDs.
  */
-typedef ADDRINT NATIVE_TID;
+typedef UINT32 NATIVE_TID;
 
 typedef ADDRINT NATIVE_UID;
-
-typedef ADDRINT PIN_TID;
 
 #ifdef TARGET_MAC
 typedef UINT64 OS_EVENT;
@@ -204,12 +202,14 @@ typedef UINT64 OS_EVENT;
 typedef ADDRINT OS_EVENT;
 #endif
 
-#define INVALID_PIN_TID ((PIN_TID)-1LL)
 #define INVALID_NATIVE_FD ((NATIVE_FD)-1LL)
-#define INVALID_NATIVE_TID ((NATIVE_TID)-1LL)
-#define INVALID_NATIVE_PID ((NATIVE_PID)-1LL)
-#define NATIVE_PID_CURRENT ((NATIVE_PID)0)
-#define NATIVE_TID_CURRENT ((NATIVE_TID)0)
+// We use a thread ID inside a reentrant lock to mark the thread that owns the lock.
+// If the owner is 0, the implementation treats the lock as unlocked.
+// Here we want to align to that implementation and use 0 as INVALID_NATIVE_TID.
+#define INVALID_NATIVE_TID ((NATIVE_TID)0)
+#define INVALID_NATIVE_PID ((NATIVE_PID)0)
+#define NATIVE_PID_CURRENT ((NATIVE_PID)-1LL)
+#define NATIVE_TID_CURRENT ((NATIVE_TID)-1LL)
 #define OS_EVENT_INITIALIZER ((OS_EVENT)0)
 
 /*! @ingroup OS_APIS_TYPES

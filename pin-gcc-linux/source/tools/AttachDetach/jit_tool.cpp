@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,7 +41,7 @@ END_LEGAL */
 #include <stdlib.h>
 #include <assert.h>
 #include <set>
-#if defined(TARGET_LINUX) || defined(TARGET_ANDROID)
+#if defined(TARGET_LINUX)
 #include <elf.h>
 #endif
 #include "tool_macros.h"
@@ -102,14 +102,14 @@ UINT32  threadCounter=0;
 /*
  * Thread Start callback
  */
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
     ASSERT(!KnobCheckOrder || !jitBegan, "JIT began before all Thread start callbacks were called");
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
     TraceFile << "Thread counter is updated to " << dec <<  (threadCounter+1) << endl;
     ++threadCounter;
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 /*
@@ -118,16 +118,16 @@ VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
 
 VOID AllThreadsNotifed(unsigned int numOfThreads, ADDRINT* gax)
 {
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
     // Check that we don't have any extra thread
     assert(threadCounter <= numOfThreads);
     assert(*gax == 0);
     if (threadCounter == numOfThreads)
     {
-        PIN_ReleaseLock(&lock);
+        PIN_ReleaseLock(&pinLock);
         *gax = 1;
     }
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 int OneThreadNotified()
@@ -140,7 +140,7 @@ void* MyThreadMain(void* arg)
     static set<OS_THREAD_ID> tids;
     static set<ADDRINT> args;
 
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
 
     TraceFile << "MyThreadMain called with " << dec << (ADDRINT)arg << endl;
     pair<set<OS_THREAD_ID>::iterator,bool> res = tids.insert(PIN_GetTid());
@@ -148,7 +148,7 @@ void* MyThreadMain(void* arg)
     pair<set<ADDRINT>::iterator,bool> res2 = args.insert((ADDRINT)arg);
     ASSERT(res2.second, "Argument " + decstr((ADDRINT)arg) + " provided twice");
 
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
     return arg;
 }
 
@@ -223,7 +223,7 @@ int main(int argc, CHAR *argv[])
         return Usage();
     }
 
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
 
     TraceFile.open(KnobOutputFile.Value().c_str());
     TraceFile << hex;

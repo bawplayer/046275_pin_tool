@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -278,8 +278,8 @@ template<typename ELEMENT, typename HEAP, unsigned int IndexBits, unsigned int C
 
     // This is the head of the lifo queue.
     //
-    // NOTE: This is defined as a union with _word to avoid a compiler bug with the Itanium(R) version
-    // of GCC 4.0.0.  See the SVN commit log r3543 for more details.
+    // NOTE: This is defined as a union with _word to avoid a compiler bug.
+    //       See the SVN commit log r3543 for more details.
     //
     union HEAD
     {

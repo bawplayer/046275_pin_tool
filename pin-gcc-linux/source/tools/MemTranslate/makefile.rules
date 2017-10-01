@@ -59,17 +59,6 @@ endif
 
 ###### Handle exceptions here ######
 
-# See Mantis 2963
-ifeq ($(TARGET),mic)
-    TEST_TOOL_ROOTS := $(filter-out memory_addr_callback memory_callback_error, $(TEST_TOOL_ROOTS))
-endif
-
-ifeq ($(TARGET_OS),windows)
-    # See mantis #3612 for why these tests are disabled.
-    ifeq ($(WIN_VER_MAJOR),10)
-        TEST_TOOL_ROOTS := $(filter-out memory_addr_callback, $(TEST_TOOL_ROOTS))
-    endif
-endif
 
 ###### Define the sanity subset ######
 

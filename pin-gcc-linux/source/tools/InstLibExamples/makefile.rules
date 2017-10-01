@@ -48,13 +48,6 @@ LIB_ROOTS :=
 
 ###### Place OS-specific definitions here ######
 
-# Android
-ifeq ($(TARGET_OS),android)
-    TEST_TOOL_ROOTS += follow_child
-    TEST_ROOTS += marker_test int3_test multi_start_stop_test
-    APP_ROOTS += itext-marker-test int3-test multi-start-stop-test
-endif
-
 # Linux
 ifeq ($(TARGET_OS),linux)
     TEST_TOOL_ROOTS += follow_child
@@ -74,14 +67,6 @@ ifeq ($(TARGET_OS),mac)
     TEST_TOOL_ROOTS += follow_child
     TEST_ROOTS += marker_test int3_test multi_start_stop_test mt3_test control_test
     APP_ROOTS += itext-marker-test int3-test multi-start-stop-test mt3-test
-endif
-
-###### Handle exceptions here ######
-
-# TODO: These tests fail - fix and remove the following:
-# See Mantis 2963
-ifeq ($(TARGET),mic)
-    TEST_ROOTS := $(filer-out int3_test marker_test, $(TEST_ROOTS))
 endif
 
 ###### Define the sanity subset ######

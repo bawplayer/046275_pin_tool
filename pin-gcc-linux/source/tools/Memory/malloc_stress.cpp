@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -46,7 +46,7 @@ KNOB<UINT32> KnobNumThreads(KNOB_MODE_WRITEONCE, "pintool",
 /* ===================================================================== */
 
 std::ostream* TraceFile = 0;
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 struct Allocation
 {
     CHAR * Addr;
@@ -62,9 +62,9 @@ static void AbortProcess(const string & msg)
 {
     THREADID myTid = PIN_ThreadId();
 
-    PIN_GetLock(&lock, myTid + 1);
+    PIN_GetLock(&pinLock, myTid + 1);
     *TraceFile << "malloc_stress test aborted: " << msg << "." << endl << flush;
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
     PIN_WriteErrorMessage(msg.c_str(), 1002, PIN_ERR_FATAL, 0);
 }
 
@@ -194,7 +194,7 @@ INT32 Usage()
 
 int main(int argc, char *argv[])
 {
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
     PIN_InitSymbols();
     if (PIN_Init(argc, argv))
     {

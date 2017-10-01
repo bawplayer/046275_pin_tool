@@ -1,7 +1,7 @@
 /*BEGIN_LEGAL 
 Intel Open Source License 
 
-Copyright (c) 2002-2016 Intel Corporation. All rights reserved.
+Copyright (c) 2002-2017 Intel Corporation. All rights reserved.
  
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -89,7 +89,7 @@ volatile int totalNumOfThreads = 0;
 
 THREADID myThread = INVALID_THREADID;
 set<THREADID> appThreads;
-PIN_LOCK lock;
+PIN_LOCK pinLock;
 
 /**************************************************
  * Function declarations                          *
@@ -129,7 +129,7 @@ static void callExitApplication(bool appThread) {
 }
 
 static VOID AppThreadStart(THREADID threadIndex) {
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
     ++numOfActiveThreads;
     ++totalNumOfThreads;
     OS_THREAD_ID* tidData = new OS_THREAD_ID(PIN_GetTid());
@@ -138,7 +138,7 @@ static VOID AppThreadStart(THREADID threadIndex) {
     fprintf(outfile, "TOOL: <%d> thread start, active: %d\n", *tidData, numOfActiveThreads);
     fflush(outfile);
     appThreads.insert(threadIndex);
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 /**************************************************
@@ -153,7 +153,7 @@ static VOID ThreadStart(THREADID threadIndex, CONTEXT* c, INT32 flags, VOID *v) 
 }
 
 static VOID ThreadFini(THREADID threadIndex, CONTEXT const * c, INT32 code, VOID *v) {
-    PIN_GetLock(&lock, PIN_GetTid());
+    PIN_GetLock(&pinLock, PIN_GetTid());
     if (appThreads.find(threadIndex) != appThreads.end()) {
         appThreads.erase(appThreads.find(threadIndex));
         --numOfActiveThreads;
@@ -163,7 +163,7 @@ static VOID ThreadFini(THREADID threadIndex, CONTEXT const * c, INT32 code, VOID
         fprintf(outfile, "TOOL: <%d> thread fini, fini: %d\n", *tidData, numOfActiveThreads);
         fflush(outfile);
     }
-    PIN_ReleaseLock(&lock);
+    PIN_ReleaseLock(&pinLock);
 }
 
 static VOID Fini(INT32 code, VOID* v) {
@@ -234,7 +234,7 @@ void InternalThreadMain(void* v) {
 // The last parameter is expected to be a number which signifies which test is being run.
 int main(INT32 argc, CHAR **argv) {
 
-    PIN_InitLock(&lock);
+    PIN_InitLock(&pinLock);
     // Initialize Pin and TLS
     PIN_InitSymbols();
     PIN_Init(argc, argv);

@@ -244,6 +244,9 @@ extern INT32 Int32FromString(const string& s);
 extern UINT32 Uint32FromString(const string& s);
 
                                                                   /* DO NOT EDIT */
+extern INT64 Int64FromString(const string& s);
+
+                                                                  /* DO NOT EDIT */
 extern UINT64 Uint64FromString(const string& s);
 
                                                                   /* DO NOT EDIT */
@@ -322,7 +325,7 @@ inline string hexstr(UINT64 val, UINT32 width=0 )
                                                                   /* DO NOT EDIT */
 inline string hexstr(VOID *p, UINT32 width=0 )
 {
-#if defined(HOST_IA32E) || defined(HOST_MIC)
+#if defined(HOST_IA32E)
     UINT64 val = reinterpret_cast<UINT64>(p);
     return hexstr(val,width);
 #else
@@ -334,7 +337,7 @@ inline string hexstr(VOID *p, UINT32 width=0 )
                                                                   /* DO NOT EDIT */
 inline string hexstr(const VOID *p, UINT32 width=0 )
 {
-#if defined(HOST_IA32E) || defined(HOST_MIC)
+#if defined(HOST_IA32E)
     UINT64 val = reinterpret_cast<UINT64>(p);
     return hexstr(val,width);
 #else
@@ -404,7 +407,7 @@ template <typename ITER, typename CONV>
                                                                   /* DO NOT EDIT */
 inline VOID * Addrint2VoidStar(ADDRINT addr)
 {
-#if (defined(HOST_IA32E) || defined(HOST_MIC)) && (defined(TARGET_IA32))
+#if defined(HOST_IA32E) && defined(TARGET_IA32)
     ASSERT(false,"Should not be called in cross environment\n");
     return 0;
 #else
@@ -415,7 +418,7 @@ inline VOID * Addrint2VoidStar(ADDRINT addr)
                                                                   /* DO NOT EDIT */
 inline ADDRINT VoidStar2Addrint(const VOID * addr)
 {
-#if (defined(HOST_IA32E) || defined(HOST_MIC)) && (defined(TARGET_IA32))
+#if defined(HOST_IA32E) && defined(TARGET_IA32)
     ASSERT(false,"Should not be called in cross environment\n");
     return 0;
 #else
@@ -426,7 +429,7 @@ inline ADDRINT VoidStar2Addrint(const VOID * addr)
                                                                   /* DO NOT EDIT */
 inline ADDRINT VoidStar2Addrint(VOID * addr)
 {
-#if (defined(HOST_IA32E) || defined(HOST_MIC)) && (defined(TARGET_IA32))
+#if defined(HOST_IA32E) && defined(TARGET_IA32)
     ASSERT(false,"Should not be called in cross environment\n");
     return 0;
 #else
@@ -535,9 +538,7 @@ template <typename T> T * RoundDownPowerOf2(T * ptr, size_t alignment)
                                                                   /* DO NOT EDIT */
 template<typename T> ADDRINT PointerToInt(const T *ptr)
 {
-#if (defined(HOST_IA32) && !defined(TARGET_IA32)) || (defined(HOST_IA32E) && !defined(TARGET_IA32E)) || \
-    (defined(HOST_MIC) && !defined(TARGET_MIC))
-
+#if (defined(HOST_IA32) && !defined(TARGET_IA32)) || (defined(HOST_IA32E) && !defined(TARGET_IA32E))
     ASSERT(false,"Should not be called in cross environment\n");
     return 0;
 
@@ -549,9 +550,7 @@ template<typename T> ADDRINT PointerToInt(const T *ptr)
                                                                   /* DO NOT EDIT */
 template<typename T> T *IntToPointer(ADDRINT addr)
 {
-#if (defined(HOST_IA32) && !defined(TARGET_IA32)) || (defined(HOST_IA32E) && !defined(TARGET_IA32E)) || \
-    (defined(HOST_MIC) && !defined(TARGET_MIC))
-
+#if (defined(HOST_IA32) && !defined(TARGET_IA32)) || (defined(HOST_IA32E) && !defined(TARGET_IA32E))
     ASSERT(false,"Should not be called in cross environment\n");
     return 0;
 
@@ -563,7 +562,7 @@ template<typename T> T *IntToPointer(ADDRINT addr)
                                                                   /* DO NOT EDIT */
 inline INT64 VoidStar2Int(VOID * addr)
 {
-#if (defined(HOST_IA32E) || defined(HOST_MIC)) && defined(TARGET_IA32)
+#if defined(HOST_IA32E) && defined(TARGET_IA32)
     ASSERT(false,"Should not be called in cross environment\n");
     return 0;
 #else
@@ -1222,9 +1221,6 @@ extern STAT_NORM StatRawMmapBytes;
 
                                                                   /* DO NOT EDIT */
 extern STAT_NORM StatReservedBytes;
-
-                                                                  /* DO NOT EDIT */
-extern USIZE GetRawMmapBytes();
 
                                                                   /* DO NOT EDIT */
 extern VOID UpdateRawMmapBytes();

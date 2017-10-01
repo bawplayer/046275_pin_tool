@@ -221,6 +221,11 @@ VOID mallocImage(IMG img) {
     //  Find the malloc() function.
     RTN mallocRtn = RTN_FindByName(img, MALLOC);
     if (RTN_Valid(mallocRtn)) {
+        RTN_InsertCallProbed(mallocRtn, IPOINT_BEFORE, (AFUNPTR)Arg1Before,
+                       IARG_ADDRINT, MALLOC,
+                       IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                       IARG_END);
+
         PROTO proto_malloc = PROTO_Allocate( PIN_PARG(void *), CALLINGSTD_DEFAULT,
             MALLOC, PIN_PARG(int), PIN_PARG_END() );
                        
@@ -244,7 +249,9 @@ VOID mallocImage(IMG img) {
     }
     
     RTN mainRtn = RTN_FindByName(img, MAIN);
-	if (RTN_Valid(mainRtn)) {		
+	if (RTN_Valid(mainRtn)) {
+		RTN_InsertCallProbed(mainRtn, IPOINT_BEFORE, (AFUNPTR)mainBefore, IARG_END);
+		
 		PROTO proto_main = PROTO_Allocate( PIN_PARG(int), CALLINGSTD_DEFAULT,
             FREE, PIN_PARG(int), PIN_PARG(char*), PIN_PARG_END() );
 		

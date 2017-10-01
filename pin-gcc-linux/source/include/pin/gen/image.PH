@@ -257,21 +257,24 @@ enum SYMBOL_INFO_MODE {
 class SymbolAddressRange
 {
     public:
-        SymbolAddressRange() : base(0), size(0) {}
-        SymbolAddressRange(ADDRINT sym_base, size_t sym_size) : base(sym_base), size(sym_size) {}
-        SymbolAddressRange(const SymbolAddressRange &obj) {base=obj.base; size=obj.size;}
-        void operator = (const SymbolAddressRange &obj) {base=obj.base; size=obj.size;}
+        SymbolAddressRange() : base(0), size(0), name("") {}
+        SymbolAddressRange(string sym_name, ADDRINT sym_base, size_t sym_size) :
+            base(sym_base), size(sym_size), name(sym_name) {}
+        SymbolAddressRange(const SymbolAddressRange &obj) {base=obj.base; size=obj.size; name=obj.name;}
+        void operator = (const SymbolAddressRange &obj) {base=obj.base; size=obj.size; name=obj.name;}
         BOOL operator < (const SymbolAddressRange &  range) const {return (base < range.base);}
         BOOL Contains(const ADDRINT addr) const { return ((addr-base)<size); }
     public:
         ADDRINT base;
         size_t size;
+        string name;
 };
 
                                                                   /* DO NOT EDIT */
 struct SymbolDebugInfo
 {
-    SymbolDebugInfo(string sym_name, ADDRINT sym_base, size_t sym_size) : name(sym_name), range(sym_base, sym_size) {}
+    SymbolDebugInfo(string sym_name, ADDRINT sym_base, size_t sym_size) :
+        name(sym_name), range(sym_name, sym_base, sym_size) {}
     string name;
     SymbolAddressRange range;
 };
